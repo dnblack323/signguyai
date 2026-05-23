@@ -451,10 +451,12 @@ class TestDashboardDataEndpoints:
         print(f"Full productivity summary: {json.dumps(data, indent=2)[:1000]}")
 
     def test_dashboard_clocked_in_endpoint(self, auth_headers):
-        res = requests.get(f"{BASE_URL}/api/dashboard/clocked-in", headers=auth_headers)
+        """[Phase 5] Legacy /clocked-in removed; verify V1 team-status-today."""
+        res = requests.get(f"{BASE_URL}/api/dashboard/team-status-today", headers=auth_headers)
         assert res.status_code == 200
         data = res.json()
-        print(f"Clocked in response: {data}")
+        assert "employees" in data
+        print(f"Team status today: clocked_in_count={data.get('clocked_in_count')}, scheduled_count={data.get('scheduled_count')}")
 
     def test_dashboard_recent_ai_docs_endpoint(self, auth_headers):
         res = requests.get(f"{BASE_URL}/api/dashboard/recent-ai-documents", headers=auth_headers)

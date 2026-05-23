@@ -520,22 +520,22 @@ class TestTenantIsolation:
         print("PASS: Dashboard pending approvals is tenant-isolated")
 
     def test_dashboard_clocked_in_isolation(self, headers_a, headers_b):
-        """Clocked-in employees should only show employees from the current tenant"""
-        clocked_a = requests.get(f"{BASE_URL}/api/dashboard/clocked-in", headers=headers_a)
+        """[Phase 5] V1 team-status-today (replacement) tenant isolation."""
+        clocked_a = requests.get(f"{BASE_URL}/api/dashboard/team-status-today", headers=headers_a)
         assert clocked_a.status_code == 200
-        
-        clocked_b = requests.get(f"{BASE_URL}/api/dashboard/clocked-in", headers=headers_b)
+
+        clocked_b = requests.get(f"{BASE_URL}/api/dashboard/team-status-today", headers=headers_b)
         assert clocked_b.status_code == 200
-        print("PASS: Dashboard clocked-in is tenant-isolated")
+        print("PASS: Dashboard team-status-today is tenant-isolated")
 
     def test_dashboard_todays_schedule_isolation(self, headers_a, headers_b):
-        """Today's schedule should only show jobs from the current tenant"""
-        schedule_a = requests.get(f"{BASE_URL}/api/dashboard/todays-schedule", headers=headers_a)
+        """[Phase 5] V1 today-command-center (replacement) tenant isolation."""
+        schedule_a = requests.get(f"{BASE_URL}/api/dashboard/today-command-center", headers=headers_a)
         assert schedule_a.status_code == 200
-        
-        schedule_b = requests.get(f"{BASE_URL}/api/dashboard/todays-schedule", headers=headers_b)
+
+        schedule_b = requests.get(f"{BASE_URL}/api/dashboard/today-command-center", headers=headers_b)
         assert schedule_b.status_code == 200
-        print("PASS: Dashboard today's schedule is tenant-isolated")
+        print("PASS: Dashboard today-command-center is tenant-isolated")
 
     # ================== PAYROLL ISOLATION ==================
     

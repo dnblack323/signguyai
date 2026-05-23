@@ -6,8 +6,8 @@ Endpoints tested:
 - GET /api/dashboard/stats - Dashboard statistics
 - GET /api/dashboard/pending-approvals - Proofs awaiting approval
 - GET /api/dashboard/unread-messages - Unread customer messages
-- GET /api/dashboard/clocked-in - Currently clocked-in employees
-- GET /api/dashboard/todays-schedule - Jobs due today
+- GET /api/dashboard/team-status-today - V1 team status (supersedes legacy clocked-in)
+- GET /api/dashboard/today-command-center - V1 command center (supersedes legacy todays-schedule)
 """
 
 import pytest
@@ -111,44 +111,24 @@ class TestDashboardAPIs:
             assert "unread_count" in msg, "Missing unread_count field"
     
     def test_clocked_in_endpoint(self):
-        """Test /api/dashboard/clocked-in returns valid structure"""
-        response = self.session.get(f"{BASE_URL}/api/dashboard/clocked-in")
-        
-        # Status assertion
+        """[Phase 5] Legacy /clocked-in removed; verify V1 team-status-today instead."""
+        response = self.session.get(f"{BASE_URL}/api/dashboard/team-status-today")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        
-        # Data assertions - validate response is a list
         data = response.json()
-        assert isinstance(data, list), "Response should be a list"
-        
-        # If there are employees, validate structure
-        if len(data) > 0:
-            emp = data[0]
-            assert "employee_id" in emp, "Missing employee_id field"
-            assert "employee_name" in emp, "Missing employee_name field"
-            assert "clocked_in_at" in emp, "Missing clocked_in_at field"
-            assert "status" in emp, "Missing status field"
-    
+        assert isinstance(data, dict), "Response should be a dict"
+        assert "employees" in data, "Missing employees list"
+        assert "clocked_in_count" in data, "Missing clocked_in_count"
+        assert "scheduled_count" in data, "Missing scheduled_count"
+
     def test_todays_schedule_endpoint(self):
-        """Test /api/dashboard/todays-schedule returns valid structure"""
-        response = self.session.get(f"{BASE_URL}/api/dashboard/todays-schedule")
-        
-        # Status assertion
+        """[Phase 5] Legacy /todays-schedule removed; verify V1 today-command-center."""
+        response = self.session.get(f"{BASE_URL}/api/dashboard/today-command-center")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        
-        # Data assertions - validate response is a list
         data = response.json()
-        assert isinstance(data, list), "Response should be a list"
-        
-        # If there are schedule items, validate structure
-        if len(data) > 0:
-            item = data[0]
-            assert "id" in item, "Missing id field"
-            assert "name" in item, "Missing name field"
-            assert "customer_name" in item, "Missing customer_name field"
-            assert "due_date" in item, "Missing due_date field"
-            assert "status" in item, "Missing status field"
-            assert "priority" in item, "Missing priority field"
+        assert isinstance(data, dict), "Response should be a dict"
+        assert "due_order_items_today" in data, "Missing due_order_items_today list"
+        assert "appointments_installs_today" in data, "Missing appointments_installs_today list"
+        assert "team_status_today" in data, "Missing team_status_today"
     
     def test_dashboard_stats_requires_auth(self):
         """Test that dashboard/stats requires authentication"""
@@ -173,17 +153,15 @@ class TestDashboardAPIs:
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
     
     def test_clocked_in_requires_auth(self):
-        """Test that dashboard/clocked-in requires authentication"""
+        """[Phase 5] V1 team-status-today (replacement) requires auth."""
         unauthenticated_session = requests.Session()
-        response = unauthenticated_session.get(f"{BASE_URL}/api/dashboard/clocked-in")
-        
+        response = unauthenticated_session.get(f"{BASE_URL}/api/dashboard/team-status-today")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-    
+
     def test_todays_schedule_requires_auth(self):
-        """Test that dashboard/todays-schedule requires authentication"""
+        """[Phase 5] V1 today-command-center (replacement) requires auth."""
         unauthenticated_session = requests.Session()
-        response = unauthenticated_session.get(f"{BASE_URL}/api/dashboard/todays-schedule")
-        
+        response = unauthenticated_session.get(f"{BASE_URL}/api/dashboard/today-command-center")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
 
 

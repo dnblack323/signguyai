@@ -154,14 +154,16 @@ class TestDashboardOtherEndpoints:
               f"active_jobs: {data['active_jobs']}")
     
     def test_dashboard_todays_schedule(self, auth_headers):
-        """Test GET /api/dashboard/todays-schedule"""
+        """[Phase 5] Legacy /todays-schedule removed; verify V1 today-command-center."""
         response = requests.get(
-            f"{BASE_URL}/api/dashboard/todays-schedule",
+            f"{BASE_URL}/api/dashboard/today-command-center",
             headers=auth_headers
         )
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
-        print(f"SUCCESS: Today's schedule - {len(response.json())} items")
+        data = response.json()
+        assert isinstance(data, dict)
+        assert "due_order_items_today" in data
+        print(f"SUCCESS: Today's command center - {len(data['due_order_items_today'])} due items")
     
     def test_dashboard_pending_approvals(self, auth_headers):
         """Test GET /api/dashboard/pending-approvals"""
@@ -184,14 +186,16 @@ class TestDashboardOtherEndpoints:
         print(f"SUCCESS: Unread messages - {len(response.json())} items")
     
     def test_dashboard_clocked_in(self, auth_headers):
-        """Test GET /api/dashboard/clocked-in"""
+        """[Phase 5] Legacy /clocked-in removed; verify V1 team-status-today."""
         response = requests.get(
-            f"{BASE_URL}/api/dashboard/clocked-in",
+            f"{BASE_URL}/api/dashboard/team-status-today",
             headers=auth_headers
         )
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
-        print(f"SUCCESS: Clocked in - {len(response.json())} employees")
+        data = response.json()
+        assert isinstance(data, dict)
+        assert "employees" in data
+        print(f"SUCCESS: Team status today - {data.get('clocked_in_count', 0)} clocked in")
     
     def test_dashboard_recent_ai_documents(self, auth_headers):
         """Test GET /api/dashboard/recent-ai-documents"""

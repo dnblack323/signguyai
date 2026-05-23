@@ -22,6 +22,19 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-23 — **Phase 5: Cleanup + Deprecation Removal (COMPLETE)**:
+  - Removed `GET /api/dashboard/todays-schedule` (legacy `db.jobs` source)
+  - Removed `GET /api/dashboard/clocked-in` (superseded by `/dashboard/team-status-today`)
+  - Removed unused `ClockedInEmployee` and `ScheduleItem` Pydantic models from `routes/dashboard.py`
+  - Updated module docstring header to log Phase 5 removals
+  - Realigned 4 test files to V1 contracts (no legacy restore):
+    - `test_dashboard.py`: `clocked-in` → `team-status-today`, `todays-schedule` → `today-command-center`
+    - `test_phase1_dashboard.py`: dropped 2 legacy "still callable" assertions
+    - `test_team_schedule_features.py`: rewrote 2 tests against V1 endpoints
+    - `test_tenant_isolation_security.py`: rewrote 2 isolation tests against V1 endpoints
+    - `test_iteration160_dashboard_demo_data.py`: rewrote 1 legacy call to V1
+  - Verified: legacy endpoints return 404; all 6 V1 endpoints return 200; Phase 1 backend suite 47/47 pass; Phase 4 Playwright suite 46/46 pass; no frontend dependencies on removed endpoints
+
 - 2026-05-23 — **Phase 4: Dashboard Tests + Hardening (COMPLETE)**:
   - Playwright E2E test suite at `/app/tests/test_dashboard_phase4.py` — 46/46 tests pass
   - Coverage: smoke tests (3), empty states (7), error states (6), retry (1), staleness/trust (4), CTA routing (12), ordering (3), guardrails (8), DOM link checks (2)

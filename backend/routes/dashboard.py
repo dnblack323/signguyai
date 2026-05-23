@@ -13,9 +13,9 @@ New V1 endpoints added in Phase 1:
 - GET /api/dashboard/customer-attention
 - GET /api/dashboard/financial-attention
 
-Deprecated endpoints (kept for backward compat, do not expand):
-- GET /api/dashboard/todays-schedule (legacy db.jobs source; superseded by /productivity/items)
-- GET /api/dashboard/clocked-in (superseded by /dashboard/team-status-today)
+Phase 5 cleanup (2026-05-23):
+- Removed deprecated GET /api/dashboard/todays-schedule (legacy db.jobs source)
+- Removed deprecated GET /api/dashboard/clocked-in (superseded by /dashboard/team-status-today)
 """
 
 from fastapi import APIRouter, Depends
@@ -188,22 +188,6 @@ class UnreadMessage(BaseModel):
     unread_count: int
 
 
-class ClockedInEmployee(BaseModel):
-    employee_id: str
-    employee_name: str
-    clocked_in_at: str
-    status: str  # working, on_break
-
-
-class ScheduleItem(BaseModel):
-    id: str
-    name: str
-    customer_name: str
-    due_date: str
-    status: str
-    priority: str = "normal"
-
-
 class OnboardingStatus(BaseModel):
     """Status of onboarding checklist items"""
     has_company_info: bool = False
@@ -342,115 +326,6 @@ async def get_unread_messages(current_user: UserInDB = Depends(get_current_activ
         ))
     
     return messages
-
-
-@router.get("/clocked-in", response_model=List[ClockedInEmployee])
-async def get_clocked_in_employees(current_user: UserInDB = Depends(get_current_active_user)):
-    """[DEPRECATED] Get employees currently clocked in.
-
-    Superseded by GET /dashboard/team-status-today which uses the canonical
-    timeclock_shifts collection and correctly handles day-boundary UTC shifts.
-    Kept for backward compatibility. Do not add new callers.
-    """
-    today = datetime.now(timezone.utc).date().isoformat()
-    tenant_id = current_user.tenant_id
-    
-    # Get all employees FOR THIS TENANT ONLY
-    employees = await db.employees.find({
-        "is_active": True,
-        "tenant_id": tenant_id
-    }, {"_id": 0}).to_list(100)
-    
-    clocked_in = []
-    for emp in employees:
-        # Get today's logs for this employee
-        logs = await db.timelogs.find({
-            "employee_id": emp.get("id"),
-            "timestamp": {"$regex": f"^{today}"}
-        }, {"_id": 0}).sort("timestamp", -1).to_list(1)
-        
-        if logs:
-            last_log = logs[0]
-            action = last_log.get("action")
-            
-            # If last action is start_work or break_end, they're working
-            # If last action is break_start, they're on break
-            if action in ["start_work", "break_end"]:
-                # Find when they clocked in
-                start_log = await db.timelogs.find_one({
-                    "employee_id": emp.get("id"),
-                    "timestamp": {"$regex": f"^{today}"},
-                    "action": "start_work"
-                }, {"_id": 0}, sort=[("timestamp", 1)])
-                
-                clocked_in.append(ClockedInEmployee(
-                    employee_id=emp.get("id", ""),
-                    employee_name=emp.get("name", "Unknown"),
-                    clocked_in_at=start_log.get("timestamp", "") if start_log else "",
-                    status="working"
-                ))
-            elif action == "break_start":
-                start_log = await db.timelogs.find_one({
-                    "employee_id": emp.get("id"),
-                    "timestamp": {"$regex": f"^{today}"},
-                    "action": "start_work"
-                }, {"_id": 0}, sort=[("timestamp", 1)])
-                
-                clocked_in.append(ClockedInEmployee(
-                    employee_id=emp.get("id", ""),
-                    employee_name=emp.get("name", "Unknown"),
-                    clocked_in_at=start_log.get("timestamp", "") if start_log else "",
-                    status="on_break"
-                ))
-    
-    return clocked_in
-
-
-@router.get("/todays-schedule", response_model=List[ScheduleItem])
-async def get_todays_schedule(current_user: UserInDB = Depends(get_current_active_user)):
-    """[DEPRECATED] Get jobs due today or overdue.
-
-    Data source is legacy db.jobs (not the new db.orders system).
-    Superseded by GET /productivity/items with start_date=today&end_date=today.
-    Kept for backward compatibility. Do not add new callers.
-    """
-    tenant_id = current_user.tenant_id
-    today = datetime.now(timezone.utc).date().isoformat()
-    
-    # Find jobs due today or before (and not complete)
-    jobs = await db.jobs.find({
-        "tenant_id": tenant_id,
-        "due_date": {"$lte": today},
-        "status": {"$nin": ["complete", "delivered", "cancelled"]}
-    }, {"_id": 0}).sort("due_date", 1).to_list(20)
-    
-    schedule = []
-    for job in jobs:
-        # Get customer name (tenant-filtered for extra safety)
-        customer = await db.customers.find_one(
-            {"id": job.get("customer_id"), "tenant_id": tenant_id}, 
-            {"_id": 0, "name": 1}
-        )
-        customer_name = customer.get("name", "Unknown") if customer else "Unknown"
-        
-        # Determine priority based on due date
-        due_date = job.get("due_date", "")
-        priority = "normal"
-        if due_date < today:
-            priority = "overdue"
-        elif due_date == today:
-            priority = "urgent"
-        
-        schedule.append(ScheduleItem(
-            id=job.get("id", ""),
-            name=job.get("name", "Unknown Job"),
-            customer_name=customer_name,
-            due_date=due_date,
-            status=job.get("status", ""),
-            priority=priority
-        ))
-    
-    return schedule
 
 
 @router.get("/onboarding-status", response_model=OnboardingStatus)

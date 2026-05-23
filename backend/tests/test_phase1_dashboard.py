@@ -628,14 +628,6 @@ class TestLegacyEndpointsStillCallable:
         resp = requests.get(f"{BASE_URL}/api/dashboard/pending-approvals", headers=self.headers)
         assert resp.status_code == 200
 
-    def test_legacy_todays_schedule_still_200(self):
-        resp = requests.get(f"{BASE_URL}/api/dashboard/todays-schedule", headers=self.headers)
-        assert resp.status_code == 200
-
-    def test_legacy_clocked_in_still_200(self):
-        resp = requests.get(f"{BASE_URL}/api/dashboard/clocked-in", headers=self.headers)
-        assert resp.status_code == 200
-
     def test_legacy_unread_messages_still_200(self):
         resp = requests.get(f"{BASE_URL}/api/dashboard/unread-messages", headers=self.headers)
         assert resp.status_code == 200
