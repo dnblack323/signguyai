@@ -18,7 +18,7 @@ import os
 from datetime import datetime
 
 # Production URL from frontend/.env
-BASE_URL = "https://sign-shop-saas.preview.emergentagent.com"
+BASE_URL = "https://webstore-events.preview.emergentagent.com"
 
 # Production credentials from test_credentials.md
 TEST_EMAIL = "signguypa@gmail.com"
