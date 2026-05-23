@@ -33,12 +33,45 @@ const getGreeting = () => {
   return { text: 'Good evening', icon: Moon, color: 'text-indigo-400' };
 };
 
-const formatLastUpdated = (isoStr) => {
-  if (!isoStr) return '';
+// Returns freshness metadata: text to display + flags for stale/missing
+const getFreshness = (isoStr) => {
+  if (!isoStr) return { text: 'Last updated unavailable.', isStale: false, isMissing: true };
   try {
-    return `Last updated at ${new Date(isoStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  } catch { return ''; }
+    const dt = new Date(isoStr);
+    const ageMinutes = (Date.now() - dt.getTime()) / 60000;
+    const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return {
+      text: `Last updated at ${timeStr}`,
+      isStale: ageMinutes > 10,
+      isMissing: false,
+    };
+  } catch {
+    return { text: 'Last updated unavailable.', isStale: false, isMissing: true };
+  }
 };
+
+// Kept for backward-compat with plain text usages
+const formatLastUpdated = (isoStr) => getFreshness(isoStr).text;
+
+// ─── Sorting helpers ─────────────────────────────────────────────────────────
+
+// At-risk priority: blocked first, then overdue, then due_24h_not_started
+const AT_RISK_PRIORITY = { blocked: 0, overdue: 1, due_within_24h_not_started: 2 };
+const sortAtRisk = (items) =>
+  [...items].sort((a, b) => {
+    const pa = AT_RISK_PRIORITY[a.reason] ?? 9;
+    const pb = AT_RISK_PRIORITY[b.reason] ?? 9;
+    if (pa !== pb) return pa - pb;
+    // Within same priority: earliest due_at first
+    return (a.due_at || '').localeCompare(b.due_at || '');
+  });
+
+// Customer attention lists: urgency_score desc, then timestamp desc
+const sortByUrgency = (items, tsField = 'requested_at') =>
+  [...items].sort((a, b) => {
+    if (b.urgency_score !== a.urgency_score) return b.urgency_score - a.urgency_score;
+    return (b[tsField] || '').localeCompare(a[tsField] || '');
+  });
 
 const getSeverityStyles = (severity) => {
   if (severity === 'red') return { badge: 'bg-red-500/15 text-red-400', dot: '#EF4444' };
@@ -100,34 +133,62 @@ const getStatusBadgeStyles = (status) => {
 // ─────────────────────────────────────────────
 // Shared card shell
 // ─────────────────────────────────────────────
-const CardShell = ({ icon: Icon, iconColor = 'text-blue-500', title, badge, lastUpdatedAt, children, headerRight }) => (
-  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-    <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-      <div className="flex items-center gap-2 min-w-0">
-        <Icon className={`h-4 w-4 flex-shrink-0 ${iconColor}`} />
-        <h2 className="font-heading text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{title}</h2>
-        {badge}
+const CardShell = ({ icon: Icon, iconColor = 'text-blue-500', title, badge, lastUpdatedAt, children, headerRight }) => {
+  const freshness = lastUpdatedAt !== undefined ? getFreshness(lastUpdatedAt) : null;
+  const showStale = freshness?.isStale;
+  const showMissing = freshness?.isMissing;
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className={`h-4 w-4 flex-shrink-0 ${iconColor}`} />
+          <h2 className="font-heading text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{title}</h2>
+          {badge}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          {freshness && (
+            <span
+              className={`text-xs hidden sm:inline ${showStale || showMissing ? 'text-amber-400' : ''}`}
+              style={showStale || showMissing ? {} : { color: 'var(--text-muted)' }}
+              title={showStale ? 'Data may be stale — loaded more than 10 minutes ago.' : undefined}
+              data-testid={showStale ? 'stale-indicator' : showMissing ? 'missing-ts-indicator' : undefined}
+            >
+              {showStale ? '⚠ Data may be stale.' : showMissing ? 'Last updated unavailable.' : freshness.text}
+            </span>
+          )}
+          {headerRight}
+        </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-        {lastUpdatedAt && (
-          <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(lastUpdatedAt)}</span>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+};
+
+// Visible, actionable error block — never falls through to empty state
+const ErrorState = ({ onRetry }) => (
+  <div
+    className="rounded-lg p-4"
+    style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}
+    data-testid="section-error"
+  >
+    <div className="flex items-start gap-3">
+      <XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>Couldn't load this section.</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Please retry.</p>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="mt-2.5 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all hover:opacity-80"
+            style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+            data-testid="section-error-retry"
+          >
+            <RefreshCw className="h-3 w-3" /> Retry
+          </button>
         )}
-        {headerRight}
       </div>
     </div>
-    <div className="p-4">{children}</div>
-  </div>
-);
-
-const ErrorState = ({ message = 'Could not load data.', onRetry }) => (
-  <div className="flex flex-col items-center gap-2 py-4">
-    <XCircle className="h-5 w-5 text-red-400" />
-    <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>{message}</p>
-    {onRetry && (
-      <button onClick={onRetry} className="flex items-center gap-1 text-xs text-blue-400 hover:underline">
-        <RefreshCw className="h-3 w-3" /> Retry
-      </button>
-    )}
   </div>
 );
 
@@ -411,8 +472,12 @@ const STAGE_COLORS = {
 
 const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
   const stages = data?.order_items_by_stage || {};
-  const atRisk = data?.at_risk || [];
+  // Frontend-sort at-risk: blocked(0) > overdue(1) > due_within_24h(2), then earliest due_at
+  const atRisk = sortAtRisk(data?.at_risk || []);
   const bottlenecks = data?.bottlenecks || [];
+
+  // Freshness for standalone header
+  const freshness = data?.last_updated_at !== undefined ? getFreshness(data?.last_updated_at) : null;
 
   const _reasonLabel = (r) => ({
     overdue: 'Overdue',
@@ -433,8 +498,16 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Production Snapshot</h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {data?.last_updated_at && <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(data.last_updated_at)}</span>}
-          <Link to="/orders" data-testid="production-board-link">
+          {freshness && (
+            <span
+              className={`text-xs hidden sm:inline ${freshness.isStale || freshness.isMissing ? 'text-amber-400' : ''}`}
+              style={freshness.isStale || freshness.isMissing ? {} : { color: 'var(--text-muted)' }}
+              data-testid={freshness.isStale ? 'stale-indicator' : freshness.isMissing ? 'missing-ts-indicator' : undefined}
+            >
+              {freshness.isStale ? '⚠ Data may be stale.' : freshness.isMissing ? 'Last updated unavailable.' : freshness.text}
+            </span>
+          )}
+          <Link to="/production-board" data-testid="production-board-link">
             <span className="text-xs text-blue-400 hover:underline">Production Board</span>
           </Link>
         </div>
@@ -507,7 +580,8 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
 
 // Unread Messages — clickable rows
 const MessagesWidget = ({ data, loading, error, onRetry }) => {
-  const messages = data?.unread_conversations || [];
+  // Frontend-sort: urgency_score desc, then last_message_at desc
+  const messages = sortByUrgency(data?.unread_conversations || [], 'last_message_at');
   const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
 
   const badge = messages.length > 0 && (
@@ -557,7 +631,8 @@ const MessagesWidget = ({ data, loading, error, onRetry }) => {
 
 // Pending Approvals & Signatures — links to /approvals
 const PendingApprovalsWidget = ({ data, loading, error, onRetry }) => {
-  const approvals = data?.approvals_signatures_pending || [];
+  // Frontend-sort: urgency_score desc, then requested_at desc
+  const approvals = sortByUrgency(data?.approvals_signatures_pending || [], 'requested_at');
   const badge = approvals.length > 0
     ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium ml-1">{approvals.length} pending</span>
     : <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 ml-1">All clear</span>;
@@ -607,7 +682,8 @@ const PendingApprovalsWidget = ({ data, loading, error, onRetry }) => {
 
 // Quote Follow-Ups
 const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
-  const quotes = data?.quote_followups || [];
+  // Frontend-sort: urgency_score desc, then last_sent_at desc
+  const quotes = sortByUrgency(data?.quote_followups || [], 'last_sent_at');
   const badge = quotes.length > 0 && (
     <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium ml-1">{quotes.length}</span>
   );
@@ -689,6 +765,8 @@ const FinancialSectionCard = ({ title, icon: Icon, iconColor, data: section, emp
 );
 
 const FinancialAttentionRow = ({ data, loading, error, onRetry }) => {
+  const freshness = data?.last_updated_at !== undefined ? getFreshness(data?.last_updated_at) : null;
+
   if (loading) return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {[1,2,3,4].map(i => <div key={i} className="h-32 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />)}
@@ -704,7 +782,15 @@ const FinancialAttentionRow = ({ data, loading, error, onRetry }) => {
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Financial Attention</h2>
         </div>
         <div className="flex items-center gap-2">
-          {data?.last_updated_at && <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(data.last_updated_at)}</span>}
+          {freshness && (
+            <span
+              className={`text-xs hidden sm:inline ${freshness.isStale || freshness.isMissing ? 'text-amber-400' : ''}`}
+              style={freshness.isStale || freshness.isMissing ? {} : { color: 'var(--text-muted)' }}
+              data-testid={freshness.isStale ? 'stale-indicator' : freshness.isMissing ? 'missing-ts-indicator' : undefined}
+            >
+              {freshness.isStale ? '⚠ Data may be stale.' : freshness.isMissing ? 'Last updated unavailable.' : freshness.text}
+            </span>
+          )}
           <Link to="/invoices"><span className="text-xs text-blue-400 hover:underline">All invoices</span></Link>
         </div>
       </div>
@@ -745,10 +831,10 @@ const QuickActions = ({ onSendDigest, sendingDigest }) => (
     <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
       <QuickActionBtn to="/orders/new"             icon={Plus}        iconColor="var(--accent)"  label="New Order"            testId="quick-add-quote" />
       <QuickActionBtn to="/customers"              icon={Plus}        iconColor="var(--accent)"  label="New Customer"         testId="quick-add-customer" />
-      <QuickActionBtn to="/orders"                 icon={Briefcase}   iconColor="#2F8BFB"        label="Production Board"     testId="quick-production-board" />
+      <QuickActionBtn to="/production-board"       icon={Briefcase}   iconColor="#2F8BFB"        label="Production Board"     testId="quick-production-board" />
       <QuickActionBtn to="/productivity?view=calendar" icon={Calendar} iconColor="#8B5CF6"      label="Open Calendar"        testId="quick-open-calendar" />
       <QuickActionBtn to="/approvals"              icon={Send}        iconColor="#F59E0B"        label="Send Approval"        testId="quick-send-approval" />
-      <QuickActionBtn to="/invoices/new"           icon={FileText}    iconColor="#10B981"        label="Create Invoice"       testId="quick-create-invoice" />
+      <QuickActionBtn to="/invoices"               icon={FileText}    iconColor="#10B981"        label="Create Invoice"       testId="quick-create-invoice" />
       <QuickActionBtn to="/ai-assistant"           icon={Sparkles}    iconColor="#8B5CF6"        label="AI Assistant"         testId="quick-ai-assistant" />
       <QuickActionBtn
         onClick={onSendDigest}
@@ -1023,7 +1109,18 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 mb-3">
           <Clock className="h-4 w-4 text-blue-400" />
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Today's Command Center</h2>
-          {cmdLastUpdated && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(cmdLastUpdated)}</span>}
+          {cmdLastUpdated && (() => {
+            const f = getFreshness(cmdLastUpdated);
+            return (
+              <span
+                className={`text-xs ${f.isStale || f.isMissing ? 'text-amber-400' : ''}`}
+                style={f.isStale || f.isMissing ? {} : { color: 'var(--text-muted)' }}
+                data-testid={f.isStale ? 'stale-indicator' : undefined}
+              >
+                {f.isStale ? '⚠ Data may be stale.' : f.isMissing ? 'Last updated unavailable.' : f.text}
+              </span>
+            );
+          })()}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
           <ScheduleWidget   items={dueItems} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
@@ -1040,7 +1137,18 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 mb-3">
           <Users className="h-4 w-4 text-blue-400" />
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Customer Attention</h2>
-          {customerAttention?.last_updated_at && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatLastUpdated(customerAttention.last_updated_at)}</span>}
+          {customerAttention?.last_updated_at && (() => {
+            const f = getFreshness(customerAttention.last_updated_at);
+            return (
+              <span
+                className={`text-xs ${f.isStale || f.isMissing ? 'text-amber-400' : ''}`}
+                style={f.isStale || f.isMissing ? {} : { color: 'var(--text-muted)' }}
+                data-testid={f.isStale ? 'stale-indicator' : undefined}
+              >
+                {f.isStale ? '⚠ Data may be stale.' : f.isMissing ? 'Last updated unavailable.' : f.text}
+              </span>
+            );
+          })()}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
           <MessagesWidget        data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
