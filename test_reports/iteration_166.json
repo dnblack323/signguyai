@@ -1,0 +1,49 @@
+{
+  "summary": "Phase 2 Webstores ribbon consolidation — all 9 frontend tests PASSED. WebstoresRibbon renders inside the fixed <header> with all 10 group captions (Dashboard, Create / Setup, Manage Stores, Products, Orders, Questionnaires, Owner Portal, Payments / Payouts, Analytics, Tools / Settings) and all 10 data-testid buttons. Old ActionToolbar and create-store-btn are correctly removed on /webstores. Section header (data-testid='webstores-section-header' / '-section-title') drives the visible heading. Legacy tab-stores/tab-orders remain in DOM as sr-only for automation. Tab switching, Create dialog (with ?new=true strip), gear -> store-detail-dialog with inner tabs (Dashboard/Products/Settings & Branding + Analytics/Orders/Payouts), Products route, and all out-of-module ribbon routes (/questionnaires, /admin/payments, /reports/profit-margin, /settings) navigate without 404. Ribbon stays accessible at 1366x800 via overflow-x-auto.",
+  "tests_executed": {
+    "TEST 1 ribbon visibility": "PASS — webstores-ribbon present inside <header>, all 10 group captions match exactly, all 10 ribbon button testids resolve.",
+    "TEST 2 single command surface": "PASS — data-testid='action-toolbar' NOT rendered on /webstores; data-testid='create-store-btn' NOT rendered; webstores-section-header shows 'All Stores'; legacy tab-stores/tab-orders still queryable (sr-only TabsList). NOTE: Playwright is_visible() returns true for sr-only because clip-based hiding is treated as visible by Playwright — not a real visual regression; visually the strip is hidden under section header.",
+    "TEST 3 store list & actions": "PASS — 15 store rows render; gear click (via page.evaluate) opens store-detail-dialog.",
+    "TEST 4 products route": "PASS — ribbon-products navigates to /products and renders without crash/404.",
+    "TEST 5 new store via ribbon": "PASS — ribbon-create opens 'Create New Webstore' dialog with 'Store Type *' label and 'Store Name *' input; URL restored to /webstores (no ?new=true) after close.",
+    "TEST 6 tab switching": "PASS — ribbon-orders flips section title to 'Webstore Orders'; ribbon-stores flips back to 'All Stores'. ?tab= query is stripped post-mount as designed.",
+    "TEST 7 inner tabs in dialog": "PASS — Detail dialog inner tabs render: Dashboard, Products, Settings & Branding, Analytics, Orders (2), Payouts.",
+    "TEST 8 other ribbon routes": "PASS — Questionnaires (/questionnaires), Payments (/admin/payments), Analytics (/reports/profit-margin), Tools (/settings) all navigate; no 404 in-app page. Owner Portal opens in new tab (not navigated in same window per design).",
+    "TEST 9 medium viewport 1366px": "PASS — Ribbon has overflow-x-auto, scrollWidth==clientWidth==1366; all 10 buttons remain in DOM and visible at viewport edges."
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/products (or related)", "issue": "Returns HTTP 500 — caught by frontend AxiosError 'Error loading products' on /webstores and /products. Pre-existing, not introduced by Phase 2 ribbon work, but affects Products page rendering."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Questionnaires route from ribbon", "issue": "Page mounts but React error boundary catches an internal error: 'An error occurred in the <Questionnaires> component'. Page does not 404 in-app but the component itself errors out. Pre-existing — unrelated to ribbon, but ribbon now exposes this route as a primary entry point so it is more visible.", "affected_selectors": ["webstores-ribbon-questionnaires"]},
+      {"flow": "Global page error", "issue": "Uncaught ReferenceError: fetchCustomers is not defined — fires on dashboard load. Pre-existing; not related to Phase 2.", "affected_selectors": []}
+    ],
+    "design_issues": [
+      {"screen": "Webstores ribbon", "issues": ["Minor: DialogContent missing aria-describedby (a11y warning) on Create New Webstore dialog — pre-existing, not Phase 2 specific."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Investigate /api/products HTTP 500 (pre-existing, but high visibility now ribbon links Products).",
+    "Fix Questionnaires component runtime error caught by error boundary (pre-existing).",
+    "Optional: tighten the sr-only TabsList so Playwright is_visible() returns false (use display:none on the wrapper but keep testids; otherwise this is a cosmetic concern only)."
+  ],
+  "critical_code_review_comments": [
+    "WebstoresRibbon.js cleanly separates query-param signalling from page state — good. Active state for ribbon-dashboard and ribbon-stores both light up when tab='stores'; consider differentiating Dashboard (overview) from Stores list semantically in a future phase.",
+    "MainLayout HEADER_HEIGHT toggles 152↔168 based on activeTab — uses window.innerWidth in style on initial render which can hydrate-mismatch on SSR, but app is CSR only so OK.",
+    "Webstores.js is 3222 lines — exceeds 700 LOC guideline. Recommend splitting (orders pane, dialog, settings pane, products pane) in a future refactor. Not blocking for Phase 2."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only request)", "frontend": "100% (9/9 Phase 2 tests passed)"},
+  "test_credentials": "thesigntistslab@gmail.com / password123 (per /app/memory/test_credentials.md)",
+  "seed_data_creation": "None — used existing 15 webstores in production signguy_ai DB.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 2 ribbon is stable and integrates with Webstores.js query-param sync correctly. The /api/products 500 and Questionnaires component error are pre-existing and orthogonal to the ribbon. If retesting Phase 2, the only edge case to recheck is whether sr-only TabsList tab-stores/tab-orders selectors keep working for legacy automation — they do (queryable but visually hidden).",
+  "rca_of_the_issue": "N/A — no Phase 2 regressions found. Pre-existing /api/products 500 and Questionnaires render error are unrelated to navigation consolidation."
+}

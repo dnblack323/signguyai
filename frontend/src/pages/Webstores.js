@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -117,6 +118,12 @@ export default function Webstores() {
   const [selectedType, setSelectedType] = useState('all');
   const [storeSearch, setStoreSearch] = useState('');
   const [activeTab, setActiveTab] = useState('stores');
+
+  // Phase 2 — the Webstores ribbon drives the active tab + create dialog via
+  // URL query string (`?tab=stores|orders`, `?new=true`). Sync local state
+  // with these params and strip them once consumed so deep links stay clean.
+  const location = useLocation();
+  const navigate = useNavigate();
   
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -327,6 +334,41 @@ export default function Webstores() {
     checkStripeStatus();
     loadData();
   }, [checkStripeStatus, loadData]);
+
+  // Phase 2 ribbon → page sync. The WebstoresRibbon writes `?tab=` and
+  // `?new=true` query params; this effect mirrors them into local state and
+  // then strips them from the URL so refreshes don't keep re-firing.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    const newParam = params.get('new');
+    let mutated = false;
+
+    if (tabParam && (tabParam === 'stores' || tabParam === 'orders') && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+      params.delete('tab');
+      mutated = true;
+    } else if (tabParam) {
+      params.delete('tab');
+      mutated = true;
+    }
+
+    if (newParam === 'true') {
+      resetForm();
+      setIsCreateDialogOpen(true);
+      params.delete('new');
+      mutated = true;
+    }
+
+    if (mutated) {
+      const nextSearch = params.toString();
+      navigate(
+        nextSearch ? `${location.pathname}?${nextSearch}` : location.pathname,
+        { replace: true },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const resetForm = () => {
     setFormData({
@@ -1166,9 +1208,9 @@ export default function Webstores() {
             <h1 className="text-2xl lg:text-3xl font-bold font-heading uppercase tracking-tight text-gray-900">Webstore Manager</h1>
             <p className="text-gray-500 text-sm mt-1">Manage all your webstores from one place</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700" data-testid="create-store-btn" onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" /> Create Webstore
-          </Button>
+          {/* Phase 2 — the "Create Webstore" CTA now lives in the Webstores
+              ribbon (Create / Setup group). Removed from the page header to
+              eliminate the duplicate command surface. */}
         </div>
       </ShellCard>
 
@@ -1598,14 +1640,40 @@ export default function Webstores() {
       {/* Main Tabs Card */}
       <ShellCard padding="none">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="px-6 pt-5 pb-4 border-b border-gray-100">
-            <TabsList className="bg-gray-100">
-              <TabsTrigger value="stores" data-testid="tab-stores">
-                <Store className="h-4 w-4 mr-2" /> All Stores ({webstores.length})
-              </TabsTrigger>
-              <TabsTrigger value="orders" data-testid="tab-orders">
-                <ShoppingCart className="h-4 w-4 mr-2" /> Orders ({orders.length})
-              </TabsTrigger>
+          {/* Phase 2 — In-page Tabs strip removed. The Webstores ribbon
+              (Manage Stores / Orders groups) drives this same activeTab state
+              via the `?tab=` query param, so the duplicate command surface is
+              gone. Counts now appear in the section sub-header below. */}
+          <div className="px-6 pt-5 pb-3 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap" data-testid="webstores-section-header">
+            <div className="flex items-center gap-2 text-sm">
+              {activeTab === 'stores' ? (
+                <>
+                  <Store className="h-4 w-4 text-blue-600" />
+                  <span className="font-semibold text-gray-900" data-testid="webstores-section-title">
+                    All Stores
+                  </span>
+                  <span className="text-gray-500" data-testid="webstores-section-count">
+                    ({webstores.length})
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4 text-amber-600" />
+                  <span className="font-semibold text-gray-900" data-testid="webstores-section-title">
+                    Webstore Orders
+                  </span>
+                  <span className="text-gray-500" data-testid="webstores-section-count">
+                    ({orders.length})
+                  </span>
+                </>
+              )}
+            </div>
+            {/* Hidden TabsList preserved off-screen so legacy automation that
+                queries data-testid='tab-stores' / 'tab-orders' still resolves
+                and remains keyboard-accessible. */}
+            <TabsList className="sr-only" aria-label="Webstores section">
+              <TabsTrigger value="stores" data-testid="tab-stores">All Stores</TabsTrigger>
+              <TabsTrigger value="orders" data-testid="tab-orders">Orders</TabsTrigger>
             </TabsList>
           </div>
 

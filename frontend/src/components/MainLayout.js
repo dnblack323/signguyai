@@ -5,13 +5,19 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { TopAppBar, PrimaryNav, ActionToolbar, MobileNav } from './ribbon';
+import { WebstoresRibbon } from './ribbon/WebstoresRibbon';
 import { TrialCountdown } from './TrialLockout';
 import { SupportModeBanner } from './SupportModeBanner';
 import DevPanel from './DevPanel';
 import FloatingAssistant from './FloatingAssistant';
 
 // Total header height: TopAppBar (64px) + PrimaryNav (48px) + ActionToolbar (40px) = 152px
-const HEADER_HEIGHT = 152;
+// When the active module is Webstores, ActionToolbar is replaced by the taller
+// WebstoresRibbon (56px) for the Office-style ribbon experience, so the total
+// header height grows to 168px. We compute the value dynamically based on
+// activeTab so content padding stays in sync.
+const HEADER_HEIGHT_DEFAULT = 152;
+const HEADER_HEIGHT_WEBSTORES = 168;
 const MOBILE_HEADER_HEIGHT = 64;
 
 export const MainLayout = ({ children }) => {
@@ -117,8 +123,13 @@ export const MainLayout = ({ children }) => {
           {/* Primary Navigation */}
           <PrimaryNav activeTab={activeTab} onTabChange={setActiveTab} />
           
-          {/* Action Toolbar */}
-          <ActionToolbar activeTab={activeTab} />
+          {/* Module command bar — Webstores gets its own Office-style ribbon;
+              every other module keeps the lightweight ActionToolbar. */}
+          {activeTab === 'webstores' ? (
+            <WebstoresRibbon />
+          ) : (
+            <ActionToolbar activeTab={activeTab} />
+          )}
         </div>
       </header>
 
@@ -138,7 +149,7 @@ export const MainLayout = ({ children }) => {
         className="min-h-screen transition-all"
         style={{ 
           paddingTop: typeof window !== 'undefined' && window.innerWidth >= 1024 
-            ? HEADER_HEIGHT 
+            ? (activeTab === 'webstores' ? HEADER_HEIGHT_WEBSTORES : HEADER_HEIGHT_DEFAULT)
             : MOBILE_HEADER_HEIGHT,
           backgroundColor: '#0f172a'
         }}
