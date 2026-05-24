@@ -602,10 +602,10 @@ export default function Webstores() {
     setStoreProducts([]);
     setStorePayouts([]);
     setLoadingStoreDetails(true);
-    
+
     setSelectedStore(store);
     setDetailTab('dashboard');
-    
+
     // Reset branding form state
     setLogoPreview(null);
     setLogoFile(null);
@@ -666,32 +666,6 @@ export default function Webstores() {
       show_supporter_names: store.show_supporter_names || '',
     });
 
-    // Load questionnaire status for event stores
-    if (store.store_type === 'event') {
-      setQuestionnaireStatus(null);
-      setLoadingQuestionnaire(true);
-      try {
-        const qs = await getWebstoreQuestionnaire(store.id);
-        setQuestionnaireStatus(qs);
-      } catch (err) {
-        console.error('Could not load questionnaire status', err);
-        setQuestionnaireStatus({ linked: false, questionnaire: null, latest_response: null });
-      } finally {
-        setLoadingQuestionnaire(false);
-      }
-      // Load admin Event Store setup checklist
-      setEventChecklist(null);
-      try {
-        const ck = await getWebstoreEventChecklist(store.id);
-        setEventChecklist(ck);
-      } catch (err) {
-        console.error('Could not load event setup checklist', err);
-      }
-    } else {
-      setQuestionnaireStatus(null);
-      setEventChecklist(null);
-    }
-    
     // Reset create product form state
     setShowCreateProduct(false);
     setNewProductData({
@@ -703,22 +677,62 @@ export default function Webstores() {
       production_cost: '',
       setup_fee: '',
     });
-    
+
+    // Reset event-specific state immediately so previously-opened store data
+    // doesn't bleed through while the new fetches are in flight.
+    setQuestionnaireStatus(null);
+    setEventChecklist(null);
+
+    // CRITICAL: Open the dialog BEFORE awaiting any network calls. Earlier
+    // versions awaited the event-store questionnaire + checklist endpoints
+    // here before flipping isDetailDialogOpen, which meant a slow or hung
+    // request blocked the dialog from ever opening — the exact black-screen
+    // risk Phase 1 had to guard against. Fire-and-forget fetches now so the
+    // dialog renders instantly and each card surfaces its own loading state.
     setIsDetailDialogOpen(true);
-    
-    try {
-      const [prods, payouts] = await Promise.all([
-        getWebstoreProducts(store.id, true),
-        getWebstorePayouts(store.id)
-      ]);
-      setStoreProducts(prods || []);
-      setStorePayouts(payouts || []);
-    } catch (err) {
-      console.error('Error loading store details:', err);
-      setStoreProducts([]);
-      setStorePayouts([]);
-    } finally {
-      setLoadingStoreDetails(false);
+
+    // Background: products + payouts for every store type.
+    (async () => {
+      try {
+        const [prods, payouts] = await Promise.all([
+          getWebstoreProducts(store.id, true),
+          getWebstorePayouts(store.id),
+        ]);
+        setStoreProducts(prods || []);
+        setStorePayouts(payouts || []);
+      } catch (err) {
+        console.error('Error loading store details:', err);
+        setStoreProducts([]);
+        setStorePayouts([]);
+      } finally {
+        setLoadingStoreDetails(false);
+      }
+    })();
+
+    // Background: event-store-only enrichments. Failures here must NOT block
+    // the dialog from rendering or crash the page — each card already shows a
+    // loading/empty fallback.
+    if (store.store_type === 'event') {
+      setLoadingQuestionnaire(true);
+      (async () => {
+        try {
+          const qs = await getWebstoreQuestionnaire(store.id);
+          setQuestionnaireStatus(qs);
+        } catch (err) {
+          console.error('Could not load questionnaire status', err);
+          setQuestionnaireStatus({ linked: false, questionnaire: null, latest_response: null });
+        } finally {
+          setLoadingQuestionnaire(false);
+        }
+      })();
+      (async () => {
+        try {
+          const ck = await getWebstoreEventChecklist(store.id);
+          setEventChecklist(ck);
+        } catch (err) {
+          console.error('Could not load event setup checklist', err);
+        }
+      })();
     }
   };
 
@@ -1857,7 +1871,7 @@ export default function Webstores() {
           setSendMessageOverride('');
         }
       }}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto" data-testid="store-detail-dialog">
           {selectedStore && (
             <>
               <DialogHeader>

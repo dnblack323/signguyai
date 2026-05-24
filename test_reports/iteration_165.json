@@ -1,0 +1,52 @@
+{
+  "summary": "Phase 1 retest — all 3 target runtime checks now PASS. (1) Gala 'Gala Test 2026 UI' event-store detail dialog opens within ~1s and renders data-testid='store-detail-dialog'; Dashboard tab shows Owner Stripe Connection + 4 KPI cards (no crash even with zero analytics); Settings & Branding tab renders Event Store Questionnaire card with data-testid='send-questionnaire-btn' AND data-testid='admin-event-checklist-card'; clicking Send Event Store Questionnaire opens its send dialog without crash. (3b) Customer portal /customer-portal/webstores logs in via POST /api/portal/auth/login, renders the Demo Fundraiser Store card with data-testid='portal-store-stripe-pending' amber box; computed colors color=rgb(15,23,42) on background=rgb(255,251,235) → strong WCAG contrast. (4c) Corrupting portal_token + reload correctly REDIRECTS to /customer-portal/login (does NOT silently render empty 'not assigned' state); backend 401s on stale token are handled by the portal route guard. The handleViewStore open-before-await regression fix is verified.",
+
+  "backend_issues": {"critical": [], "minor": []},
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_results": {
+    "CHECK_1_event_store_detail_open": {
+      "status": "PASS",
+      "description": "Gear on 'Gala Test 2026 UI' (id bf406578-1c57-4449-ab13-66736f3c2842) now opens the dialog with data-testid='store-detail-dialog' immediately. Dashboard tab: Owner Stripe Connection card (Not Connected badge, Check Status button, Invite Store Owner input + Send button) + KPI cards Total Revenue/Total Orders/Shop Profit/Avg Order Value all render. Settings & Branding tab: 'Event Store Questionnaire' card visible with data-testid='send-questionnaire-btn'; data-testid='admin-event-checklist-card' present; clicking Send opens its send-dialog without crash. Misc: no black screen, no console errors thrown from handleViewStore."
+    },
+    "CHECK_3b_portal_stripe_block_readability": {
+      "status": "PASS",
+      "description": "Logged in via POST /api/portal/auth/login as demo-fundraiser@rysoccer.example → access_token + customer_id returned. Token stashed in sessionStorage under key 'portal_token' (matches getPortalToken in /app/frontend/src/lib/authStorage.js). Navigated to /customer-portal/webstores → Demo Fundraiser Store card renders; data-testid='portal-store-stripe-pending' present (no portal-store-stripe-ready because Stripe not yet connected). Computed contrast: dark slate text (rgb(15,23,42)) on amber background (rgb(255,251,235)) — readable, WCAG AA pass."
+    },
+    "CHECK_4c_portal_hidden_failure": {
+      "status": "PASS",
+      "description": "Set sessionStorage.portal_token='CORRUPT_TOKEN_xxx' + reloaded /customer-portal/webstores. Backend returned 401 to portal API calls; route guard correctly REDIRECTED to /customer-portal/login. The empty 'aren't assigned to any webstores yet' state is NOT silently shown. data-testid='portal-webstores-error' is the alternate path but the redirect path is taken first here — both are acceptable per the spec."
+    },
+    "MISC_dashboard_zero_analytics": {
+      "status": "PASS",
+      "description": "Gala event store has zero analytics data; Dashboard tab still renders Owner Stripe card + KPI cards + Sales Trend (Last 14 Days) + Top Products ('No products sold yet') without crashing. WebstoreDetailDashboard payout_info field mapping does not break the happy path."
+    }
+  },
+
+  "test_report_links": [],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "OPTIONAL TEST QUIRK (not a user-facing bug): On the /webstores admin table the gear button data-testid='view-store-<id>' sometimes does not respond to Playwright's elementHandle.click(force=True) even though the element is visible, scrolled into view, and not behind an overlay. Direct DOM-level .click() via page.evaluate(...) triggers the React handler reliably. Likely a pointer-event interception from the surrounding row hover/transform; harmless to real users (mouse clicks work). Consider promoting the gear to a plain <button data-testid=...> with explicit pointer-events:auto and z-index in case future automated tests run into the same flake.",
+    "Check 4c uses a redirect-on-401 path via the portal route guard. The data-testid='portal-webstores-error' branch in /app/frontend/src/pages/PortalWebstores.js is only reachable if the API returns a non-401 non-OK status. That's fine functionally, but consider also exposing portal-webstores-error for the 401-before-redirect race so the negative state is testable without depending on redirect timing."
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {"backend": "n/a (frontend only)", "frontend": "3/3 retest checks PASS (Check 1, Check 3b, Check 4c)"},
+
+  "test_credentials": "Admin thesigntistslab@gmail.com / password123 (verified). Customer Portal demo-fundraiser@rysoccer.example / TestPortal123! verified working via POST /api/portal/auth/login — returns access_token + customer_id=ed7cd925-1a59-44a8-80ee-d995c06e9935 (Riverside Youth Soccer League).",
+
+  "seed_data_creation": "None this iteration.",
+
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 1 webstore detail-dialog regression + customer portal hidden-failure spec is fully verified. If a future test needs to click the gear icon on /webstores via Playwright, use page.evaluate(\"document.querySelector('[data-testid=view-store-<id>]').click()\") as the reliable path; elementHandle.click(force=True) was flaky for this button. Portal token key is 'portal_token' in sessionStorage (falls back to localStorage). Portal login endpoint is POST /api/portal/auth/login (NOT /api/auth/login).",
+  "rca_of_the_issue": "Previous regression: handleViewStore in /app/frontend/src/pages/Webstores.js awaited event-store-only fetches (questionnaire + event-setup-checklist) BEFORE flipping setIsDetailDialogOpen(true), so any hang/throw on those endpoints kept the dialog closed for event stores. Fix (already landed at lines ~692-736): setIsDetailDialogOpen(true) now runs synchronously first; products/payouts and the event-store-only fetches run inside fire-and-forget IIFEs with try/catch + per-card loading state. DialogContent also got data-testid='store-detail-dialog' for assertion stability. Verified: Gala event-store dialog opens immediately; settings tab renders all phase-1 cards; send-questionnaire dialog opens without crash."
+}
