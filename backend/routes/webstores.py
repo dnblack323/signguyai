@@ -1779,6 +1779,114 @@ async def get_webstore(
     return webstore
 
 
+@webstores_router.get("/{webstore_id}/admin-progress")
+async def get_webstore_admin_progress(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Phase 6 — admin-facing lifecycle progress + actions + finance.
+
+    Tenant-scoped variant of the owner-portal progress endpoint. Reuses the
+    same payload builder so admin and owner see identical numbers. Admin
+    sees the same privacy-safe payload (no internal cost / margin / supplier
+    fields) — admins access the rich internal data through other routes.
+    """
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+    from routes.webstore_owners import _build_store_progress_payload
+    return await _build_store_progress_payload(webstore)
+
+
+class AdminStageStampRequest(BaseModel):
+    """Phase 6 — additive stage-stamp fields admins can flip."""
+    preview_ready_at: Optional[str] = None
+    owner_approved_at: Optional[str] = None
+    production_started_at: Optional[str] = None
+    ready_for_pickup_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    # Convenience flags — when set true and no timestamp provided, we stamp
+    # the current UTC iso datetime. When false and a timestamp exists, we
+    # clear that timestamp so admins can undo a mistaken stamp.
+    mark_preview_ready: Optional[bool] = None
+    mark_owner_approved: Optional[bool] = None
+    mark_production_started: Optional[bool] = None
+    mark_ready_for_pickup: Optional[bool] = None
+    mark_completed: Optional[bool] = None
+
+
+_STAGE_STAMP_FIELDS = (
+    ("mark_preview_ready",     "preview_ready_at"),
+    ("mark_owner_approved",    "owner_approved_at"),
+    ("mark_production_started","production_started_at"),
+    ("mark_ready_for_pickup",  "ready_for_pickup_at"),
+    ("mark_completed",         "completed_at"),
+)
+
+
+@webstores_router.patch("/{webstore_id}/admin-progress")
+async def patch_webstore_admin_progress(
+    webstore_id: str,
+    payload: AdminStageStampRequest,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Admin stamps a lifecycle stage timestamp on the store.
+
+    Additive only: writes to `preview_ready_at`, `owner_approved_at`,
+    `production_started_at`, `ready_for_pickup_at`, `completed_at`. When
+    `mark_completed=true` the store status also flips to "completed" so
+    the lifecycle progress walks all 15 stages. Otherwise the status field
+    is left alone.
+    """
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_set: Dict[str, Any] = {"updated_at": now_iso}
+    update_unset: Dict[str, str] = {}
+
+    # Convert convenience flags into timestamp set/clear.
+    for flag, field in _STAGE_STAMP_FIELDS:
+        v = getattr(payload, flag, None)
+        if v is True:
+            update_set[field] = now_iso
+        elif v is False:
+            update_unset[field] = ""
+
+    # Explicit timestamp values override the convenience flag where both are sent.
+    for field in (
+        "preview_ready_at", "owner_approved_at",
+        "production_started_at", "ready_for_pickup_at", "completed_at",
+    ):
+        v = getattr(payload, field, None)
+        if v is not None:
+            update_set[field] = v
+
+    if payload.mark_completed is True:
+        update_set["status"] = "completed"
+
+    mongo_update: Dict[str, Any] = {"$set": update_set}
+    if update_unset:
+        mongo_update["$unset"] = update_unset
+
+    await db.webstores_v2.update_one({"id": webstore_id}, mongo_update)
+
+    fresh = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    from routes.webstore_owners import _build_store_progress_payload
+    return await _build_store_progress_payload(fresh)
+
+
+
 @webstores_router.get("/{webstore_id}/analytics")
 async def get_webstore_analytics(
     webstore_id: str,

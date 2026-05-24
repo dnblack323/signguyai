@@ -615,6 +615,12 @@ async def portal_store_progress(
     if not ws:
         raise HTTPException(status_code=404, detail="Store not found")
 
+    return await _build_store_progress_payload(ws)
+
+
+async def _build_store_progress_payload(ws: dict) -> dict:
+    """Shared progress payload builder used by owner-portal and admin endpoints."""
+    webstore_id = ws["id"]
     now_iso = datetime.now(timezone.utc).isoformat()
 
     # ── Aggregate financial signals (privacy-safe) ────────────────────────

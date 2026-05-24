@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import WebstoreOwnerConnectCard from './WebstoreOwnerConnectCard';
+import AdminStoreProgressCard from './AdminStoreProgressCard';
 
 // Simple bar chart component
 const SimpleBarChart = ({ data, maxValue }) => {
@@ -192,6 +193,11 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
 
   return (
     <div className="space-y-6" data-testid="webstore-dashboard">
+      {/* Phase 6 — lifecycle progress first; analytics demoted below.
+          Reuses the same backend payload owners see so admin and owner
+          stay in sync on numbers. */}
+      <AdminStoreProgressCard storeId={store.id} />
+
       {/* Owner Stripe Connect — gate for activating the store */}
       <WebstoreOwnerConnectCard webstore={store} />
 

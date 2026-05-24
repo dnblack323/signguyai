@@ -55,16 +55,55 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrders, setSelectedOrders] = useState(new Set());
   const [bulkActioning, setBulkActioning] = useState(false);
+  // Phase 6 — webstore source filters
+  const [sourceFilter, setSourceFilter] = useState('all'); // all | webstore | manual
+  const [webstoreFilter, setWebstoreFilter] = useState('all');
+  const [webstoreOptions, setWebstoreOptions] = useState([]);
+
+  // Initialise filters from URL (?webstore_id=… deep link from Customers page)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const wid = params.get('webstore_id');
+    if (wid) {
+      setSourceFilter('webstore');
+      setWebstoreFilter(wid);
+    } else if (params.get('source')) {
+      setSourceFilter(params.get('source'));
+    }
+  }, []);
+
+  // Fetch webstores once for the picker
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/webstores/v2`, {
+          headers: { Authorization: `Bearer ${token()}` },
+        });
+        const list = Array.isArray(res.data) ? res.data : (res.data?.webstores || []);
+        setWebstoreOptions(list.map((w) => ({ id: w.id, name: w.name || 'Unnamed store' })));
+      } catch {
+        /* non-fatal — picker stays empty */
+      }
+    })();
+  }, []);
 
   const fetchOrders = async () => {
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (sourceFilter === 'webstore') params.set('source', 'webstore');
+      if (webstoreFilter !== 'all') params.set('webstore_id', webstoreFilter);
       params.set('limit', '50');
       const res = await axios.get(`${API}/orders?${params}`, { headers: { Authorization: `Bearer ${token()}` } });
-      setOrders(res.data.orders);
-      setTotal(res.data.total);
+      let rows = res.data.orders || [];
+      // 'manual' isn't a backend filter — apply client-side to exclude
+      // anything tagged as webstore-sourced.
+      if (sourceFilter === 'manual') {
+        rows = rows.filter((o) => !(o.is_webstore_order || o.webstore_order_id || o.source === 'webstore'));
+      }
+      setOrders(rows);
+      setTotal(rows.length === res.data.total ? res.data.total : rows.length);
     } catch {
       toast.error('Failed to load orders');
     } finally {
@@ -72,7 +111,7 @@ export default function OrdersPage() {
     }
   };
 
-  useEffect(() => { fetchOrders(); }, [search, statusFilter]);
+  useEffect(() => { fetchOrders(); }, [search, statusFilter, sourceFilter, webstoreFilter]);
 
   const handleCreateOrder = () => navigate('/orders/new');
 
@@ -189,6 +228,36 @@ export default function OrdersPage() {
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Phase 6 — webstore source filter */}
+          <Select
+            value={sourceFilter}
+            onValueChange={(v) => { setSourceFilter(v); if (v !== 'webstore') setWebstoreFilter('all'); }}
+          >
+            <SelectTrigger className="w-40 bg-gray-50 border-gray-200 text-gray-900" data-testid="orders-source-filter">
+              <SelectValue placeholder="All Sources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sources</SelectItem>
+              <SelectItem value="webstore">Webstore only</SelectItem>
+              <SelectItem value="manual">Manual only</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Phase 6 — webstore picker (visible when source=webstore or all) */}
+          {sourceFilter !== 'manual' && webstoreOptions.length > 0 && (
+            <Select value={webstoreFilter} onValueChange={setWebstoreFilter}>
+              <SelectTrigger className="w-56 bg-gray-50 border-gray-200 text-gray-900" data-testid="orders-webstore-filter">
+                <SelectValue placeholder="Any webstore" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any webstore</SelectItem>
+                {webstoreOptions.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </CardContent>
       </Card>
 
