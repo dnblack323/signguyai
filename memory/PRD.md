@@ -22,6 +22,18 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-24 — **Phase 1: Webstore Crash & Trust-State Hardening (COMPLETE)**
+  - Fixed Event Store detail dialog black-screen risk in `frontend/src/pages/Webstores.js` — `handleViewStore` now opens the dialog BEFORE any awaits and fetches questionnaire/event-setup-checklist in fire-and-forget IIFEs. Added `data-testid='store-detail-dialog'` for assertion stability.
+  - Hardened `WebstoreDetailDashboard.js`:
+    - `loadAnalytics` switched to `Promise.allSettled` so per-card failures degrade independently.
+    - Replaced silent "Failed to load analytics" line with a visible red error card + Retry button (`data-testid='webstore-analytics-error'` / `webstore-analytics-retry-btn`).
+    - Defensive defaults for `summary / payout_info / sales_by_day / top_products / fundraiser_metrics`.
+    - Guarded `fundraiser_metrics.progress_percent.toFixed` against undefined.
+    - Mapped legacy payout field names (`total_earned/total_paid_out/balance_owed`) to current backend payload (`total_owed/total_paid`) so payout cards stop silently showing $0 — verified Flow-B Final now correctly renders $3.50 Balance Owed.
+  - `PortalWebstores.js` — `load()` now surfaces non-OK responses via `setError`/`portal-webstores-error` Alert instead of rendering the empty "not assigned" state on API failure; `refresh()` warns silently instead of throwing.
+  - Defensive guard on `eventChecklist.items` in `Webstores.js` Settings tab so a missing/malformed checklist payload no longer crashes.
+  - Test reports: `/app/test_reports/iteration_164.json` (initial), `/app/test_reports/iteration_165.json` (retest — 3/3 retargeted checks PASS).
+
 - 2026-05-23 — **Phase 5: Cleanup + Deprecation Removal (COMPLETE)**:
   - Removed `GET /api/dashboard/todays-schedule` (legacy `db.jobs` source)
   - Removed `GET /api/dashboard/clocked-in` (superseded by `/dashboard/team-status-today`)
