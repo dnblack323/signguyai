@@ -56,6 +56,10 @@ class CustomerBase(BaseModel):
     portal_password_hash: Optional[str] = None
     portal_enabled: bool = False
     branding_profile: Optional[BrandingProfile] = None
+    # Phase 4 — free-form tags used by webstore sync and other modules.
+    # Examples: "webstore_owner", "webstore_customer". Always additive;
+    # existing customers default to an empty list on read.
+    tags: List[str] = Field(default_factory=list)
     notification_preferences: Dict[str, bool] = Field(default_factory=lambda: {
         "email_messages": True,
         "email_orders": True,

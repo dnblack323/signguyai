@@ -185,6 +185,21 @@ async def _send_invite(
             {"$set": {"owner_email": payload.email, "updated_at": now.isoformat()}},
         )
 
+    # Phase 4 — sync the invited owner into Customers with webstore_owner tag.
+    # Failure is non-fatal: invite delivery is more important than the side-effect.
+    try:
+        from routes.webstores import _upsert_webstore_customer
+        await _upsert_webstore_customer(
+            tenant_id=current_user.tenant_id,
+            name=owner_name,
+            email=payload.email,
+            phone=webstore.get("owner_phone"),
+            tag="webstore_owner",
+            company=webstore.get("name"),
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Owner customer sync failed for invite %s: %s", webstore.get("id"), exc)
+
     origin = _public_origin(payload.public_url)
     path = "owner-portal-signup" if portal_invite else "webstore-owner/onboard"
     link = f"{origin}/{path}/{token}" if origin else f"/{path}/{token}"

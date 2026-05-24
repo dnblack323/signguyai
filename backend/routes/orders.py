@@ -83,6 +83,8 @@ async def list_orders(
     limit: int = 50,
     skip: int = 0,
     search: Optional[str] = None,
+    source: Optional[str] = None,
+    webstore_id: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_active_user),
 ):
     query = {"tenant_id": current_user.tenant_id, "is_archived": is_archived}
@@ -94,6 +96,18 @@ async def list_orders(
             {"order_number": {"$regex": search, "$options": "i"}},
             {"company_name": {"$regex": search, "$options": "i"}},
         ]
+    # Phase 4 — optional safe filter hooks for webstore-sourced orders.
+    # `source=webstore` mirrors the new explicit marker on the order document,
+    # while also matching legacy rows where only `is_webstore_order=true` was set.
+    if source:
+        if source.lower() == "webstore":
+            query["$and"] = query.get("$and", []) + [{
+                "$or": [{"source": "webstore"}, {"is_webstore_order": True}],
+            }]
+        else:
+            query["source"] = source
+    if webstore_id:
+        query["webstore_id"] = webstore_id
 
     orders = await db.orders.find(query, {"_id": 0}).sort("date_created", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.orders.count_documents(query)

@@ -756,5 +756,283 @@ QUESTIONNAIRE_TEMPLATES = {
             {"type": "signature", "label": "Customer Signature", "required": True, "order": 85},
             {"type": "date", "label": "Date", "required": True, "order": 86}
         ]
-    }
+    },
+
+    # ────────────────────────────────────────────────────────────────────────
+    # Phase 4 — additional store-type templates. Each follows the same
+    # heading→fields pattern as the event template so the existing
+    # questionnaire engine (prefill, locked, send-email) keeps working.
+    # ────────────────────────────────────────────────────────────────────────
+
+    "fundraiser_web_store_setup": {
+        "name": "Fundraiser Web Store Setup Questionnaire",
+        "description": "Intake form for setting up a fundraiser web store (campaigns, profit-share, donation goals).",
+        "category": "web_stores",
+        "questions": [
+            # Section 1 — Contact & Cause
+            {"type": "heading", "label": "Contact and Cause", "order": 0},
+            {"type": "text",     "label": "Customer Name",                "required": True, "order": 1},
+            {"type": "text",     "label": "Organization / Cause Name",                   "order": 2},
+            {"type": "phone",    "label": "Phone Number",                 "required": True, "order": 3},
+            {"type": "email",    "label": "Email Address",                "required": True, "order": 4},
+            {"type": "text",     "label": "Main decision-maker for this fundraiser",     "order": 5},
+
+            # Section 2 — Fundraiser Goals
+            {"type": "heading",  "label": "Fundraiser Goals",                            "order": 6},
+            {"type": "text",     "label": "Fundraiser Name", "required": True, "order": 7},
+            {"type": "textarea", "label": "What is the money being raised for?",         "order": 8},
+            {"type": "number",   "label": "Fundraiser Goal Amount ($)",                  "order": 9},
+            {"type": "date",     "label": "Fundraiser Start Date",                       "order": 10},
+            {"type": "date",     "label": "Fundraiser End Date",                         "order": 11},
+            {"type": "select",   "label": "Should a progress bar be shown publicly?", "options": [
+                {"value": "yes", "label": "Yes"},
+                {"value": "no",  "label": "No"}
+            ], "order": 12},
+            {"type": "select",   "label": "Show total amount raised publicly?", "options": [
+                {"value": "yes", "label": "Yes"},
+                {"value": "no",  "label": "No"}
+            ], "order": 13},
+
+            # Section 3 — Products & Profit Share
+            {"type": "heading",  "label": "Products and Profit Share", "order": 14},
+            {"type": "checkbox", "label": "Which products do you want to sell?", "required": True, "options": [
+                {"value": "tshirts",   "label": "T-shirts"},
+                {"value": "hoodies",   "label": "Hoodies"},
+                {"value": "yard_signs","label": "Yard signs"},
+                {"value": "banners",   "label": "Banners"},
+                {"value": "decals",    "label": "Decals / stickers"},
+                {"value": "bags",      "label": "Bags"},
+                {"value": "other",     "label": "Other"}
+            ], "order": 15},
+            {"type": "select",   "label": "Profit allocation type", "options": [
+                {"value": "percentage",     "label": "Percentage of each sale"},
+                {"value": "fixed_per_item", "label": "Fixed dollar amount per item"},
+                {"value": "manual",         "label": "Manual — decide after the store closes"}
+            ], "order": 16},
+            {"type": "number",   "label": "Profit allocation percentage (%)",          "order": 17},
+            {"type": "number",   "label": "Fixed profit allocation amount per item ($)","order": 18},
+            {"type": "select",   "label": "Allow checkout donations?", "options": [
+                {"value": "yes", "label": "Yes"},
+                {"value": "no",  "label": "No"}
+            ], "order": 19},
+            {"type": "text",     "label": "Suggested donation amounts at checkout",
+             "description": "e.g., $5, $10, $25 — leave blank to allow any amount.",   "order": 20},
+
+            # Section 4 — Branding
+            {"type": "heading",  "label": "Branding",                                  "order": 21},
+            {"type": "file_upload", "label": "Upload your logo / artwork",
+             "accept_file_types": ["image/*", ".pdf", ".svg", ".ai", ".eps", ".zip"],
+             "max_file_size_mb": 25,                                                    "order": 22},
+            {"type": "text",     "label": "Brand colors",                              "order": 23},
+            {"type": "textarea", "label": "Storefront welcome message",                "order": 24},
+
+            # Section 5 — Stripe Connect
+            {"type": "heading",  "label": "Stripe Connect Payment Setup",              "order": 25},
+            {"type": "paragraph","label": "Payments will be processed via Stripe Connect so funds can be paid out directly to the fundraiser bank account. We will email a secure setup link.", "order": 26},
+            {"type": "text",     "label": "Legal name or business name for payouts",   "order": 27},
+            {"type": "email",    "label": "Best email to receive the Stripe Connect setup link", "order": 28},
+            {"type": "select",   "label": "Do you already have a Stripe account?", "options": [
+                {"value": "yes",       "label": "Yes"},
+                {"value": "no",        "label": "No"},
+                {"value": "not_sure",  "label": "Not sure"}
+            ], "order": 29},
+
+            # Section 6 — Final approval & signature
+            {"type": "heading",   "label": "Final Approval and Signature",             "order": 30},
+            {"type": "checkbox",  "label": "I understand the store will be built from the info provided and that missing details may delay launch.", "required": True, "options": [
+                {"value": "agree", "label": "I understand"}
+            ], "order": 31},
+            {"type": "text",      "label": "Customer Name",  "required": True,         "order": 32},
+            {"type": "signature", "label": "Customer Signature", "required": True,     "order": 33},
+            {"type": "date",      "label": "Date",           "required": True,         "order": 34},
+        ],
+    },
+
+    "team_school_web_store_setup": {
+        "name": "Team / School Web Store Setup Questionnaire",
+        "description": "Intake form for team, school, or organisation merch stores (uniforms, spirit wear, recurring rosters).",
+        "category": "web_stores",
+        "questions": [
+            # Section 1 — Contact & Organisation
+            {"type": "heading", "label": "Contact and Organisation",                   "order": 0},
+            {"type": "text",     "label": "Customer Name",                "required": True, "order": 1},
+            {"type": "text",     "label": "Team / School / Organisation Name",
+             "required": True, "order": 2},
+            {"type": "phone",    "label": "Phone Number",                 "required": True, "order": 3},
+            {"type": "email",    "label": "Email Address",                "required": True, "order": 4},
+            {"type": "text",     "label": "Main contact / coach / advisor role",       "order": 5},
+
+            # Section 2 — Season / Program
+            {"type": "heading",  "label": "Season and Program",                        "order": 6},
+            {"type": "text",     "label": "Sport / Program Name", "required": True,    "order": 7},
+            {"type": "select",   "label": "Store type", "options": [
+                {"value": "one_season", "label": "One-season store"},
+                {"value": "year_round", "label": "Year-round store"},
+                {"value": "tournament", "label": "Tournament / event store"}
+            ], "order": 8},
+            {"type": "date",     "label": "Store Open Date",                           "order": 9},
+            {"type": "date",     "label": "Store Close Date",                          "order": 10},
+            {"type": "textarea", "label": "Roster details (sizes, names, numbers)",
+             "description": "Optional — you can also upload a roster file below.",    "order": 11},
+            {"type": "file_upload", "label": "Upload roster file (CSV / PDF)",
+             "accept_file_types": [".csv", ".pdf", ".xlsx", ".xls"],
+             "max_file_size_mb": 10,                                                   "order": 12},
+
+            # Section 3 — Products & Personalisation
+            {"type": "heading",  "label": "Products and Personalisation",              "order": 13},
+            {"type": "checkbox", "label": "Which products do you want available?", "required": True, "options": [
+                {"value": "tshirts",     "label": "T-shirts"},
+                {"value": "hoodies",     "label": "Hoodies"},
+                {"value": "jerseys",     "label": "Jerseys"},
+                {"value": "warmups",     "label": "Warm-up gear"},
+                {"value": "hats",        "label": "Hats"},
+                {"value": "polos",       "label": "Polos / coach shirts"},
+                {"value": "spirit_wear", "label": "Spirit wear (parents, family)"},
+                {"value": "bags",        "label": "Bags / backpacks"},
+                {"value": "other",       "label": "Other"}
+            ], "order": 14},
+            {"type": "select",   "label": "Allow names on items?", "options": [
+                {"value": "yes",     "label": "Yes"},
+                {"value": "no",      "label": "No"},
+                {"value": "roster",  "label": "Only from roster list"}
+            ], "order": 15},
+            {"type": "select",   "label": "Allow numbers on items?", "options": [
+                {"value": "yes",     "label": "Yes"},
+                {"value": "no",      "label": "No"},
+                {"value": "roster",  "label": "Only from roster list"}
+            ], "order": 16},
+            {"type": "textarea", "label": "Personalisation rules / restrictions",      "order": 17},
+
+            # Section 4 — Branding
+            {"type": "heading",  "label": "Branding",                                  "order": 18},
+            {"type": "file_upload", "label": "Upload logo, mascot, or design files",
+             "accept_file_types": ["image/*", ".pdf", ".svg", ".ai", ".eps", ".zip"],
+             "max_file_size_mb": 25,                                                   "order": 19},
+            {"type": "text",     "label": "Primary team / school colors",              "order": 20},
+            {"type": "textarea", "label": "Spirit slogan, hashtag, or extra text",     "order": 21},
+
+            # Section 5 — Fulfillment
+            {"type": "heading",  "label": "Fulfillment",                               "order": 22},
+            {"type": "select",   "label": "How should orders be delivered?", "options": [
+                {"value": "individual_shipping", "label": "Individual shipping to each customer"},
+                {"value": "bulk_to_coach",       "label": "Bulk to coach / organiser"},
+                {"value": "pickup_school",       "label": "Pickup at school / facility"},
+                {"value": "pickup_shop",         "label": "Pickup at our shop"}
+            ], "order": 23},
+            {"type": "select",   "label": "Bag and label each order by athlete?", "options": [
+                {"value": "yes", "label": "Yes"},
+                {"value": "no",  "label": "No"}
+            ], "order": 24},
+
+            # Section 6 — Stripe Connect
+            {"type": "heading",  "label": "Stripe Connect Payment Setup",              "order": 25},
+            {"type": "paragraph","label": "Online payments are processed via Stripe Connect, paying out directly to your team / school / booster bank account.", "order": 26},
+            {"type": "text",     "label": "Legal name / organisation for payouts",     "order": 27},
+            {"type": "email",    "label": "Best email to receive the Stripe Connect setup link", "order": 28},
+
+            # Section 7 — Final approval
+            {"type": "heading",   "label": "Final Approval and Signature",             "order": 29},
+            {"type": "checkbox",  "label": "I have authority to set up this store on behalf of the team / school / organisation.", "required": True, "options": [
+                {"value": "agree", "label": "I confirm"}
+            ], "order": 30},
+            {"type": "text",      "label": "Customer Name",  "required": True,         "order": 31},
+            {"type": "signature", "label": "Customer Signature", "required": True,     "order": 32},
+            {"type": "date",      "label": "Date",           "required": True,         "order": 33},
+        ],
+    },
+
+    "business_web_store_setup": {
+        "name": "Business / Company Web Store Setup Questionnaire",
+        "description": "Intake form for B2B / company / employee branded merch stores.",
+        "category": "web_stores",
+        "questions": [
+            # Section 1 — Contact & Company
+            {"type": "heading", "label": "Contact and Company",                        "order": 0},
+            {"type": "text",     "label": "Customer Name",                "required": True, "order": 1},
+            {"type": "text",     "label": "Company / Business Name",      "required": True, "order": 2},
+            {"type": "phone",    "label": "Phone Number",                 "required": True, "order": 3},
+            {"type": "email",    "label": "Email Address",                "required": True, "order": 4},
+            {"type": "text",     "label": "Job title / role of main contact",          "order": 5},
+            {"type": "text",     "label": "Approximate number of employees / customers", "order": 6},
+
+            # Section 2 — Store Purpose
+            {"type": "heading",  "label": "Store Purpose",                             "order": 7},
+            {"type": "checkbox", "label": "What is this store mainly for?", "options": [
+                {"value": "employee_apparel", "label": "Employee apparel / uniforms"},
+                {"value": "customer_swag",    "label": "Customer-facing swag / merch"},
+                {"value": "promo_events",     "label": "Tradeshow / promo events"},
+                {"value": "client_gifts",     "label": "Client gifts"},
+                {"value": "internal_only",    "label": "Internal-only / private store"}
+            ], "order": 8},
+            {"type": "select",   "label": "Should the store be public or private?", "required": True, "options": [
+                {"value": "public",  "label": "Public — anyone with the link"},
+                {"value": "private", "label": "Private — only invited users"}
+            ], "order": 9},
+            {"type": "select",   "label": "How often will products change?", "options": [
+                {"value": "static",   "label": "Static catalog — rarely changes"},
+                {"value": "seasonal", "label": "Updated each season"},
+                {"value": "rotating", "label": "Frequently rotating"}
+            ], "order": 10},
+
+            # Section 3 — Products
+            {"type": "heading",  "label": "Products",                                  "order": 11},
+            {"type": "checkbox", "label": "Which product types do you need?", "required": True, "options": [
+                {"value": "tshirts",    "label": "T-shirts"},
+                {"value": "polos",      "label": "Polos / button-downs"},
+                {"value": "hoodies",    "label": "Hoodies / outerwear"},
+                {"value": "uniforms",   "label": "Branded uniforms"},
+                {"value": "hats",       "label": "Hats"},
+                {"value": "drinkware",  "label": "Drinkware / tumblers"},
+                {"value": "bags",       "label": "Bags / backpacks"},
+                {"value": "tech",       "label": "Tech accessories"},
+                {"value": "signs",      "label": "Signs / banners"},
+                {"value": "other",      "label": "Other"}
+            ], "order": 12},
+            {"type": "textarea", "label": "Any size, color, or stock requirements?",   "order": 13},
+            {"type": "select",   "label": "Do you want to allow custom embroidery / names per order?", "options": [
+                {"value": "yes",   "label": "Yes"},
+                {"value": "no",    "label": "No"}
+            ], "order": 14},
+
+            # Section 4 — Branding
+            {"type": "heading",  "label": "Branding",                                  "order": 15},
+            {"type": "file_upload", "label": "Upload logo, brand guidelines, mockups",
+             "accept_file_types": ["image/*", ".pdf", ".svg", ".ai", ".eps", ".zip"],
+             "max_file_size_mb": 25,                                                   "order": 16},
+            {"type": "text",     "label": "Brand colors",                              "order": 17},
+            {"type": "text",     "label": "Approved fonts (if any)",                   "order": 18},
+            {"type": "textarea", "label": "Storefront welcome message",                "order": 19},
+
+            # Section 5 — Fulfillment & Billing
+            {"type": "heading",  "label": "Fulfillment and Billing",                   "order": 20},
+            {"type": "select",   "label": "Who pays for items in this store?", "options": [
+                {"value": "employees",        "label": "Employees pay themselves"},
+                {"value": "company",          "label": "Company pays everything"},
+                {"value": "company_subsidy",  "label": "Company subsidises part of the price"},
+                {"value": "department_codes", "label": "Department / cost code billing"}
+            ], "order": 21},
+            {"type": "select",   "label": "How should items be delivered?", "options": [
+                {"value": "individual_shipping", "label": "Ship to each employee individually"},
+                {"value": "bulk_to_hr",          "label": "Bulk shipment to HR / office"},
+                {"value": "pickup_office",       "label": "Pickup at office"},
+                {"value": "pickup_shop",         "label": "Pickup at our shop"}
+            ], "order": 22},
+            {"type": "textarea", "label": "Special billing or PO requirements",        "order": 23},
+
+            # Section 6 — Stripe Connect
+            {"type": "heading",  "label": "Stripe Connect Payment Setup",              "order": 24},
+            {"type": "paragraph","label": "Stripe Connect handles online payments and pays out directly to the bank account you choose.", "order": 25},
+            {"type": "text",     "label": "Legal business name for payouts",           "order": 26},
+            {"type": "email",    "label": "Best email to receive the Stripe Connect setup link", "order": 27},
+
+            # Section 7 — Final approval
+            {"type": "heading",   "label": "Final Approval and Signature",             "order": 28},
+            {"type": "checkbox",  "label": "I am authorised to set up this store for the company.", "required": True, "options": [
+                {"value": "agree", "label": "I confirm"}
+            ], "order": 29},
+            {"type": "text",      "label": "Customer Name",  "required": True,         "order": 30},
+            {"type": "signature", "label": "Customer Signature", "required": True,     "order": 31},
+            {"type": "date",      "label": "Date",           "required": True,         "order": 32},
+        ],
+    },
 }

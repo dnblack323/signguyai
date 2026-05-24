@@ -1,0 +1,37 @@
+{
+  "summary": "Phase 4 backend regression — Store-type Questionnaire Coverage + Customer/Order Sync. All 13 pytest cases PASS (100%). Verified: (A1) 4 webstore templates exposed; (A2) template dispatched correctly for event / fundraiser / business / creator -> 'Event Store Setup', 'Fundraiser Store Setup', 'Business Store Setup', 'Team / School Store Setup' with store name suffix; (A3) Business questionnaire end-to-end public submit -> persisted response with webstore_id; (B1) owner upsert tagged webstore_owner; (B2) email dedupe to exactly 1 customer row across 2 stores; (B3) phone-normalisation dedupe (5551234567 vs (555) 123-XXXX); (B4) invite/quick endpoint side-effect still upserts customer with webstore_owner tag even though SendGrid path may not return success; (C1) /api/orders?source=webstore filters via $or (source=webstore OR is_webstore_order=true) and ?webstore_id=<id> filters to that store; (C2) default /api/orders unchanged (regression).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/questionnaires/public/{id}/submit", "issue": "Schema requires `questionnaire_id` in body even though it is already in the URL path. Slight DRY/UX issue; documented in test (body must repeat the id). Not blocking."},
+      {"endpoint": "POST /api/questionnaires/public/{id}/submit (required-field validation)", "issue": "Validator iterates only top-level `questionnaire.questions`; for the new section-based templates (Business/Fundraiser/Team-School) the required-field check effectively no-ops since questions live inside `sections[].questions`. Submissions still persist correctly but server-side enforcement of `required` is currently weaker than expected for section-based templates."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration168_phase4_webstore_sync.py",
+    "/app/test_reports/pytest/iteration168.xml"
+  ],
+  "action_items": [
+    "(Low) Extend questionnaire submit-side required-field validator to also descend into `sections[*].questions[*]` so the new section-based templates enforce `required` server-side.",
+    "(Low) Drop the duplicated `questionnaire_id` requirement from QuestionnaireResponseCreate (it is already in the URL path)."
+  ],
+  "critical_code_review_comments": [
+    "QUESTIONNAIRE_TEMPLATE_BY_STORE_TYPE map in routes/webstores.py correctly aliases creator/team/school/team_school -> team_school_web_store_setup; legacy/unknown values safely default to business_web_store_setup. Good defensive default.",
+    "GET /api/orders source=webstore uses $or with legacy is_webstore_order — correct backward-compat. webstore_id filter is a direct equality and works against both legacy and new orders.",
+    "_upsert_webstore_customer dedupe by email then phone-digit normalisation verified across 2 separate stores per case (B2 single row by email, B3 single row by phone after stripping non-digits)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration168_phase4_webstore_sync.py (new)"
+  ],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "n/a (backend-only request)"},
+  "test_credentials": "thesigntistslab@gmail.com / password123",
+  "seed_data_creation": "Created webstores prefixed P4-A2-, P4-A3-, P4-B1-, P4-B2a/b-, P4-B3a/b-, customers with emails p4*-<ts>@example.com and invite email p4inv-<ts>@example.com. All tagged with timestamp suffix; safe to leave (additive).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 4 backend is fully verified. The submit endpoint for questionnaires requires both URL path id AND body.questionnaire_id; tests pass webstore_id in submit body explicitly. The required-field validator for public submit currently only walks `questions` (top-level), not `sections[*].questions`; new section-based templates therefore don't enforce required server-side — main agent should fix when convenient."
+}

@@ -621,6 +621,123 @@ async def _next_order_number_for_tenant(tenant_id: str) -> str:
     return f"ORD-{count + 1:04d}"
 
 
+# ── Phase 4 — Customer sync helper ────────────────────────────────────────
+#
+# Deduplicates a webstore-derived person (owner or buyer) into the global
+# customers collection. Email is the primary dedupe key; phone is the
+# fallback when no email is present. Tags are always additive — existing
+# tags are preserved, the requested tag is added if missing, and the
+# returned customer document always has a stable id usable by the rest of
+# the pipeline (orders bridge, jobs, etc.).
+#
+# This function is intentionally light on validation: it trusts that
+# caller routes already enforced auth/tenant scoping. Failures fall back
+# to a fresh insert so we never block a checkout because of a customer
+# write conflict.
+
+import re as _phase4_re
+
+
+def _normalize_phone(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    digits = _phase4_re.sub(r"\D", "", value)
+    return digits or None
+
+
+async def _upsert_webstore_customer(
+    *,
+    tenant_id: str,
+    name: Optional[str],
+    email: Optional[str],
+    phone: Optional[str],
+    tag: str,
+    company: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Find-or-create a customer for a webstore actor (owner / buyer)."""
+    email_clean = (email or "").strip().lower() or None
+    phone_clean = _normalize_phone(phone)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    existing = None
+    if email_clean:
+        existing = await db.customers.find_one(
+            {"tenant_id": tenant_id, "email": {"$regex": f"^{_phase4_re.escape(email_clean)}$", "$options": "i"}},
+            {"_id": 0},
+        )
+    if not existing and phone_clean:
+        # Phone fallback dedupe — compare digits-only so formatting noise
+        # does not create duplicates.
+        candidates = await db.customers.find(
+            {"tenant_id": tenant_id, "phone": {"$ne": None}},
+            {"_id": 0, "id": 1, "phone": 1, "email": 1, "name": 1, "company": 1, "tags": 1},
+        ).to_list(500)
+        for c in candidates:
+            if _normalize_phone(c.get("phone")) == phone_clean:
+                existing = await db.customers.find_one({"id": c["id"]}, {"_id": 0})
+                break
+
+    if existing:
+        existing_tags = list(existing.get("tags") or [])
+        update_set: Dict[str, Any] = {"updated_at": now_iso}
+        # Backfill missing scalar fields without overwriting good data.
+        if not existing.get("name") and name:
+            update_set["name"] = name
+        if not existing.get("email") and email_clean:
+            update_set["email"] = email_clean
+        if not existing.get("phone") and phone:
+            update_set["phone"] = phone
+        if not existing.get("company") and company:
+            update_set["company"] = company
+        # Always add the tag if missing.
+        new_tags = existing_tags + [tag] if tag and tag not in existing_tags else existing_tags
+        update_set["tags"] = new_tags
+        await db.customers.update_one({"id": existing["id"]}, {"$set": update_set})
+        existing.update(update_set)
+        return existing
+
+    # No match — create a new customer.
+    from models import Customer
+    customer = Customer(
+        name=name or "Webstore Contact",
+        email=email_clean,
+        phone=phone,
+        company=company,
+        tenant_id=tenant_id,
+        tags=[tag] if tag else [],
+    )
+    doc = customer.model_dump()
+    await db.customers.insert_one(doc)
+    return doc
+
+
+# ── Phase 4 — Questionnaire template dispatcher by store type ─────────────
+#
+# Map a webstore's `store_type` (with backward-compatible aliases) to the
+# correct questionnaire template key in QUESTIONNAIRE_TEMPLATES. Unknown
+# values fall back to the business template so the send-questionnaire
+# endpoint never 500s on legacy data.
+
+QUESTIONNAIRE_TEMPLATE_BY_STORE_TYPE = {
+    "event":        "event_web_store_setup",
+    "fundraiser":   "fundraiser_web_store_setup",
+    "team_school":  "team_school_web_store_setup",
+    "team":         "team_school_web_store_setup",
+    "school":       "team_school_web_store_setup",
+    "creator":      "team_school_web_store_setup",
+    "business":     "business_web_store_setup",
+    "b2b":          "business_web_store_setup",
+    "company":      "business_web_store_setup",
+}
+
+
+def _template_key_for_store_type(store_type: Optional[str]) -> str:
+    key = (store_type or "").strip().lower()
+    return QUESTIONNAIRE_TEMPLATE_BY_STORE_TYPE.get(key, "business_web_store_setup")
+
+
+
+
 async def _ensure_main_order_bridge(
     *,
     webstore_order_doc: Dict[str, Any],
@@ -660,6 +777,10 @@ async def _ensure_main_order_bridge(
         "email": webstore_order_doc.get("customer_email") or customer_doc.get("email") or "",
         "company_name": company_name,
         "order_source": "website",
+        # Phase 4 — explicit machine-friendly source marker used by the
+        # main Orders list filter (GET /api/orders?source=webstore). Coexists
+        # with the legacy human-readable `order_source` field.
+        "source": "webstore",
         "date_created": now_iso,
         "created_by": "webstore_checkout",
         "requested_due_date": None,
@@ -1372,6 +1493,22 @@ async def create_webstore(
     )
     doc = webstore.model_dump()
     await db.webstores_v2.insert_one(doc)
+
+    # Phase 4 — sync the store owner into Customers with webstore_owner tag.
+    # Non-fatal: a failure here must not block store creation.
+    try:
+        if webstore.owner_email or webstore.owner_name:
+            await _upsert_webstore_customer(
+                tenant_id=current_user.tenant_id,
+                name=webstore.owner_name,
+                email=webstore.owner_email,
+                phone=webstore.owner_phone,
+                tag="webstore_owner",
+                company=webstore.name,
+            )
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Owner customer sync failed for store %s: %s", webstore.id, exc)
+
     return webstore
 
 
@@ -2463,21 +2600,14 @@ async def create_webstore_order(input: WebstoreOrderCreate):
     
     # ==================== CUSTOMER & JOB CREATION ====================
     
-    # Auto-create or find customer
-    customer = await db.customers.find_one(
-        {"email": input.customer_email, "tenant_id": tenant_id}, 
-        {"_id": 0}
+    # Phase 4 — find-or-create the buyer with webstore_customer tag.
+    customer = await _upsert_webstore_customer(
+        tenant_id=tenant_id,
+        name=input.customer_name,
+        email=input.customer_email,
+        phone=input.customer_phone,
+        tag="webstore_customer",
     )
-    if not customer:
-        from models import Customer
-        customer = Customer(
-            name=input.customer_name,
-            email=input.customer_email,
-            phone=input.customer_phone,
-            tenant_id=tenant_id
-        )
-        await db.customers.insert_one(customer.model_dump())
-        customer = customer.model_dump()
     
     # Auto-create job
     from models import Job, JobItem
@@ -2623,21 +2753,15 @@ async def create_job_from_order(
     if order.get("job_id"):
         return {"message": "Job already exists for this order", "job_id": order["job_id"]}
     
-    # Create or find customer (tenant-filtered)
-    customer = await db.customers.find_one(
-        {"email": order["customer_email"], "tenant_id": current_user.tenant_id}, 
-        {"_id": 0}
+    # Phase 4 — find-or-create the buyer when admin manually creates a job
+    # from an existing webstore order. Same dedupe + tagging rules as checkout.
+    customer = await _upsert_webstore_customer(
+        tenant_id=current_user.tenant_id,
+        name=order["customer_name"],
+        email=order["customer_email"],
+        phone=order.get("customer_phone"),
+        tag="webstore_customer",
     )
-    if not customer:
-        from models import Customer
-        customer = Customer(
-            name=order["customer_name"],
-            email=order["customer_email"],
-            phone=order.get("customer_phone"),
-            tenant_id=current_user.tenant_id
-        )
-        await db.customers.insert_one(customer.model_dump())
-        customer = customer.model_dump()
     
     # Create job
     from models import Job, JobItem
@@ -2893,10 +3017,16 @@ async def send_event_store_questionnaire(
             {"$set": {"status": "active", "last_sent_at": now, "updated_at": now}},
         )
     else:
-        # Create from template
-        template = QUESTIONNAIRE_TEMPLATES.get("event_web_store_setup")
+        # Create from template — Phase 4 picks the right template based on
+        # the store_type. Event continues to be the rich event template;
+        # fundraiser / team-school / business get their own templates.
+        template_key = _template_key_for_store_type(webstore.get("store_type"))
+        template = QUESTIONNAIRE_TEMPLATES.get(template_key)
         if not template:
-            raise HTTPException(status_code=500, detail="event_web_store_setup template not found")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Questionnaire template '{template_key}' not found",
+            )
 
         questions: list[Question] = []
         for i, q in enumerate(template["questions"]):
@@ -2946,11 +3076,23 @@ async def send_event_store_questionnaire(
                 prefill_answers[q_obj.id] = locked_val
                 locked_answer_ids.append(q_obj.id)
 
+        # Build a human-friendly questionnaire name per store type.
+        store_type_label = {
+            "event":       "Event Store Setup",
+            "fundraiser":  "Fundraiser Store Setup",
+            "team_school": "Team / School Store Setup",
+            "team":        "Team / School Store Setup",
+            "school":      "Team / School Store Setup",
+            "creator":     "Team / School Store Setup",
+            "business":    "Business Store Setup",
+            "b2b":         "Business Store Setup",
+            "company":     "Business Store Setup",
+        }.get((webstore.get("store_type") or "").lower(), "Store Setup")
         now = datetime.now(timezone.utc).isoformat()
         q_doc = Questionnaire(
             id=str(uuid.uuid4()),
             tenant_id=current_user.tenant_id,
-            name=f"Event Store Setup — {webstore['name']}",
+            name=f"{store_type_label} — {webstore['name']}",
             description=template["description"],
             category=QuestionnaireCategory(template["category"]),
             questions=questions,
