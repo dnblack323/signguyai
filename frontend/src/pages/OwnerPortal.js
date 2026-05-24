@@ -11,6 +11,7 @@ import {
 } from '../components/ui/table';
 import { Loader2, ShieldCheck, ExternalLink, LogOut, CheckCircle2, AlertTriangle, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
+import OwnerStoreProgressPanel from '../components/owner-portal/OwnerStoreProgressPanel';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const TOKEN_KEY = 'owner_portal_token';
@@ -204,47 +205,13 @@ export default function OwnerPortal() {
                   >
                     <ExternalLink className="h-4 w-4 mr-2" /> Open Stripe Dashboard
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => loadTransfers(s.id)}
-                    className="text-slate-300 border-slate-600"
-                  >
-                    <Wallet className="h-4 w-4 mr-2" /> Show payout history
-                  </Button>
                 </div>
 
-                {transfers[s.id] && (
-                  <div className="mt-3 border border-[#1E293B] rounded-md overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-[#0B0F17]">
-                        <TableRow>
-                          <TableHead className="text-slate-400">Date</TableHead>
-                          <TableHead className="text-slate-400">Order</TableHead>
-                          <TableHead className="text-slate-400">Customer</TableHead>
-                          <TableHead className="text-slate-400 text-right">Commission</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {transfers[s.id].length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center text-slate-500 py-6">No payouts yet</TableCell>
-                          </TableRow>
-                        ) : transfers[s.id].map((t) => (
-                          <TableRow key={t.id}>
-                            <TableCell className="text-slate-300 text-xs">
-                              {t.owner_transfer_at ? new Date(t.owner_transfer_at).toLocaleString() : '—'}
-                            </TableCell>
-                            <TableCell className="text-slate-300">{t.order_number || t.id?.slice(0, 8)}</TableCell>
-                            <TableCell className="text-slate-300">{t.customer_name || '—'}</TableCell>
-                            <TableCell className="text-emerald-300 text-right font-medium">
-                              ${(t.owner_transfer_amount || 0).toFixed(2)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                {/* Phase 5 — Lifecycle progress + required actions + financial transparency */}
+                <OwnerStoreProgressPanel
+                  storeId={s.id}
+                  onOpenStripe={openStripeDashboard}
+                />
               </CardContent>
             </Card>
           );

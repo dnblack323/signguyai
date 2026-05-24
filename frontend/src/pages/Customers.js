@@ -38,7 +38,7 @@ import {
   Plus, Search, Edit2, Trash2, Mail, Phone, Building, 
   User, Briefcase, Receipt, FileText, Calendar, Eye,
   DollarSign, Clock, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download,
-  ArrowRight, Package
+  ArrowRight, Package, Store
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -86,6 +86,29 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailTab, setDetailTab] = useState('overview');
   const [invitingPortal, setInvitingPortal] = useState(false);
+  // Phase 4 follow-up — webstore connections for the selected customer.
+  const [customerWebstores, setCustomerWebstores] = useState({ as_owner: [], as_buyer: [], tags: [] });
+
+  useEffect(() => {
+    if (!isDetailOpen || !selectedCustomer?.id) {
+      setCustomerWebstores({ as_owner: [], as_buyer: [], tags: [] });
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/customers/${selectedCustomer.id}/webstores`, {
+          headers: { Authorization: `Bearer ${getAuthToken()}` },
+        });
+        if (!cancelled) setCustomerWebstores(res.data || { as_owner: [], as_buyer: [], tags: [] });
+      } catch (err) {
+        // Non-fatal — just hide the card on failure.
+        if (!cancelled) setCustomerWebstores({ as_owner: [], as_buyer: [], tags: [] });
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDetailOpen, selectedCustomer?.id]);
 
   // Phase 3: declare context so "create an order for this customer" works.
   useSetPageContext(
@@ -1081,6 +1104,78 @@ export default function Customers() {
                                   <p className="text-xs text-gray-500">Due: {formatDate(job.due_date)}</p>
                                 </div>
                                 <Badge className={getStatusColor(job.status)}>{job.status.replace('_', ' ')}</Badge>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Phase 4 follow-up — Webstore connections panel.
+                        Surfaces every store this customer owns or has shopped
+                        on, so a sales rep can jump from a customer record
+                        straight to the right store. Only renders when there
+                        is at least one connection. */}
+                    {((customerWebstores.as_owner?.length || 0) + (customerWebstores.as_buyer?.length || 0)) > 0 && (
+                      <div data-testid="customer-webstores-panel">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <Store className="h-4 w-4 text-blue-500" /> Webstore Connections
+                          {(customerWebstores.tags || []).length > 0 && (
+                            <span className="ml-2 flex gap-1">
+                              {(customerWebstores.tags || []).map((t) => (
+                                <Badge key={t} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                                  {t.replace('_', ' ')}
+                                </Badge>
+                              ))}
+                            </span>
+                          )}
+                        </h4>
+                        <div className="space-y-2">
+                          {(customerWebstores.as_owner || []).map((s) => (
+                            <Link
+                              key={`owner-${s.id}`}
+                              to={`/webstores`}
+                              onClick={() => setIsDetailOpen(false)}
+                              className="block"
+                              data-testid={`webstore-owner-${s.id}`}
+                            >
+                              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100/60 transition-colors">
+                                <div>
+                                  <p className="font-medium text-gray-900">{s.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    Owner · {s.store_type || '—'} · {s.order_count || 0} orders · {formatCurrency(s.gross_sales || 0)} gross
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-500">Owed</p>
+                                  <p className={`text-sm font-semibold ${(s.payout_owed || 0) > 0 ? 'text-amber-600' : 'text-gray-700'}`}>
+                                    {formatCurrency(s.payout_owed || 0)}
+                                  </p>
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                          {(customerWebstores.as_buyer || []).map((s) => (
+                            <Link
+                              key={`buyer-${s.id}`}
+                              to={`/orders?webstore_id=${s.id}`}
+                              onClick={() => setIsDetailOpen(false)}
+                              className="block"
+                              data-testid={`webstore-buyer-${s.id}`}
+                            >
+                              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div>
+                                  <p className="font-medium text-gray-900">{s.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    Buyer · {s.store_type || '—'} · {s.order_count} orders
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-500">Spent</p>
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    {formatCurrency(s.gross_sales || 0)}
+                                  </p>
+                                </div>
                               </div>
                             </Link>
                           ))}

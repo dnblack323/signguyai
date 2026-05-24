@@ -1,0 +1,43 @@
+{
+  "summary": "Phase 5 Owner Portal Progress + Phase 4 Customer/Webstores follow-up tested. 7/8 backend tests pass and all 3 frontend UI tests pass (owner panel renders progress, finance, 6+ actions, 15 stages; customer detail shows Webstore Connections card with owner rows). One important finance drift bug found: owner progress finance.gross_sales=60.00/3 orders does NOT equal admin analytics summary.total_revenue=40.00/2 orders for the same store fc0bad7e-9040-477e-93b9-a3f0b1a2df90. This violates TEST 9's source-of-truth requirement.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/owner-portal/stores/{id}/progress vs /api/webstores/v2/{id}/analytics",
+        "issue": "Finance source-of-truth drift: progress endpoint returns finance.gross_sales=$60.00 / total_orders=3 (read from cached webstores_v2.total_sales / total_orders fields) while /api/webstores/v2/{id}/analytics returns summary.total_revenue=$40.00 / total_orders=2 (recomputed from orders collection) for the SAME store fc0bad7e-9040-477e-93b9-a3f0b1a2df90. The Phase 5 spec explicitly required these to match so owners and admins see the same numbers (no parallel calculation). Either the cached fields on the webstores_v2 doc are stale, or progress should compute live from orders the same way analytics does.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration169_phase5_owner_progress.py",
+    "/app/test_reports/pytest/iteration169_results.xml"
+  ],
+  "action_items": [
+    "Fix finance source-of-truth drift between /api/owner-portal/stores/{id}/progress and /api/webstores/v2/{id}/analytics. Either (a) recompute gross_sales/total_orders in the progress endpoint by querying the orders collection with the same filter analytics uses, or (b) ensure the cached webstores_v2.total_sales / total_orders fields are kept in lock-step with order events. Recommend (a) since the analytics endpoint is the documented source-of-truth and it is what admins see."
+  ],
+  "critical_code_review_comments": [
+    "webstore_owners.py line ~621 reads gross_sales/total_orders directly from the webstores_v2 document. These cached fields can drift from the orders collection (and clearly have for store fc0bad7e — 3 vs 2 orders, $60 vs $40 gross). For a 'financial transparency' surface that promises no calculation drift, either compute live or invalidate the cache on every order state change.",
+    "Privacy guard implementation is solid — no banned substrings appeared in the JSON for either /customers/{id}/webstores or /owner-portal/.../progress (margin only inside privacy_note as designed).",
+    "OwnerStoreProgressPanel renders 7 owner-action-* elements instead of 6 — one of the cards is rendered twice or a duplicate testid prefix is being applied. Spec calls for exactly 6 (complete_questionnaire/upload_artwork/review_preview/approve_store/confirm_fulfillment/stripe_onboarding). Worth auditing to ensure no double-render."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration169_phase5_owner_progress.py (new)"
+  ],
+  "success_rate": {
+    "backend": "87.5%",
+    "frontend": "100%"
+  },
+  "test_credentials": "Admin: thesigntistslab@gmail.com / password123 ; Owner: phase5-owner-test@example.com / OwnerPass123!",
+  "seed_data_creation": "None — used existing Phase 4/5 seed (webstore fc0bad7e-9040-477e-93b9-a3f0b1a2df90, Test Customer with 3 owner webstore connections).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 10 review-request tests were exercised. Backend TESTS 1,2,3,4,5,6,7 PASS. Backend TEST 9 FAILS due to finance drift ($60/3 vs $40/2). Frontend TEST 8 PASS (1 panel, 3 finance testids visible, 7 actions, 15 stages). Frontend TEST 10 PASS (customer-webstores-panel with 3 webstore-owner-* rows). After main agent fix, rerun pytest /app/backend/tests/test_iteration169_phase5_owner_progress.py::test_finance_matches_admin_analytics to validate.",
+  "rca of the issue": "Progress endpoint (routes/webstore_owners.py ~L621) pulls gross_sales=float(ws.get('total_sales') or 0) and total_orders=int(ws.get('total_orders') or 0) straight off the webstores_v2 mongo document. The /webstores/v2/{id}/analytics endpoint independently aggregates orders. Because the two paths use different data sources, any divergence between the cached counters and the live orders collection (a third order that hit the cache counter but not the orders aggregation filter, e.g. status=cancelled excluded from analytics but counted in total_sales, or vice versa) shows up as a $20 / 1-order delta. Reproduction: GET both endpoints as their respective auth roles and compare numbers — they should be identical but aren't."
+}

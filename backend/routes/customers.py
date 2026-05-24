@@ -281,6 +281,106 @@ async def get_customer(
     return customer
 
 
+@router.get("/{customer_id}/webstores")
+async def get_customer_webstores(
+    customer_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Phase 4 follow-up — list webstores this customer is connected to.
+
+    A customer is linked to a webstore in two ways:
+      * They are the owner (matched via owner_email or owner_phone)
+      * They have placed at least one order on the store (joined via the
+        main orders collection with webstore_id stamped by the Phase 4 bridge)
+
+    Tenant-scoped. Light read; doesn't expose internal cost/margin fields —
+    only the public-safe `name`, `store_type`, `status`, and per-customer
+    aggregate `order_count` / `gross_sales`.
+    """
+    customer = await db.customers.find_one(
+        {"id": customer_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1, "email": 1, "phone": 1, "tags": 1},
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    tenant_id = current_user.tenant_id
+    email = (customer.get("email") or "").strip().lower()
+    digits = re.sub(r"\D", "", customer.get("phone") or "")
+
+    # ── Stores where this customer is the owner ───────────────────────────
+    owner_query: dict = {"tenant_id": tenant_id}
+    owner_or = []
+    if email:
+        owner_or.append({"owner_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}})
+    if digits:
+        # owner_phone is stored as raw input — match by suffix of digits-only
+        owner_or.append({"owner_phone": {"$regex": digits[-7:], "$options": "i"}})
+    if not owner_or:
+        owner_stores = []
+    else:
+        owner_query["$or"] = owner_or
+        owner_stores = await db.webstores_v2.find(
+            owner_query,
+            {"_id": 0, "id": 1, "name": 1, "store_type": 1, "status": 1,
+             "total_orders": 1, "total_sales": 1, "payout_owed": 1, "payout_paid": 1},
+        ).to_list(50)
+
+    # ── Stores where this customer placed orders ─────────────────────────
+    buyer_match: dict = {"tenant_id": tenant_id, "customer_id": customer_id, "is_webstore_order": True}
+    buyer_orders = await db.orders.find(
+        buyer_match,
+        {"_id": 0, "webstore_id": 1, "webstore_name": 1, "order_total": 1},
+    ).to_list(500)
+
+    buyer_agg: dict = {}
+    for o in buyer_orders:
+        wid = o.get("webstore_id")
+        if not wid:
+            continue
+        agg = buyer_agg.setdefault(wid, {
+            "id": wid,
+            "name": o.get("webstore_name") or "Webstore",
+            "store_type": None,
+            "status": None,
+            "order_count": 0,
+            "gross_sales": 0.0,
+        })
+        agg["order_count"] += 1
+        agg["gross_sales"] += float(o.get("order_total") or 0)
+
+    # Enrich buyer rows with store metadata in a single batched fetch.
+    if buyer_agg:
+        meta_rows = await db.webstores_v2.find(
+            {"tenant_id": tenant_id, "id": {"$in": list(buyer_agg.keys())}},
+            {"_id": 0, "id": 1, "store_type": 1, "status": 1},
+        ).to_list(50)
+        for m in meta_rows:
+            row = buyer_agg.get(m["id"])
+            if row:
+                row["store_type"] = m.get("store_type")
+                row["status"] = m.get("status")
+
+    return {
+        "customer_id": customer_id,
+        "tags": customer.get("tags") or [],
+        "as_owner": [
+            {
+                "id": s["id"],
+                "name": s.get("name"),
+                "store_type": s.get("store_type"),
+                "status": s.get("status"),
+                "order_count": int(s.get("total_orders") or 0),
+                "gross_sales": float(s.get("total_sales") or 0),
+                "payout_owed": float(s.get("payout_owed") or 0),
+                "payout_paid": float(s.get("payout_paid") or 0),
+            }
+            for s in owner_stores
+        ],
+        "as_buyer": list(buyer_agg.values()),
+    }
+
+
 # ============== BRANDING PROFILE ROUTES ==============
 
 # How many recent logo concepts to keep on the embedded branding_profile.

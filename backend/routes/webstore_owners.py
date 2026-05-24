@@ -578,6 +578,304 @@ async def portal_store_transfers(
     return {"store_name": ws.get("name"), "transfers": orders}
 
 
+# ── Phase 5 — Owner-facing progress + financial transparency ──────────────
+#
+# Returns a single privacy-safe payload an owner can use to:
+#   * see exactly where the store is in its lifecycle
+#   * see what they still need to do
+#   * understand the split math behind any pending payout
+#
+# Strict privacy: never returns base_cost / production_cost / margin /
+# supplier_cost / internal_notes / staff comments. Only owner-facing
+# financial fields are included.
+
+OWNER_FINANCIAL_FIELDS_SAFE = {
+    "total_sales",        # owner already sees this
+    "total_orders",
+    "payout_owed",
+    "payout_paid",
+    "total_donations_received",
+    "total_profit_allocation_received",
+    "fundraiser_total_raised",
+}
+
+
+@portal_router.get("/stores/{webstore_id}/progress")
+async def portal_store_progress(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Owner-facing lifecycle progress + required actions + finance breakdown."""
+    await _require_owner_user(current_user)
+
+    ws = await db.webstores_v2.find_one(
+        {"id": webstore_id, "owner_user_id": current_user.id},
+        {"_id": 0},
+    )
+    if not ws:
+        raise HTTPException(status_code=404, detail="Store not found")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # ── Aggregate financial signals (privacy-safe) ────────────────────────
+    gross_sales = float(ws.get("total_sales") or 0)
+    total_orders = int(ws.get("total_orders") or 0)
+    payout_owed = float(ws.get("payout_owed") or 0)
+    payout_paid = float(ws.get("payout_paid") or 0)
+    total_donations = float(ws.get("total_donations_received") or 0)
+    total_allocation = float(ws.get("total_profit_allocation_received") or 0)
+    fundraiser_raised = float(ws.get("fundraiser_total_raised") or 0)
+    # Net pending is the amount still due to the owner.
+    net_pending = round(payout_owed, 2)
+
+    # ── Questionnaire + Stripe + content readiness ────────────────────────
+    questionnaire = await db.questionnaires.find_one(
+        {"webstore_id": webstore_id},
+        {"_id": 0, "id": 1, "status": 1, "response_count": 1},
+    )
+    questionnaire_submitted = bool(
+        questionnaire and int(questionnaire.get("response_count") or 0) > 0
+    )
+
+    stripe_ready = bool(
+        ws.get("owner_stripe_account_id")
+        and ws.get("owner_stripe_charges_enabled")
+        and ws.get("owner_stripe_payouts_enabled")
+    )
+
+    has_logo = bool(((ws.get("branding") or {}).get("logo_url")))
+    has_products = bool(ws.get("product_count") or 0)
+    if not has_products:
+        # Fallback: count assigned products if the cached value is stale.
+        try:
+            has_products = await db.webstore_products.count_documents(
+                {"webstore_id": webstore_id}
+            ) > 0
+        except Exception:  # pragma: no cover - defensive
+            has_products = False
+
+    store_status = (ws.get("status") or "draft").lower()
+    storefront_published = store_status in {"active", "live", "approved"}
+    store_closed = store_status in {"closed", "completed"}
+
+    # Order signals
+    recent_orders = await db.webstore_orders_v2.count_documents(
+        {"webstore_id": webstore_id}
+    )
+    completed_orders = await db.webstore_orders_v2.count_documents(
+        {"webstore_id": webstore_id, "status": "completed"}
+    )
+
+    # ── Lifecycle stage computation ───────────────────────────────────────
+    # 15 owner-facing stages, in chronological order. We mark each as
+    # done/active/todo so the UI can render a progress meter.
+    stages = [
+        {"key": "setup_received",         "label": "Store setup received"},
+        {"key": "questionnaire_submitted","label": "Questionnaire submitted"},
+        {"key": "waiting_artwork",        "label": "Waiting on logo / artwork"},
+        {"key": "store_being_built",      "label": "Store being built"},
+        {"key": "products_being_added",   "label": "Products being added"},
+        {"key": "pricing_review",         "label": "Pricing being reviewed"},
+        {"key": "preview_ready",          "label": "Storefront preview ready"},
+        {"key": "awaiting_owner_approval","label": "Awaiting owner approval"},
+        {"key": "store_approved",         "label": "Store approved"},
+        {"key": "store_live",             "label": "Store live"},
+        {"key": "orders_coming_in",       "label": "Orders coming in"},
+        {"key": "store_closed",           "label": "Store closed"},
+        {"key": "production_started",     "label": "Production started"},
+        {"key": "ready_for_pickup",       "label": "Ready for pickup / distribution"},
+        {"key": "completed",              "label": "Completed"},
+    ]
+    done_flags = {
+        "setup_received":          True,  # the store record itself exists
+        "questionnaire_submitted": questionnaire_submitted,
+        "waiting_artwork":         has_logo,
+        "store_being_built":       has_products or storefront_published,
+        "products_being_added":    has_products,
+        "pricing_review":          has_products,  # admin sets prices alongside products
+        "preview_ready":           bool(ws.get("preview_ready_at")) or storefront_published,
+        "awaiting_owner_approval": bool(ws.get("owner_approved_at")) or storefront_published,
+        "store_approved":          bool(ws.get("owner_approved_at")) or storefront_published,
+        "store_live":              storefront_published and not store_closed,
+        "orders_coming_in":        recent_orders > 0,
+        "store_closed":            store_closed,
+        "production_started":      completed_orders > 0 or bool(ws.get("production_started_at")),
+        "ready_for_pickup":        bool(ws.get("ready_for_pickup_at")),
+        "completed":               store_status == "completed",
+    }
+    # Walk stages, marking the first not-done stage as the current one.
+    current_idx = 0
+    for i, s in enumerate(stages):
+        if done_flags.get(s["key"]):
+            s["status"] = "done"
+            current_idx = i + 1
+        else:
+            break
+    for i, s in enumerate(stages):
+        if "status" not in s:
+            s["status"] = "active" if i == current_idx else "todo"
+
+    if current_idx >= len(stages):
+        current_stage = stages[-1]
+        next_blocker = None
+    else:
+        current_stage = stages[current_idx]
+        # Human-readable explanation of what's blocking the next stage.
+        blocker_map = {
+            "questionnaire_submitted": "Submit the setup questionnaire so we can build your store.",
+            "waiting_artwork":         "Upload your logo / artwork so we can finalise the storefront.",
+            "store_being_built":       "Our team is finishing the storefront. No action needed.",
+            "products_being_added":    "Our team is loading your product catalog. No action needed.",
+            "pricing_review":          "Our team is reviewing pricing. No action needed.",
+            "preview_ready":           "Storefront preview is in progress.",
+            "awaiting_owner_approval": "Review the storefront preview and approve to go live.",
+            "store_approved":          "Awaiting final approval to publish.",
+            "store_live":              "Complete Stripe Connect so payouts can flow.",
+            "orders_coming_in":        "Share your store link to start collecting orders.",
+            "store_closed":            "Close the store when sales end.",
+            "production_started":      "We'll start production once the store closes.",
+            "ready_for_pickup":        "Items are being produced. We'll notify you when ready.",
+            "completed":               "Pickup / distribution in progress.",
+        }
+        next_blocker = blocker_map.get(current_stage["key"], None)
+
+    # ── Required owner actions ───────────────────────────────────────────
+    required_actions = [
+        {
+            "key": "complete_questionnaire",
+            "label": "Complete the setup questionnaire",
+            "status": "done" if questionnaire_submitted else "todo",
+            "cta_url": f"/questionnaire/{questionnaire['id']}" if questionnaire else None,
+            "reason": (
+                "Done — thank you!"
+                if questionnaire_submitted
+                else "We need a few details about your event / fundraiser / store before we can build it."
+            ),
+        },
+        {
+            "key": "upload_artwork",
+            "label": "Upload logo / artwork",
+            "status": "done" if has_logo else "todo",
+            "cta_url": f"/questionnaire/{questionnaire['id']}" if questionnaire else None,
+            "reason": (
+                "Logo received."
+                if has_logo
+                else "Upload your logo so we can finalise the storefront design."
+            ),
+        },
+        {
+            "key": "review_preview",
+            "label": "Review the storefront preview",
+            "status": "done" if (bool(ws.get("owner_approved_at")) or storefront_published) else "todo",
+            "cta_url": f"/store/{webstore_id}",
+            "reason": (
+                "Preview approved."
+                if (bool(ws.get("owner_approved_at")) or storefront_published)
+                else "Open your storefront preview link and let us know if anything needs changes."
+            ),
+        },
+        {
+            "key": "approve_store",
+            "label": "Approve store to go live",
+            "status": "done" if storefront_published else "todo",
+            "cta_url": None,
+            "reason": (
+                "Store is live."
+                if storefront_published
+                else "Sign off on the preview so we can publish the store."
+            ),
+        },
+        {
+            "key": "confirm_fulfillment",
+            "label": "Confirm pickup / delivery details",
+            "status": "done" if (ws.get("pickup_delivery_date") or ws.get("pickup_delivery_instructions")) else "todo",
+            "cta_url": f"/questionnaire/{questionnaire['id']}" if questionnaire else None,
+            "reason": (
+                "Fulfillment details on file."
+                if (ws.get("pickup_delivery_date") or ws.get("pickup_delivery_instructions"))
+                else "Tell us how customers should receive their orders."
+            ),
+        },
+        {
+            "key": "stripe_onboarding",
+            "label": "Complete Stripe Connect onboarding",
+            "status": "done" if stripe_ready else "todo",
+            "cta_url": None,  # FE swaps in stripe-login-link
+            "reason": (
+                "Stripe connected — payouts will land in your bank automatically."
+                if stripe_ready
+                else "Connect Stripe so we can send your sales directly to your bank."
+            ),
+        },
+    ]
+
+    # ── Financial transparency block ─────────────────────────────────────
+    finance = {
+        "gross_sales":                  round(gross_sales, 2),
+        "total_orders":                 total_orders,
+        "donations_collected":          round(total_donations, 2),
+        "profit_allocation":            round(total_allocation, 2),
+        "fundraiser_total_raised":      round(fundraiser_raised, 2),
+        "payout_owed":                  round(payout_owed, 2),
+        "payout_paid":                  round(payout_paid, 2),
+        "net_pending_payout":           net_pending,
+        # Plain-English split math explainer — the UI renders this verbatim
+        # so owners always see exactly how the pending number was derived.
+        "formula": (
+            "Pending payout = Total owed to you so far "
+            "− Payouts already sent. "
+            "If you have a fundraiser, donations and profit allocation are "
+            "shown separately so you can see exactly what was raised."
+        ),
+    }
+
+    # ── Payout history (auth-scoped to this owner's store only) ──────────
+    history_rows = await db.webstore_orders_v2.find(
+        {"webstore_id": webstore_id, "owner_transfer_id": {"$exists": True, "$ne": None}},
+        {"_id": 0, "id": 1, "order_number": 1,
+         "owner_transfer_amount": 1, "owner_transfer_at": 1,
+         "owner_transfer_id": 1, "customer_name": 1, "status": 1},
+    ).sort("owner_transfer_at", -1).to_list(100)
+    payout_history = [
+        {
+            "id": r.get("owner_transfer_id"),
+            "date": r.get("owner_transfer_at"),
+            "amount": float(r.get("owner_transfer_amount") or 0),
+            "order_number": r.get("order_number"),
+            "customer_name": r.get("customer_name"),
+            "status": r.get("status") or "transferred",
+            "reference": r.get("owner_transfer_id"),
+        }
+        for r in history_rows
+    ]
+
+    return {
+        "store": {
+            "id": ws["id"],
+            "name": ws.get("name"),
+            "store_type": ws.get("store_type"),
+            "status": store_status,
+        },
+        "current_stage": {
+            "key": current_stage["key"],
+            "label": current_stage["label"],
+            "index": current_idx,
+            "total": len(stages),
+        },
+        "stages": stages,
+        "next_blocker": next_blocker,
+        "required_actions": required_actions,
+        "finance": finance,
+        "payout_history": payout_history,
+        "as_of": now_iso,
+        # Privacy banner consumed by the UI.
+        "privacy_note": (
+            "This view never shows internal cost, margin, or supplier data. "
+            "Only your sales, donations, and payout totals are displayed."
+        ),
+    }
+
+
 @portal_router.post("/stores/{webstore_id}/stripe-login-link")
 async def portal_stripe_login(
     webstore_id: str,
