@@ -618,15 +618,37 @@ async def portal_store_progress(
     now_iso = datetime.now(timezone.utc).isoformat()
 
     # ── Aggregate financial signals (privacy-safe) ────────────────────────
-    gross_sales = float(ws.get("total_sales") or 0)
-    total_orders = int(ws.get("total_orders") or 0)
+    # Source-of-truth alignment with /api/webstores/v2/{id}/analytics — we
+    # aggregate live from webstore_orders_v2 instead of trusting the cached
+    # counters on the webstores_v2 document. Cached fields drift when order
+    # state changes (refunds, cancellations) so reading them produced a
+    # $20 / 1-order discrepancy in iteration_169 testing.
+    _orders_rows = await db.webstore_orders_v2.find(
+        {"webstore_id": webstore_id},
+        {"_id": 0, "subtotal": 1, "total_profit": 1, "commission_amount": 1,
+         "donation_amount": 1, "profit_allocation_amount": 1, "status": 1},
+    ).to_list(2000)
+    gross_sales = sum(float(o.get("subtotal") or 0) for o in _orders_rows)
+    total_orders = len(_orders_rows)
+    total_commission = sum(float(o.get("commission_amount") or 0) for o in _orders_rows)
+    total_donations_live = sum(float(o.get("donation_amount") or 0) for o in _orders_rows)
+    total_allocation_live = sum(float(o.get("profit_allocation_amount") or 0) for o in _orders_rows)
+
+    # Payout numbers are operational (paid by tenant outside the orders
+    # collection) so they still come from the webstores_v2 doc, which is the
+    # authoritative payout ledger maintained by record_payout().
     payout_owed = float(ws.get("payout_owed") or 0)
     payout_paid = float(ws.get("payout_paid") or 0)
-    total_donations = float(ws.get("total_donations_received") or 0)
-    total_allocation = float(ws.get("total_profit_allocation_received") or 0)
+    # If payout_owed wasn't set explicitly, fall back to commission total.
+    if payout_owed == 0 and total_commission > 0:
+        payout_owed = round(total_commission - payout_paid, 2)
+    # Donations / profit-allocation prefer the live sum but fall back to the
+    # cached aggregates on the webstores_v2 doc when no order-level field exists.
+    total_donations = total_donations_live or float(ws.get("total_donations_received") or 0)
+    total_allocation = total_allocation_live or float(ws.get("total_profit_allocation_received") or 0)
     fundraiser_raised = float(ws.get("fundraiser_total_raised") or 0)
     # Net pending is the amount still due to the owner.
-    net_pending = round(payout_owed, 2)
+    net_pending = round(max(payout_owed, 0), 2)
 
     # ── Questionnaire + Stripe + content readiness ────────────────────────
     questionnaire = await db.questionnaires.find_one(
@@ -658,13 +680,9 @@ async def portal_store_progress(
     storefront_published = store_status in {"active", "live", "approved"}
     store_closed = store_status in {"closed", "completed"}
 
-    # Order signals
-    recent_orders = await db.webstore_orders_v2.count_documents(
-        {"webstore_id": webstore_id}
-    )
-    completed_orders = await db.webstore_orders_v2.count_documents(
-        {"webstore_id": webstore_id, "status": "completed"}
-    )
+    # Order signals (re-using the rows already loaded above)
+    recent_orders = total_orders
+    completed_orders = sum(1 for o in _orders_rows if (o.get("status") or "").lower() == "completed")
 
     # ── Lifecycle stage computation ───────────────────────────────────────
     # 15 owner-facing stages, in chronological order. We mark each as

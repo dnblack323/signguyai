@@ -31,6 +31,13 @@
 - Email: taxtest_non@example.com / Password: portal123 (dklayb@gmail.com does NOT exist in production DB)
 - Customer ID: 1eaeec1d-6fbb-48fa-aa96-ecc4298bdb8b (Tax Test Customer Non-Exempt)
 
+## Phase 5 — Webstore Owner Portal Test Account
+- Email: phase5-owner-test@example.com / Password: OwnerPass123!
+- Role: webstore_owner (tenant_id=null — single-owner mode)
+- Linked store: fc0bad7e-9040-477e-93b9-a3f0b1a2df90 (Preview Storefront QA)
+- Login at: /owner-portal via POST /api/auth/login (NOT /api/portal/auth/login). Token stored under localStorage key `owner_portal_token`.
+
+
 ## Meta/Facebook Integration — Tenant Isolation Test Account
 - Email: tenant_b_isolation_test@example.com
 - Password: IsolationTest@2026!
