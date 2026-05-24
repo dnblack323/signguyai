@@ -45,6 +45,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import WebstoreDetailDashboard from '../components/WebstoreDetailDashboard';
+import StoreSetupWizard from '../components/webstores/StoreSetupWizard';
 
 // Product category options
 const categoryOptions = [
@@ -545,7 +546,9 @@ export default function Webstores() {
   };
 
   const handleCreateStore = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     if (!formData.name.trim() || !formData.owner_name.trim()) {
       toast.error('Store name and owner are required');
       return;
@@ -1214,388 +1217,33 @@ export default function Webstores() {
         </div>
       </ShellCard>
 
-      {/* Create Dialog - outside ShellCard */}
+      {/* Create Dialog — Phase 3 staged Setup Wizard.
+          The dialog still controls open/close; the wizard owns the multi-step
+          UX and calls handleCreateStore on the final step. */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto" data-testid="create-webstore-dialog">
           <DialogHeader>
             <DialogTitle className="font-heading uppercase">Create New Webstore</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreateStore} className="space-y-4">
-            {/* Store Type Selection */}
-            <div className="space-y-2">
-              <Label>Store Type *</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {storeTypes.map(type => {
-                    const Icon = type.icon;
-                    return (
-                      <button
-                        key={type.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, store_type: type.value })}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          formData.store_type === type.value
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <Icon className="h-6 w-6 mb-2" />
-                        <p className="font-medium text-sm">{type.label}</p>
-                        <p className="text-xs text-muted-foreground">{type.description}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-2">
-                  <Label>Store Name *</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., ABC Company Store"
-                    data-testid="store-name-input"
-                  />
-                </div>
-                <div className="space-y-2 col-span-2">
-                  <Label>Owner/Organization Name *</Label>
-                  <Input
-                    value={formData.owner_name}
-                    onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
-                    placeholder="Company or individual name"
-                    data-testid="store-owner-input"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Contact Email</Label>
-                  <Input
-                    type="email"
-                    value={formData.owner_email}
-                    onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
-                    placeholder="email@example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Contact Phone</Label>
-                  <Input
-                    value={formData.owner_phone}
-                    onChange={(e) => setFormData({ ...formData, owner_phone: e.target.value })}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-                <div className="space-y-2 col-span-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Store description..."
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              {/* Type-specific fields */}
-              {formData.store_type === 'fundraiser' && (
-                <>
-                  <Separator />
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Fundraiser Settings</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Goal Amount</Label>
-                        <Input
-                          type="number"
-                          value={formData.fundraiser_goal}
-                          onChange={(e) => setFormData({ ...formData, fundraiser_goal: parseFloat(e.target.value) || 0 })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Start Date</Label>
-                        <Input
-                          type="date"
-                          value={formData.fundraiser_start_date}
-                          onChange={(e) => setFormData({ ...formData, fundraiser_start_date: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>End Date</Label>
-                        <Input
-                          type="date"
-                          value={formData.fundraiser_end_date}
-                          onChange={(e) => setFormData({ ...formData, fundraiser_end_date: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Fundraiser Profit Share (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={formData.fundraiser_profit_percent}
-                        onChange={(e) => setFormData({ ...formData, fundraiser_profit_percent: parseFloat(e.target.value) || 0 })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Percentage of profit that goes to the fundraiser (you keep the rest)
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {formData.store_type === 'creator' && (
-                <>
-                  <Separator />
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Creator Commission Settings</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Commission Type</Label>
-                        <Select
-                          value={formData.creator_commission_type}
-                          onValueChange={(val) => setFormData({ ...formData, creator_commission_type: val })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="percentage">Percentage of Profit</SelectItem>
-                            <SelectItem value="fixed">Fixed Amount per Item</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>
-                          {formData.creator_commission_type === 'percentage' ? 'Commission %' : 'Amount per Item ($)'}
-                        </Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={formData.creator_commission_value}
-                          onChange={(e) => setFormData({ ...formData, creator_commission_value: parseFloat(e.target.value) || 0 })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Event Store Settings */}
-              {formData.store_type === 'event' && (
-                <>
-                  <Separator />
-                  <div className="space-y-4">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-orange-400" />
-                      Event Details
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2 col-span-2">
-                        <Label>Event Name</Label>
-                        <Input
-                          value={formData.event_name}
-                          onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
-                          placeholder="e.g., Johnson Benefit Dinner 2026"
-                          data-testid="event-name-input"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Event Type</Label>
-                        <Select
-                          value={formData.event_type || ''}
-                          onValueChange={(val) => setFormData({ ...formData, event_type: val })}
-                        >
-                          <SelectTrigger data-testid="event-type-select">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="one_time">One-time event</SelectItem>
-                            <SelectItem value="annual">Annual event</SelectItem>
-                            <SelectItem value="seasonal">Seasonal event</SelectItem>
-                            <SelectItem value="recurring">Recurring event</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Event Location</Label>
-                        <Input
-                          value={formData.event_location}
-                          onChange={(e) => setFormData({ ...formData, event_location: e.target.value })}
-                          placeholder="Venue or city"
-                          data-testid="event-location-input"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Event Start Date</Label>
-                        <Input
-                          type="date"
-                          value={formData.event_start_date}
-                          onChange={(e) => setFormData({ ...formData, event_start_date: e.target.value })}
-                          data-testid="event-start-date-input"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Event End Date</Label>
-                        <Input
-                          type="date"
-                          value={formData.event_end_date}
-                          onChange={(e) => setFormData({ ...formData, event_end_date: e.target.value })}
-                          data-testid="event-end-date-input"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Order Deadline</Label>
-                        <Input
-                          type="date"
-                          value={formData.order_deadline}
-                          onChange={(e) => setFormData({ ...formData, order_deadline: e.target.value })}
-                          data-testid="event-order-deadline-input"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Pickup / Delivery Date</Label>
-                        <Input
-                          type="date"
-                          value={formData.pickup_delivery_date}
-                          onChange={(e) => setFormData({ ...formData, pickup_delivery_date: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2 col-span-2">
-                        <Label>Pickup / Delivery Instructions</Label>
-                        <Textarea
-                          value={formData.pickup_delivery_instructions}
-                          onChange={(e) => setFormData({ ...formData, pickup_delivery_instructions: e.target.value })}
-                          placeholder="e.g., Items will be available for pickup at the venue check-in table"
-                          rows={2}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Auto-close after deadline</Label>
-                        <p className="text-xs text-muted-foreground">Stop accepting orders after the deadline date</p>
-                      </div>
-                      <Switch
-                        checked={formData.auto_close_after_deadline}
-                        onCheckedChange={(checked) => setFormData({ ...formData, auto_close_after_deadline: checked })}
-                        data-testid="auto-close-switch"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Allow late orders</Label>
-                        <p className="text-xs text-muted-foreground">Accept orders after deadline with a late notice</p>
-                      </div>
-                      <Switch
-                        checked={formData.allow_late_orders}
-                        onCheckedChange={(checked) => setFormData({ ...formData, allow_late_orders: checked })}
-                        data-testid="allow-late-orders-switch"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Store-Level Shipping & Handling Fee */}
-              <Separator />
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-medium text-sm">Shipping &amp; Handling Fee</h4>
-                  <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/30">Store-Level</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground -mt-2">
-                  A flat per-order fee shown at checkout. Per-product costs (base cost, production, retail price) are set when adding products to this store.
-                </p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Shipping &amp; Handling Bundle</Label>
-                    <p className="text-xs text-muted-foreground">Replace individual fees with a single bundled rate</p>
-                  </div>
-                  <Switch
-                    checked={formData.locked_settings.shipping_handling_enabled}
-                    onCheckedChange={(checked) => setFormData({
-                      ...formData,
-                      locked_settings: { ...formData.locked_settings, shipping_handling_enabled: checked }
-                    })}
-                    data-testid="sh-enabled-switch"
-                  />
-                </div>
-                {formData.locked_settings.shipping_handling_enabled && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Bundle Fee ($)</Label>
-                      <Input
-                        type="number" min="0" step="0.01"
-                        value={formData.locked_settings.shipping_handling_fee}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          locked_settings: { ...formData.locked_settings, shipping_handling_fee: e.target.value }
-                        })}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Label (shown to customer)</Label>
-                      <Input
-                        value={formData.locked_settings.shipping_handling_label}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          locked_settings: { ...formData.locked_settings, shipping_handling_label: e.target.value }
-                        })}
-                        placeholder="e.g., Shipping & Handling"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1 col-span-2">
-                      <Label className="text-xs">Description (optional)</Label>
-                      <Input
-                        value={formData.locked_settings.shipping_handling_description}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          locked_settings: { ...formData.locked_settings, shipping_handling_description: e.target.value }
-                        })}
-                        placeholder="Shown at checkout"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Visibility */}
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Public Store</Label>
-                  <p className="text-xs text-muted-foreground">Allow anyone to view and order</p>
-                </div>
-                <Switch
-                  checked={formData.is_public}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
-                />
-              </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={creatingStore}>
-                Cancel
-              </Button>
-              <Button type="submit" data-testid="store-submit-btn" disabled={creatingStore}>
-                {creatingStore ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Store'
-                )}
-              </Button>
-            </div>
-          </form>
+          <StoreSetupWizard
+            storeTypes={storeTypes}
+            formData={formData}
+            setFormData={setFormData}
+            creatingStore={creatingStore}
+            onSubmit={() => handleCreateStore()}
+            onCancel={() => setIsCreateDialogOpen(false)}
+            logoPreview={logoPreview}
+            logoFile={logoFile}
+            onLogoSelect={handleLogoSelect}
+            onClearLogo={() => { setLogoFile(null); setLogoPreview(null); }}
+            bannerPreview={bannerPreview}
+            bannerFile={bannerFile}
+            onBannerSelect={handleBannerSelect}
+            onClearBanner={() => { setBannerFile(null); setBannerPreview(null); }}
+          />
         </DialogContent>
       </Dialog>
+
 
       {/* Stats Cards - Individual small cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

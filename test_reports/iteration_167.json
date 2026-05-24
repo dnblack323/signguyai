@@ -1,0 +1,37 @@
+{
+  "summary": "Phase 3 Store Setup Wizard (9-step) verified end-to-end via Playwright. 9/10 TEST items PASS. Only finding: TEST 3 step-1 (store type) required-validation is effectively bypassed because Webstores.js initialises formData.store_type to 'business' (non-null). The wizard correctly blocks Next on missing name (Step 2) and missing owner_name (Step 3). All store types (business / fundraiser / creator / event) created successfully through the wizard, totals jumped 16 \u2192 20 confirming POST /api/webstores/v2 contract is preserved. Existing 'Gala Test 2026 UI' event store unaffected, ribbon routes work.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/products/* (Products page load)", "issue": "Multiple console 500s on 'Error loading products: AxiosError' observed during page loads. Unrelated to Phase 3 wizard, but persistent in this preview env."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "StoreSetupWizard / Webstores.js", "issue": "Step-1 required-validation does not actually block Next because formData.store_type defaults to 'business' in Webstores.js (line ~189 and ~377). Spec TEST 3 says 'click Next without selecting a type \u2192 must stay on Step 1'. Either set initial store_type to '' / null, or remove default. Validation for Step 2 (name) and Step 3 (owner_name) works correctly.", "selector": "[data-testid=\"wizard-pane-type\"] -> [data-testid=\"wizard-next-btn\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Create Webstore Dialog", "issues": ["A11y warning in console: 'Missing Description or aria-describedby for {DialogContent}' \u2014 add a <DialogDescription> to the create-webstore-dialog for accessibility."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Change default formData.store_type from 'business' to '' (or null) so Step 1 'pick a type' validation actually blocks Next per spec.",
+    "Add <DialogDescription> to create-webstore-dialog to clear the aria-describedby a11y warning.",
+    "Investigate /api/products 500 (unrelated to Phase 3 but noisy in console)."
+  ],
+  "critical_code_review_comments": [
+    "Webstores.js line 189 and 377 initialise formData.store_type='business'; this bypasses the wizard's own stepErrors.type guard since validation only fires on empty/falsy. Either change default to '' or change the wizard to require an explicit user click before allowing Next on step 1.",
+    "StoreSetupWizard.js correctly avoids product-level pricing fields (base/production/retail/setup/margin/markup). Shipping & Handling is correctly scoped store-level inside Step 6. Good adherence to Phase 3 rule.",
+    "Wizard footer disables submit only on Object.keys(stepErrors).some([type,name,owner_name]); since type default is 'business', submit is never blocked by missing type even if user back-navigates to step 1 and unsets \u2014 but UI has no way to unset (no clear button). Recommend explicit selection requirement instead of relying on default."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (POST /api/webstores/v2 contract preserved \u2014 4 new stores created, totals 16\u219220)", "frontend": "90% (9/10 TEST items pass; TEST 3 step-1 validation gap)"},
+  "test_credentials": "thesigntistslab@gmail.com / password123",
+  "seed_data_creation": "Created 4 stores via wizard with timestamp suffix: 'Phase3 Biz 1779642888', 'Phase3 Fund 1779642888', 'Phase3 Creator 1779642888', 'Phase3 Event 1779642888'. They appear in the All Stores table and persist after reload.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Wizard data-testids used: wizard-stepper, wizard-pane-{type|basics|owner|branding|dates|fulfillment|questionnaire|payments|review}, wizard-{next|prev|submit|cancel}-btn, wizard-type-{business|fundraiser|creator|event}, wizard-name-input, wizard-owner-input, wizard-owner-email-input, wizard-sh-enabled-switch, wizard-review-summary, wizard-recommended-warnings. In the All Stores table, settings/gear icon is the 2nd-to-last button (-2 index) in the row \u2014 the last button is the trash/delete icon. To open store detail use that gear button. To bypass occasional Sign In click flakes, use page.locator('input[type=password]').press('Enter').",
+  "rca_of_the_issue": "TEST 3 step-1 gap: Webstores.js initialises formData.store_type='business'. When the dialog opens the wizard's stepErrors.type guard never fires (value is truthy). Fix: initialise store_type to '' (and the matching reset block at line ~377). The wizard already shows the type chooser correctly and writes the user's selection back into formData.store_type."
+}
