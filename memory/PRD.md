@@ -22,6 +22,16 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-24 — **Phase 2: Webstores Navigation Consolidation + Office-Style Ribbon (COMPLETE)**
+  - New `frontend/src/components/ribbon/WebstoresRibbon.js` — 10-group Microsoft Office-style command ribbon (Dashboard / Create-Setup / Manage Stores / Products / Orders / Questionnaires / Owner Portal / Payments-Payouts / Analytics / Tools-Settings). Each button has `data-testid='webstores-ribbon-<id>'`.
+  - `MainLayout.js` conditionally swaps the lightweight `ActionToolbar` for `WebstoresRibbon` ONLY when `activeTab === 'webstores'`. Header height grows from 152 → 168 px on Webstores routes.
+  - `Webstores.js`:
+    - Removed duplicate `create-store-btn` header CTA (Create is now owned by the ribbon).
+    - Replaced visible `TabsList [All Stores / Orders]` strip with a single `webstores-section-header` heading (still shows the count). Legacy `tab-stores` / `tab-orders` test ids remain in DOM (sr-only) for automation continuity.
+    - New `useEffect` mirrors `?tab=stores|orders` and `?new=true` query params from the ribbon into local state, then strips them via `navigate({replace:true})` so refreshes stay clean.
+  - Test report: `/app/test_reports/iteration_166.json` — 9/9 frontend checks PASS.
+  - Notes: pre-existing `/api/products` HTTP 500 and Questionnaires component runtime error were observed during testing but are orthogonal to Phase 2 (no new code introduced them).
+
 - 2026-05-24 — **Phase 1: Webstore Crash & Trust-State Hardening (COMPLETE)**
   - Fixed Event Store detail dialog black-screen risk in `frontend/src/pages/Webstores.js` — `handleViewStore` now opens the dialog BEFORE any awaits and fetches questionnaire/event-setup-checklist in fire-and-forget IIFEs. Added `data-testid='store-detail-dialog'` for assertion stability.
   - Hardened `WebstoreDetailDashboard.js`:
