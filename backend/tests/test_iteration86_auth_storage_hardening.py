@@ -16,7 +16,7 @@ import sys
 # Add backend to path for imports
 sys.path.insert(0, '/app/backend')
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://webstore-events.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sign-production-hub-1.preview.emergentagent.com')
 
 # Import test credentials helper
 try:

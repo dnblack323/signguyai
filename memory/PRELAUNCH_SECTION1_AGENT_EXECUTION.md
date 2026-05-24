@@ -1,7 +1,7 @@
 # Prelaunch — Section 1 Agent Execution Log
 
 Executed by agent against:
-- Base URL: `https://webstore-events.preview.emergentagent.com`
+- Base URL: `https://sign-production-hub-1.preview.emergentagent.com`
 - Timestamp: `2026-04-23T03:36:57Z`
 - Fix/retest pass timestamp: `2026-04-23T06:29:05Z`
 

@@ -2495,12 +2495,12 @@ export default function Webstores() {
                           <ListChecks className="h-4 w-4 text-teal-500" />
                           Event Store Setup
                           <span className="ml-auto text-xs font-medium text-slate-500" data-testid="admin-event-checklist-progress">
-                            {eventChecklist.required_done} / {eventChecklist.required_count} ({eventChecklist.percent_complete}%)
+                            {eventChecklist.required_done ?? 0} / {eventChecklist.required_count ?? 0} ({eventChecklist.percent_complete ?? 0}%)
                           </span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-1.5">
-                        {eventChecklist.items.map((item) => (
+                        {(eventChecklist.items || []).map((item) => (
                           <div
                             key={item.key}
                             className="flex items-start gap-2 text-sm"

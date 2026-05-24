@@ -56,6 +56,7 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
   const { getWebstoreAnalytics, getWebstoreOrdersV2, recordPayout, getWebstorePayouts } = useApp();
   
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [storeOrders, setStoreOrders] = useState([]);
   const [payouts, setPayouts] = useState([]);
@@ -72,18 +73,29 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
 
   const loadAnalytics = async () => {
     setLoading(true);
-    try {
-      const [analyticsData, ordersData, payoutsData] = await Promise.all([
-        getWebstoreAnalytics(store.id),
-        getWebstoreOrdersV2({ webstore_id: store.id }),
-        getWebstorePayouts(store.id)
-      ]);
-      setAnalytics(analyticsData);
-      setStoreOrders(ordersData);
-      setPayouts(payoutsData);
-    } catch (err) {
-      console.error('Error loading analytics:', err);
-      toast.error('Failed to load store analytics');
+    setLoadError(null);
+    // Use allSettled so a single failed call (e.g. payouts) does not blank
+    // out the entire dashboard. Each section degrades independently.
+    const [analyticsRes, ordersRes, payoutsRes] = await Promise.allSettled([
+      getWebstoreAnalytics(store.id),
+      getWebstoreOrdersV2({ webstore_id: store.id }),
+      getWebstorePayouts(store.id),
+    ]);
+    if (analyticsRes.status === 'fulfilled') {
+      setAnalytics(analyticsRes.value || null);
+    } else {
+      console.error('Error loading analytics:', analyticsRes.reason);
+      setAnalytics(null);
+      const detail = analyticsRes.reason?.response?.data?.detail;
+      setLoadError(typeof detail === 'string' ? detail : 'Failed to load store analytics');
+    }
+    setStoreOrders(ordersRes.status === 'fulfilled' ? (ordersRes.value || []) : []);
+    setPayouts(payoutsRes.status === 'fulfilled' ? (payoutsRes.value || []) : []);
+    if (ordersRes.status === 'rejected') {
+      console.error('Error loading store orders:', ordersRes.reason);
+    }
+    if (payoutsRes.status === 'rejected') {
+      console.error('Error loading store payouts:', payoutsRes.reason);
     }
     setLoading(false);
   };
@@ -129,10 +141,54 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
   }
 
   if (!analytics) {
-    return <p className="text-center py-8 text-muted-foreground">Failed to load analytics</p>;
+    // Surface an explicit, retry-able error instead of a generic empty state.
+    // Previously this rendered a single "Failed to load analytics" line which
+    // looked indistinguishable from a healthy empty-store state.
+    return (
+      <div
+        className="rounded-md border p-6 text-center space-y-3"
+        style={{ background: '#FEF2F2', borderColor: '#FCA5A5' }}
+        data-testid="webstore-analytics-error"
+      >
+        <p className="text-sm font-semibold" style={{ color: '#991B1B' }}>
+          Couldn't load analytics for this store
+        </p>
+        <p className="text-xs" style={{ color: '#7F1D1D' }}>
+          {loadError || 'The analytics request failed. Other store data may be unavailable until this loads.'}
+        </p>
+        <Button
+          size="sm"
+          onClick={loadAnalytics}
+          style={{ background: '#2F8BFB' }}
+          className="text-white"
+          data-testid="webstore-analytics-retry-btn"
+        >
+          Retry
+        </Button>
+      </div>
+    );
   }
 
-  const { summary, payout_info, sales_by_day, top_products, fundraiser_metrics } = analytics;
+  // Defensive defaults — the analytics endpoint normally returns all of
+  // these fields, but if a future schema change drops one we want the
+  // dashboard to render an empty card instead of crashing on
+  // `undefined.toFixed` / `undefined.total_revenue` etc.
+  const summary = analytics.summary || {};
+  const payout_info = analytics.payout_info || {};
+  const sales_by_day = Array.isArray(analytics.sales_by_day) ? analytics.sales_by_day : [];
+  const top_products = Array.isArray(analytics.top_products) ? analytics.top_products : [];
+  const fundraiser_metrics = analytics.fundraiser_metrics || null;
+
+  // Backend currently returns payout_info as
+  //   { total_owed, total_paid, pending_payout, commission_rate }
+  // Older UI code expected { total_earned, total_paid_out, balance_owed }
+  // which silently rendered $0 everywhere — a classic hidden-failure
+  // state. Map both shapes so the cards always reflect real numbers.
+  const payout_total_paid = Number(payout_info.total_paid_out ?? payout_info.total_paid ?? 0);
+  const payout_balance_owed = Number(payout_info.balance_owed ?? payout_info.total_owed ?? 0);
+  const payout_total_earned = Number(
+    payout_info.total_earned ?? (payout_total_paid + payout_balance_owed),
+  );
 
   return (
     <div className="space-y-6" data-testid="webstore-dashboard">
@@ -223,7 +279,7 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>
-                    {fundraiser_metrics.progress_percent.toFixed(1)}%
+                    {(Number(fundraiser_metrics.progress_percent) || 0).toFixed(1)}%
                   </p>
                   {fundraiser_metrics.days_remaining !== null && (
                     <p className="text-sm" style={{ color: '#5A5A5A' }}>
@@ -424,33 +480,33 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
             <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
               <CardContent className="p-4 text-center">
                 <p className="text-sm" style={{ color: '#5A5A5A' }}>Total Earned</p>
-                <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>
-                  {formatCurrency(payout_info.total_earned)}
+                <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }} data-testid="payout-total-earned">
+                  {formatCurrency(payout_total_earned)}
                 </p>
               </CardContent>
             </Card>
             <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
               <CardContent className="p-4 text-center">
                 <p className="text-sm" style={{ color: '#5A5A5A' }}>Total Paid Out</p>
-                <p className="text-2xl font-bold" style={{ color: '#10b981' }}>
-                  {formatCurrency(payout_info.total_paid_out)}
+                <p className="text-2xl font-bold" style={{ color: '#10b981' }} data-testid="payout-total-paid">
+                  {formatCurrency(payout_total_paid)}
                 </p>
               </CardContent>
             </Card>
-            <Card style={{ background: payout_info.balance_owed > 0 ? '#fef3c7' : '#d1fae5', borderColor: payout_info.balance_owed > 0 ? '#d97706' : '#059669' }}>
+            <Card style={{ background: payout_balance_owed > 0 ? '#fef3c7' : '#d1fae5', borderColor: payout_balance_owed > 0 ? '#d97706' : '#059669' }}>
               <CardContent className="p-4 text-center">
-                <p className="text-sm" style={{ color: payout_info.balance_owed > 0 ? '#92400e' : '#047857' }}>
+                <p className="text-sm" style={{ color: payout_balance_owed > 0 ? '#92400e' : '#047857' }}>
                   Balance Owed
                 </p>
-                <p className="text-2xl font-bold" style={{ color: payout_info.balance_owed > 0 ? '#d97706' : '#059669' }}>
-                  {formatCurrency(payout_info.balance_owed)}
+                <p className="text-2xl font-bold" style={{ color: payout_balance_owed > 0 ? '#d97706' : '#059669' }} data-testid="payout-balance-owed">
+                  {formatCurrency(payout_balance_owed)}
                 </p>
               </CardContent>
             </Card>
           </div>
 
           {/* Record Payout Form */}
-          {payout_info.balance_owed > 0 && (
+          {payout_balance_owed > 0 && (
             <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg" style={{ color: '#1A1A1A' }}>
@@ -465,7 +521,7 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
                       type="number"
                       value={payoutAmount}
                       onChange={(e) => setPayoutAmount(e.target.value)}
-                      placeholder={`Max: ${formatCurrency(payout_info.balance_owed)}`}
+                      placeholder={`Max: ${formatCurrency(payout_balance_owed)}`}
                       className="w-full px-3 py-2 rounded border"
                       style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}
                       data-testid="payout-amount-input"

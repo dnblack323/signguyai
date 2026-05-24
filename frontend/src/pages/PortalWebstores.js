@@ -417,13 +417,20 @@ function StoreCard({ store, onChanged }) {
 
   const refresh = useCallback(async () => {
     const token = getPortalToken();
-    const res = await fetch(`${API_URL}/api/portal/webstores/${detail.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const d = await res.json();
-      setDetail(d);
-      if (onChanged) onChanged(d);
+    try {
+      const res = await fetch(`${API_URL}/api/portal/webstores/${detail.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setDetail(d);
+        if (onChanged) onChanged(d);
+      } else {
+        // Don't blank the card — keep the list-level data we already have.
+        console.warn(`Webstore detail refresh failed: ${res.status}`);
+      }
+    } catch (err) {
+      console.warn('Webstore detail refresh failed', err);
     }
   }, [detail.id, onChanged]);
 
@@ -577,6 +584,7 @@ export default function PortalWebstores() {
       navigate('/customer-portal/login');
       return;
     }
+    setError('');
     try {
       const res = await fetch(`${API_URL}/api/portal/webstores`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -585,9 +593,19 @@ export default function PortalWebstores() {
         navigate('/customer-portal/login');
         return;
       }
-      const data = res.ok ? await res.json() : [];
+      if (!res.ok) {
+        // Surface the real error instead of silently rendering the empty state.
+        let detail = '';
+        try {
+          const errData = await res.json();
+          detail = typeof errData?.detail === 'string' ? errData.detail : '';
+        } catch (_) { /* response wasn't JSON */ }
+        throw new Error(detail || `Webstore service returned ${res.status}`);
+      }
+      const data = await res.json();
       setStores(Array.isArray(data) ? data : []);
     } catch (err) {
+      setStores([]);
       setError(err.message || 'Failed to load webstores');
     } finally {
       setLoading(false);

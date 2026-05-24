@@ -1,0 +1,81 @@
+{
+  "summary": "Phase 1 Webstore bug-fix verification. 4 runtime checks targeted; 3 verified (Check 2 Create flow, Check 3a admin Stripe card, Check 4a payout field-mapping $3.50). Check 1 (Gala event store detail dialog) did NOT open within 6s on two attempts and needs main-agent attention. Checks 3b/4c (Customer Portal) could not be reached because portal sign-in stayed on /customer-portal/login (POST appeared to not authenticate the demo-fundraiser@rysoccer.example creds). Check 4b (force analytics 401) not executed (requires token manipulation outside scope).",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Webstores.js / WebstoreDetailDashboard (Event Store opening)",
+        "issue": "Clicking the gear/settings button (data-testid=view-store-bf406578-1c57-4449-ab13-66736f3c2842) on the 'Gala Test 2026 UI' event store row does NOT open the detail Dialog within 6 seconds — [role='dialog'] count remains 0 and body text length does not grow. The SAME flow on the creator store 'Flow-B Final' (1bffa147-7129-4871-ab37-682c16e6f88a) DOES open the dialog correctly and renders payouts. Suggests handleViewStore is throwing or awaiting indefinitely on the event-specific fetches (questionnaire / event-setup-checklist) before setIsDetailDialogOpen(true). This is the exact regression Phase 1 was meant to guard against ('Event Questionnaire tab black-screen risk').",
+        "selector": "[data-testid='view-store-bf406578-1c57-4449-ab13-66736f3c2842']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Customer Portal sign-in (demo-fundraiser@rysoccer.example / TestPortal123!)",
+        "issue": "After filling /customer-portal credentials and clicking Sign In, the URL remained at /customer-portal/login (no redirect to /customer-portal/webstores). Could not validate Check 3b (Stripe block readability) or Check 4c (portal-webstores-error). Either credentials are no longer valid in this preview DB or the Sign In click selector didn't fire the submit handler. Recommend the main agent verify these creds with /api/portal/auth/login directly.",
+        "affected_selectors": ["[data-testid='portal-webstores-error']", "Stripe connected / Connect Stripe block on /customer-portal/webstores"]
+      }
+    ],
+    "design_issues": []
+  },
+
+  "test_results": {
+    "CHECK_1_event_store_detail_open": {
+      "status": "FAIL",
+      "description": "Two attempts (4s wait, then 6s wait) — gear button click resolved but no [role='dialog'] appeared. Body innerText length stayed at 1806 (background page only). No console pageerror captured. Possible silent rejection inside handleViewStore for event stores."
+    },
+    "CHECK_1_settings_branding_tab": {
+      "status": "BLOCKED",
+      "description": "Cannot evaluate Event Store Questionnaire / Event Store Setup cards or Send Event Store Questionnaire dialog because parent detail dialog did not open."
+    },
+    "CHECK_2_create_webstore": {
+      "status": "PASS",
+      "description": "Submitted Phase1-Verify-1779613522 with owner 'Phase 1 Verify'. Total Stores went 14 → 15. Created store name visible in table body. Create dialog closed (no inputs left in DOM). No black screen, no infinite spinner."
+    },
+    "CHECK_3a_owner_stripe_card_admin": {
+      "status": "PASS",
+      "description": "On Flow-B Final detail dialog Dashboard tab, the 'Owner Stripe Connection' card rendered with readable dark text on white background, 'Not Connected' badge, info box, Invite Store Owner input, Send button, and Check Status button. No contrast issues observed."
+    },
+    "CHECK_3b_owner_stripe_card_portal": {
+      "status": "NOT TESTED",
+      "description": "Portal login did not transition off /customer-portal/login. See integration_issues."
+    },
+    "CHECK_4a_payout_balance_owed_field_mapping": {
+      "status": "PASS — KEY FIX VERIFIED",
+      "description": "Flow-B Final (1bffa147-7129-4871-ab37-682c16e6f88a) Payouts subtab: data-testid='payout-balance-owed' renders '$3.50' (amber highlight). Total Earned $3.50, Total Paid Out $0.00, Balance Owed $3.50. The total_owed/total_paid mapping fix is working — frontend correctly reads payout_info.total_owed from backend. Webstores list table also shows Owed=$3.50 for the row. Not silently $0.00."
+    },
+    "CHECK_4b_analytics_error_card": {
+      "status": "NOT TESTED",
+      "description": "Did not attempt to revoke access token to force 401. Code grep confirms data-testid='webstore-analytics-error' and 'webstore-analytics-retry-btn' exist at WebstoreDetailDashboard.js lines 151 and 164 with the new red error card + Retry button. Recommend main agent self-test via direct token corruption if needed."
+    },
+    "CHECK_4c_portal_webstores_error": {
+      "status": "NOT TESTED",
+      "description": "Portal login failed (see above)."
+    }
+  },
+
+  "test_report_links": [],
+  "action_items": [
+    "HIGH: Investigate why 'Gala Test 2026 UI' (event store, id bf406578-1c57-4449-ab13-66736f3c2842) detail dialog does not open when its gear button is clicked from /webstores. Suspect handleViewStore() awaits or unhandled rejection on the event-specific endpoints (GET /api/webstores/v2/{id}/questionnaire or /event-setup-checklist) before setIsDetailDialogOpen(true). Move the open-state setter BEFORE the optional event fetches, or wrap them in Promise.allSettled with proper try/catch so the dialog opens even when those endpoints fail. Also add data-testid='store-detail-dialog' on the Dialog so future tests can detect dialog visibility reliably.",
+    "Verify Customer Portal credentials demo-fundraiser@rysoccer.example / TestPortal123! still authenticate against /api/portal/auth/login in the current preview DB; if not, refresh the seed and update /app/memory/test_credentials.md.",
+    "Add data-testid attributes on the WebstoreDetailDialog wrapper and on the Event Store Questionnaire / Event Store Setup checklist cards to make these phase-1 cards directly assertable."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/pages/Webstores.js line 600 handleViewStore is async and may await event-specific endpoints before calling setIsDetailDialogOpen(true) at line 707 — if any of those endpoints throws, the dialog never opens (matches observed Gala behavior). Recommend opening the dialog first (optimistic), then fetching with Promise.allSettled and surfacing per-card error states.",
+    "WebstoreDetailDashboard.js already uses Promise.allSettled + red analytics error card + payout field-name mapping correctly — the Flow-B Final $3.50 verification confirms the fix landed properly."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend only)", "frontend": "Verified 3 of 4 runtime checks (Check 1 FAIL, Checks 2/3a/4a PASS, Checks 3b/4b/4c NOT TESTED)"},
+  "test_credentials": "Used Admin thesigntistslab@gmail.com / password123 (worked). Customer Portal demo-fundraiser@rysoccer.example / TestPortal123! (did NOT complete sign-in — please re-verify).",
+  "seed_data_creation": "Created webstore 'Phase1-Verify-1779613522' (business) via Create Webstore dialog for Check 2 verification. Safe to delete after main-agent review.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Critical regression to retest: opening event-store detail dialog from /webstores (Gala Test 2026 UI). Use data-testid=view-store-bf406578-1c57-4449-ab13-66736f3c2842 and wait for [role='dialog'] within 8s. Flow-B Final detail dialog and balance-owed=$3.50 fix is already verified — no need to re-test Check 4a. Portal login (demo-fundraiser@rysoccer.example) needs credential verification before Checks 3b/4c can be retested.",
+  "rca_of_the_issue": "Gala event-store detail dialog black-screen-risk regression: handleViewStore in /app/frontend/src/pages/Webstores.js (line ~600) is async and likely awaits event-specific endpoints (questionnaire / event-setup-checklist) BEFORE setIsDetailDialogOpen(true) at line 707. Any rejection in those fetches blocks the dialog from ever opening — matching the observed behavior where the SAME click flow opens dialogs for non-event stores (Flow-B Final) but stays silent for event store Gala. Reproduction: navigate /webstores as admin → click gear icon on Gala Test 2026 UI row → wait 6s → no [role='dialog'] appears. Mitigation: open dialog optimistically and wrap event fetches in Promise.allSettled with defensive try/catch and per-card error states, OR move setIsDetailDialogOpen(true) before any await. Also add data-testid='store-detail-dialog' to the Dialog for reliable assertion."
+}
