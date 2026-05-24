@@ -22,6 +22,14 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-24 — **Phase 4: Store-Type Questionnaire Coverage + Customer/Order Sync (COMPLETE)**
+  - **Questionnaires**: added 3 new templates in `backend/models/questionnaires.py` — `fundraiser_web_store_setup`, `team_school_web_store_setup`, `business_web_store_setup`. New `QUESTIONNAIRE_TEMPLATE_BY_STORE_TYPE` map + `_template_key_for_store_type()` dispatcher in `routes/webstores.py`. `POST /webstores/v2/{id}/questionnaire/send` now picks the right template by `store_type` with a friendly per-type questionnaire title. Aliases: event/fundraiser/business/b2b/company/creator/team_school/team/school → correct template. Unknown types safely fall back to business template.
+  - **Customer Sync**: added `tags: List[str] = []` to `Customer` model (additive). New `_upsert_webstore_customer(tenant_id, name, email, phone, tag, company)` helper with email dedupe + phone-digit-normalised fallback dedupe. Wired into 4 spots: (1) POST /webstores/v2 create — tag `webstore_owner`; (2) checkout `/webstores/v2/orders` — tag `webstore_customer`; (3) `create-job-from-order` — tag `webstore_customer`; (4) `/webstore-owners/{id}/invite/quick` + `/invite/portal` — tag `webstore_owner`.
+  - **Orders Sync**: main order bridge now stamps `source: "webstore"` alongside the legacy `order_source: "website"`. `GET /api/orders` accepts new optional `source` and `webstore_id` query params. `source=webstore` matches via `$or` with the legacy `is_webstore_order=true` flag so old data isn't dropped.
+  - **Files changed**: `backend/models/questionnaires.py`, `backend/models/customer.py`, `backend/routes/webstores.py`, `backend/routes/webstore_owners.py`, `backend/routes/orders.py`.
+  - **No frontend changes** in this phase per spec.
+  - Test report: `/app/test_reports/iteration_168.json` — 13/13 backend tests PASS. Pytest at `/app/backend/tests/test_iteration168_phase4_webstore_sync.py`.
+
 - 2026-05-24 — **Phase 3: Store Setup Wizard (COMPLETE)**
   - New `frontend/src/components/webstores/StoreSetupWizard.js` — 9-step staged wizard (Store Type / Basics / Owner / Branding / Dates / Fulfillment / Questionnaire handoff / Payments / Review).
   - `Webstores.js`: replaced the inline single-screen create form with `<StoreSetupWizard …/>` inside the existing Create Webstore dialog. `handleCreateStore` now tolerates a missing event arg (called directly by the wizard's submit button). Default `formData.store_type` changed from `'business'` to `''` so Step 1 validation actually blocks Next. Added `DialogDescription` to the dialog for a11y.
