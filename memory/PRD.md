@@ -22,6 +22,14 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-05-24 — **Phase 3: Store Setup Wizard (COMPLETE)**
+  - New `frontend/src/components/webstores/StoreSetupWizard.js` — 9-step staged wizard (Store Type / Basics / Owner / Branding / Dates / Fulfillment / Questionnaire handoff / Payments / Review).
+  - `Webstores.js`: replaced the inline single-screen create form with `<StoreSetupWizard …/>` inside the existing Create Webstore dialog. `handleCreateStore` now tolerates a missing event arg (called directly by the wizard's submit button). Default `formData.store_type` changed from `'business'` to `''` so Step 1 validation actually blocks Next. Added `DialogDescription` to the dialog for a11y.
+  - Backend contract unchanged — POST `/api/webstores/v2` receives the same payload shape it did before.
+  - **Hard rules honored**: no product-level pricing fields in the wizard (base cost, production cost, retail price, setup fee, margin/markup). Shipping & Handling correctly scoped store-level inside Step 6. No schema migrations.
+  - Required vs optional fields visibly indicated; Review step surfaces missing recommended items via `data-testid='wizard-recommended-warnings'`.
+  - Test report: `/app/test_reports/iteration_167.json` — 9/10 PASS (the one finding — Step 1 default = 'business' bypassing validation — was fixed post-report).
+
 - 2026-05-24 — **Phase 2: Webstores Navigation Consolidation + Office-Style Ribbon (COMPLETE)**
   - New `frontend/src/components/ribbon/WebstoresRibbon.js` — 10-group Microsoft Office-style command ribbon (Dashboard / Create-Setup / Manage Stores / Products / Orders / Questionnaires / Owner Portal / Payments-Payouts / Analytics / Tools-Settings). Each button has `data-testid='webstores-ribbon-<id>'`.
   - `MainLayout.js` conditionally swaps the lightweight `ActionToolbar` for `WebstoresRibbon` ONLY when `activeTab === 'webstores'`. Header height grows from 152 → 168 px on Webstores routes.

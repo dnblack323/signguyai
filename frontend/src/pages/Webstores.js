@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from '../components/ui/dialog';
 import {
@@ -186,7 +187,7 @@ export default function Webstores() {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    store_type: 'business',
+    store_type: '',
     owner_name: '',
     owner_email: '',
     owner_phone: '',
@@ -374,7 +375,7 @@ export default function Webstores() {
   const resetForm = () => {
     setFormData({
       name: '',
-      store_type: 'business',
+      store_type: '',
       owner_name: '',
       owner_email: '',
       owner_phone: '',
@@ -1224,6 +1225,9 @@ export default function Webstores() {
         <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto" data-testid="create-webstore-dialog">
           <DialogHeader>
             <DialogTitle className="font-heading uppercase">Create New Webstore</DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              Step through Store Type, Basics, Owner, Branding, Dates, Fulfillment, Questionnaire, Payments, and Review to set up the new webstore.
+            </DialogDescription>
           </DialogHeader>
           <StoreSetupWizard
             storeTypes={storeTypes}
