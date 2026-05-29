@@ -19,6 +19,18 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
+const WEBSTORES_TAB_TO_VIEW = {
+  overview: 'stores',
+  stores: 'stores',
+  orders: 'orders',
+};
+
+const normalizeWebstoresTabKey = (raw) => {
+  if (!raw) return null;
+  const key = String(raw).toLowerCase();
+  return WEBSTORES_TAB_TO_VIEW[key] ? key : null;
+};
+
 const RibbonButton = ({
   icon: Icon, label, onClick, active = false, disabled = false, testId,
 }) => (
@@ -61,20 +73,37 @@ export const WebstoresRibbon = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const currentTab = searchParams.get('tab') || (location.pathname.startsWith('/products') ? 'products' : 'stores');
+  const queryTabKey = normalizeWebstoresTabKey(searchParams.get('tab'));
+  const stateTabKey = normalizeWebstoresTabKey(location.state?.webstoresTabKey);
+  const currentTabKey = queryTabKey || stateTabKey || 'stores';
   const isOnWebstores = location.pathname.startsWith('/webstores');
   const isOnProducts = location.pathname.startsWith('/products');
 
   // Switch the inline tab inside /webstores by updating the URL query.
-  const setWebstoresTab = (tabValue) => {
+  const setWebstoresTab = (tabKey) => {
+    const normalizedTabKey = normalizeWebstoresTabKey(tabKey) || 'stores';
+    const targetView = WEBSTORES_TAB_TO_VIEW[normalizedTabKey];
     if (!isOnWebstores) {
-      navigate(`/webstores?tab=${tabValue}`);
+      navigate(`/webstores?tab=${targetView}`, {
+        state: {
+          ...(location.state || {}),
+          webstoresTabKey: normalizedTabKey,
+          webstoresView: targetView,
+        },
+      });
       return;
     }
     const next = new URLSearchParams(location.search);
-    next.set('tab', tabValue);
+    next.set('tab', targetView);
     next.delete('new');
-    navigate(`${location.pathname}?${next.toString()}`, { replace: false });
+    navigate(`${location.pathname}?${next.toString()}`, {
+      replace: false,
+      state: {
+        ...(location.state || {}),
+        webstoresTabKey: normalizedTabKey,
+        webstoresView: targetView,
+      },
+    });
   };
 
   const openCreateDialog = () => {
@@ -98,8 +127,8 @@ export const WebstoresRibbon = () => {
         <RibbonButton
           icon={LayoutDashboard}
           label="Overview"
-          onClick={() => setWebstoresTab('stores')}
-          active={isOnWebstores && currentTab === 'stores'}
+          onClick={() => setWebstoresTab('overview')}
+          active={isOnWebstores && currentTabKey === 'overview'}
           testId="webstores-ribbon-dashboard"
         />
       </RibbonGroup>
@@ -122,7 +151,7 @@ export const WebstoresRibbon = () => {
           icon={Store}
           label="All Stores"
           onClick={() => setWebstoresTab('stores')}
-          active={isOnWebstores && currentTab === 'stores'}
+          active={isOnWebstores && currentTabKey === 'stores'}
           testId="webstores-ribbon-stores"
         />
       </RibbonGroup>
@@ -146,7 +175,7 @@ export const WebstoresRibbon = () => {
           icon={ShoppingCart}
           label="Webstore Orders"
           onClick={() => setWebstoresTab('orders')}
-          active={isOnWebstores && currentTab === 'orders'}
+          active={isOnWebstores && currentTabKey === 'orders'}
           testId="webstores-ribbon-orders"
         />
       </RibbonGroup>
