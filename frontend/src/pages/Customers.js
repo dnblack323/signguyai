@@ -195,8 +195,8 @@ export default function Customers() {
     const customerJobs = getCustomerJobs(customerId);
     const customerInvoices = getCustomerInvoices(customerId);
     
-    const activeJobs = customerJobs.filter(j => !['complete', 'archived'].includes(j.status));
-    const completedJobs = customerJobs.filter(j => j.status === 'complete');
+    const activeJobs = customerJobs.filter(j => !['completed', 'archived'].includes(j.status));
+    const completedJobs = customerJobs.filter(j => j.status === 'completed');
     const totalRevenue = customerInvoices.reduce((sum, i) => sum + (i.total || 0), 0);
     const outstandingBalance = customerInvoices
       .filter(i => i.status !== 'paid')

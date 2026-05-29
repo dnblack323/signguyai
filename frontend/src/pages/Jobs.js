@@ -1393,7 +1393,7 @@ export function JobDetails() {
               <Button variant="outline" onClick={() => setShowHistoryPanel(true)} data-testid="view-job-history-btn">
                 <GitBranch className="h-4 w-4 mr-2" /> View Timeline
               </Button>
-              {job.status !== 'complete' && !isArchived && (
+              {job.status !== 'completed' && !isArchived && (
                 <Button variant="outline" onClick={handleComplete}>
                   <CheckCircle className="h-4 w-4 mr-2" /> Mark Complete
                 </Button>
