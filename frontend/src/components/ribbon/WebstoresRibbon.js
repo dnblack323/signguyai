@@ -123,7 +123,7 @@ export const WebstoresRibbon = () => {
       role="toolbar"
       aria-label="Webstores command ribbon"
     >
-      <RibbonGroup title="Dashboard" testId="webstores-ribbon-group-dashboard">
+      <RibbonGroup title="Home" testId="webstores-ribbon-group-home">
         <RibbonButton
           icon={LayoutDashboard}
           label="Overview"
@@ -131,22 +131,6 @@ export const WebstoresRibbon = () => {
           active={isOnWebstores && currentTabKey === 'overview'}
           testId="webstores-ribbon-dashboard"
         />
-      </RibbonGroup>
-
-      <GroupSeparator />
-
-      <RibbonGroup title="Create / Setup" testId="webstores-ribbon-group-create">
-        <RibbonButton
-          icon={Plus}
-          label="New Store"
-          onClick={openCreateDialog}
-          testId="webstores-ribbon-create"
-        />
-      </RibbonGroup>
-
-      <GroupSeparator />
-
-      <RibbonGroup title="Manage Stores" testId="webstores-ribbon-group-stores">
         <RibbonButton
           icon={Store}
           label="All Stores"
@@ -158,7 +142,24 @@ export const WebstoresRibbon = () => {
 
       <GroupSeparator />
 
-      <RibbonGroup title="Products" testId="webstores-ribbon-group-products">
+      <RibbonGroup title="Store Setup" testId="webstores-ribbon-group-store-setup">
+        <RibbonButton
+          icon={Plus}
+          label="New Store"
+          onClick={openCreateDialog}
+          testId="webstores-ribbon-create"
+        />
+        <RibbonButton
+          icon={ClipboardList}
+          label="Forms"
+          onClick={() => navigate('/questionnaires')}
+          testId="webstores-ribbon-questionnaires"
+        />
+      </RibbonGroup>
+
+      <GroupSeparator />
+
+      <RibbonGroup title="Catalog" testId="webstores-ribbon-group-catalog">
         <RibbonButton
           icon={Package}
           label="Catalog"
@@ -173,21 +174,10 @@ export const WebstoresRibbon = () => {
       <RibbonGroup title="Orders" testId="webstores-ribbon-group-orders">
         <RibbonButton
           icon={ShoppingCart}
-          label="Webstore Orders"
+          label="Orders"
           onClick={() => setWebstoresTab('orders')}
           active={isOnWebstores && currentTabKey === 'orders'}
           testId="webstores-ribbon-orders"
-        />
-      </RibbonGroup>
-
-      <GroupSeparator />
-
-      <RibbonGroup title="Questionnaires" testId="webstores-ribbon-group-questionnaires">
-        <RibbonButton
-          icon={ClipboardList}
-          label="Forms"
-          onClick={() => navigate('/questionnaires')}
-          testId="webstores-ribbon-questionnaires"
         />
       </RibbonGroup>
 
@@ -204,7 +194,7 @@ export const WebstoresRibbon = () => {
 
       <GroupSeparator />
 
-      <RibbonGroup title="Payments / Payouts" testId="webstores-ribbon-group-payments">
+      <RibbonGroup title="Payments" testId="webstores-ribbon-group-payments">
         <RibbonButton
           icon={Wallet}
           label="Payments"
@@ -226,7 +216,7 @@ export const WebstoresRibbon = () => {
 
       <GroupSeparator />
 
-      <RibbonGroup title="Tools / Settings" testId="webstores-ribbon-group-tools">
+      <RibbonGroup title="Tools" testId="webstores-ribbon-group-tools">
         <RibbonButton
           icon={Settings}
           label="Settings"
