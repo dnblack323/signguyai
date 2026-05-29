@@ -4627,7 +4627,9 @@ api_router.include_router(assistant_tools_router)
 api_router.include_router(plans_router)  # Multi-product plan management
 api_router.include_router(questionnaires_router)  # Dynamic form builder
 api_router.include_router(credits_router)  # AI Credits system
-api_router.include_router(dev_router)  # Dev/Admin testing panel
+enable_dev_routes = os.environ.get("SIGNGUY_ENABLE_DEV_ROUTES", "").strip().lower() in {"true", "1", "yes"}
+if enable_dev_routes:
+    api_router.include_router(dev_router)  # Dev/Admin testing panel
 api_router.include_router(pricing_setup_router)  # Historical invoice import + pricing setup
 api_router.include_router(profit_analytics_router)  # Profit & margin analytics dashboard
 api_router.include_router(financials_router)  # Financial entries (sales + expenses)

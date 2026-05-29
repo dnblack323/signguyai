@@ -376,7 +376,7 @@ async def get_onboarding_status(current_user: UserInDB = Depends(get_current_act
     has_email_templates = custom_templates > 0
     
     # Check for webstores
-    webstore_count = await db.webstores.count_documents({"tenant_id": tenant_id})
+    webstore_count = await db.webstores_v2.count_documents({"tenant_id": tenant_id})
     has_webstores = webstore_count > 0
     
     # Check for documents

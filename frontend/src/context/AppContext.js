@@ -476,32 +476,38 @@ export const AppProvider = ({ children }) => {
 
   // Webstores (Legacy - keeping for compatibility)
   const createFundraiser = async (data) => {
-    const res = await api.post(`/webstores/fundraiser`, data);
+    // Legacy shim: route to v2 webstore creation with fundraiser type.
+    const res = await api.post(`/webstores/v2`, { ...(data || {}), store_type: 'fundraiser' });
     return res.data;
   };
 
   const getFundraisers = async (params = {}) => {
-    const res = await api.get(`/webstores/fundraiser`, { params });
+    // Legacy shim: route to v2 webstore listing filtered by fundraiser type.
+    const res = await api.get(`/webstores/v2`, { params: { ...(params || {}), store_type: 'fundraiser' } });
     return res.data;
   };
 
   const createB2BStore = async (data) => {
-    const res = await api.post(`/webstores/b2b`, data);
+    // Legacy shim: route to v2 webstore creation with business type.
+    const res = await api.post(`/webstores/v2`, { ...(data || {}), store_type: 'business' });
     return res.data;
   };
 
   const getB2BStores = async (params = {}) => {
-    const res = await api.get(`/webstores/b2b`, { params });
+    // Legacy shim: route to v2 webstore listing filtered by business type.
+    const res = await api.get(`/webstores/v2`, { params: { ...(params || {}), store_type: 'business' } });
     return res.data;
   };
 
   const createWebstoreOrder = async (data) => {
-    const res = await api.post(`/webstores/orders`, data);
+    // Legacy shim: route to v2 order creation endpoint.
+    const res = await api.post(`/webstores/v2/orders`, data);
     return res.data;
   };
 
   const getWebstoreOrders = async (params = {}) => {
-    const res = await api.get(`/webstores/orders`, { params });
+    // Legacy shim: route to v2 order listing endpoint.
+    const res = await api.get(`/webstores/v2/orders`, { params });
     return res.data;
   };
 

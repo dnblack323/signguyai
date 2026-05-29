@@ -6,7 +6,7 @@ They allow switching subscription modes and setting credits for testing differen
 """
 
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
@@ -21,8 +21,6 @@ ADMIN_EMAILS = [
     "thesigntistslab@gmail.com",
 ]
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
 security = HTTPBearer(auto_error=False)
 
 
@@ -43,13 +41,27 @@ async def get_db():
     return client[DB_NAME]
 
 
-async def get_current_user_dev(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_current_user_dev(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
     """Get current user from token"""
     if not credentials:
         raise HTTPException(status_code=401, detail="Not authenticated")
+
+    jwt_secret_key = os.environ.get("JWT_SECRET_KEY", "").strip()
+    if not jwt_secret_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Dev routes misconfigured: JWT_SECRET_KEY is required",
+        )
     
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            credentials.credentials,
+            request.app.state.secret_key,
+            algorithms=[request.app.state.algorithm],
+        )
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
