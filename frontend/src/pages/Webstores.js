@@ -96,6 +96,18 @@ const normalizeWebstoreList = (payload) => {
   return [];
 };
 
+const WEBSTORES_TAB_TO_VIEW = {
+  overview: 'stores',
+  stores: 'stores',
+  orders: 'orders',
+};
+
+const normalizeWebstoresTabKey = (raw) => {
+  if (!raw) return null;
+  const key = String(raw).toLowerCase();
+  return WEBSTORES_TAB_TO_VIEW[key] ? key : null;
+};
+
 const DEV_BYPASS_STRIPE = true;
 
 export default function Webstores() {
@@ -342,15 +354,29 @@ export default function Webstores() {
   // then strips them from the URL so refreshes don't keep re-firing.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
+    const tabParam = normalizeWebstoresTabKey(params.get('tab'));
     const newParam = params.get('new');
+    const incomingStateTabKey = normalizeWebstoresTabKey(location.state?.webstoresTabKey);
     let mutated = false;
+    let nextLocationState = location.state || {};
 
-    if (tabParam && (tabParam === 'stores' || tabParam === 'orders') && tabParam !== activeTab) {
-      setActiveTab(tabParam);
-      params.delete('tab');
-      mutated = true;
-    } else if (tabParam) {
+    if (tabParam) {
+      const nextView = WEBSTORES_TAB_TO_VIEW[tabParam];
+      // Preserve richer tab intent when query aliases to the same view
+      // (e.g. `overview` or `stores` both map to the `stores` page view).
+      const resolvedTabKey = (
+        incomingStateTabKey
+        && WEBSTORES_TAB_TO_VIEW[incomingStateTabKey] === nextView
+      ) ? incomingStateTabKey : tabParam;
+
+      if (nextView !== activeTab) {
+        setActiveTab(nextView);
+      }
+      nextLocationState = {
+        ...nextLocationState,
+        webstoresTabKey: resolvedTabKey,
+        webstoresView: nextView,
+      };
       params.delete('tab');
       mutated = true;
     }
@@ -366,11 +392,43 @@ export default function Webstores() {
       const nextSearch = params.toString();
       navigate(
         nextSearch ? `${location.pathname}?${nextSearch}` : location.pathname,
-        { replace: true },
+        { replace: true, state: nextLocationState },
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
+
+  // Keep ribbon/tab intent state in sync even after query params are consumed.
+  // This prevents active highlight drift in WebstoresRibbon when `?tab=...`
+  // has already been removed from the URL.
+  useEffect(() => {
+    if (!location.pathname.startsWith('/webstores')) return;
+
+    const view = activeTab === 'orders' ? 'orders' : 'stores';
+    const currentTabKey = normalizeWebstoresTabKey(location.state?.webstoresTabKey);
+    const desiredTabKey = view === 'orders'
+      ? 'orders'
+      : (currentTabKey === 'overview' ? 'overview' : 'stores');
+
+    if (
+      currentTabKey === desiredTabKey
+      && location.state?.webstoresView === view
+    ) {
+      return;
+    }
+
+    navigate(
+      `${location.pathname}${location.search || ''}`,
+      {
+        replace: true,
+        state: {
+          ...(location.state || {}),
+          webstoresTabKey: desiredTabKey,
+          webstoresView: view,
+        },
+      },
+    );
+  }, [activeTab, location.pathname, location.search, location.state, navigate]);
 
   const resetForm = () => {
     setFormData({
