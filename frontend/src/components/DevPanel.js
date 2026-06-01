@@ -38,12 +38,27 @@ export default function DevPanel() {
   const [loading, setLoading] = useState(false);
   const [tenantInfo, setTenantInfo] = useState(null);
 
-  // Check if user is admin
+  // Check if user is admin AND dev panel is enabled in this environment.
+  // Both gates must pass before we render. The /api/dev/enabled probe is
+  // always exposed (lightweight, no-auth) so the widget hides itself in
+  // production deployments where ENABLE_DEV_PANEL is unset.
   const [isAdmin, setIsAdmin] = useState(false);
-  
+  const [devEnabled, setDevEnabled] = useState(false);
+
   useEffect(() => {
     checkAdminStatus();
+    checkDevEnabled();
   }, []);
+
+  const checkDevEnabled = async () => {
+    try {
+      const res = await axios.get(`${API}/dev/enabled`);
+      setDevEnabled(!!res.data?.enabled);
+    } catch (err) {
+      // If the probe fails treat as disabled — safer default in prod.
+      setDevEnabled(false);
+    }
+  };
 
   const checkAdminStatus = async () => {
     try {
@@ -142,7 +157,8 @@ export default function DevPanel() {
   };
 
   // Only show for admin users
-  if (!isAdmin) return null;
+  // Hide widget if either gate fails — admin role OR backend dev flag.
+  if (!isAdmin || !devEnabled) return null;
 
   return (
     <div className="fixed bottom-6 left-6 z-50">

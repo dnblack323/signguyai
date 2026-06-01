@@ -4627,7 +4627,22 @@ api_router.include_router(assistant_tools_router)
 api_router.include_router(plans_router)  # Multi-product plan management
 api_router.include_router(questionnaires_router)  # Dynamic form builder
 api_router.include_router(credits_router)  # AI Credits system
-api_router.include_router(dev_router)  # Dev/Admin testing panel
+# Dev / Admin testing panel — only mounted when ENABLE_DEV_PANEL=true so the
+# billing- and credit-mutating endpoints can never accidentally be served
+# from a production deployment. The /api/dev/enabled probe is always exposed
+# (lightweight, no-auth) so the frontend knows whether to render the widget.
+if os.environ.get("ENABLE_DEV_PANEL", "").strip().lower() == "true":
+    api_router.include_router(dev_router)
+else:
+    # When disabled, still expose only the lightweight /enabled probe so the
+    # frontend Dev Panel widget can hide itself cleanly.
+    from fastapi import APIRouter as _AR
+    _stub = _AR(prefix="/dev", tags=["dev"])
+
+    @_stub.get("/enabled")
+    async def _dev_enabled_probe():  # pragma: no cover - trivial
+        return {"enabled": False}
+    api_router.include_router(_stub)
 api_router.include_router(pricing_setup_router)  # Historical invoice import + pricing setup
 api_router.include_router(profit_analytics_router)  # Profit & margin analytics dashboard
 api_router.include_router(financials_router)  # Financial entries (sales + expenses)
