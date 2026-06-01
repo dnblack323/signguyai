@@ -1,0 +1,68 @@
+{
+  "summary": "Phase 6 testing — admin-progress endpoint + UI selectors + Orders/Customers filter UI. Backend pytest: 10/10 PASS. Frontend: filters & admin progress card render correctly with all expected data-testids. Found 2 frontend/backend issues that need follow-up: (a) clicking admin-stamp-production toast fires but the button does NOT swap to admin-unstamp-production — state not refreshed after PATCH; AND the click fires the PATCH TWICE (duplicate toast 'Production started stamped' x2). (b) Backend GET /api/webstores/v2/{id} returns 500 once status='completed' because WebstoreStatus enum (line 244 webstores.py) does not include 'completed' — Pydantic ResponseValidation fails.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/webstores/v2/{id}",
+        "issue": "Returns 500 ResponseValidationError when store.status='completed' (after a successful mark_completed PATCH). Root cause: WebstoreStatus enum in /app/backend/routes/webstores.py only defines active/disabled/pending, but Phase 6 PATCH sets status='completed'. Subsequent fetch of the webstore detail breaks the dashboard. Reproduce: PATCH /admin-progress {mark_completed:true} then GET /api/webstores/v2/<id> → 500.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "GET /api/webstores/v2/{id}",
+        "issue": "Webstore response model (class Webstore, line 234) does NOT declare production_started_at / preview_ready_at / owner_approved_at / ready_for_pickup_at / completed_at fields and uses extra='ignore'. Therefore the new stage timestamps are dropped from the GET response even though they are persisted in mongo. Owner/admin UIs that rely on /v2/{id} to show stamp state will get stale data; only /admin-progress and /owner-portal/.../progress return them."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AdminStoreProgressCard",
+        "issue": "Clicking [data-testid='admin-stamp-production-<id>'] fires the success toast 'Production started stamped' (toast appears TWICE per click — duplicate PATCH), but the button data-testid does NOT swap to 'admin-unstamp-production-<id>'. UI state is not refreshed after the PATCH resolves so the user cannot tell the stamp succeeded except via toast. TEST 10 partially failing.",
+        "selector": "[data-testid='admin-stamp-production-fc0bad7e-9040-477e-93b9-a3f0b1a2df90']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "AdminStoreProgressCard stage stamping",
+        "issue": "Duplicate PATCH /admin-progress fired on one click of Mark production started (toast 'Production started stamped' appears 2x). Likely a double-bound onClick or React effect double-fire — needs idempotency or single-call guard.",
+        "selector": "[data-testid='admin-stamp-production-<id>']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Orders page deep-link ?webstore_id=<id>",
+        "issue": "Deep-link correctly auto-selects sourceFilter='Webstore only' and webstoreFilter='Preview Storefront QA' (verified). However zero rows matched the [data-testid^='order-webstore-badge-'] selector when filtered to this webstore in the rendered list — could be because the visible orders for that store are paginated below the fold, OR the badge testid is rendered only conditionally. Confirm visually that webstore badges still show on Orders rows when source='webstore' is selected.",
+        "affected_selectors": ["[data-testid^='order-webstore-badge-']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration170_phase6_admin_progress.py",
+    "/app/test_reports/pytest/iteration170_results.xml"
+  ],
+  "action_items": [
+    "Add 'completed' to WebstoreStatus enum (or change it to a plain str field) in /app/backend/routes/webstores.py — currently GET /api/webstores/v2/{id} 500s after mark_completed PATCH.",
+    "Declare production_started_at / preview_ready_at / owner_approved_at / ready_for_pickup_at / completed_at on the Webstore response model so /v2/{id} returns them (review request explicitly says either /v2/{id} OR direct doc read is acceptable, but right now /v2/{id} hides them).",
+    "Fix AdminStoreProgressCard.js: after PATCH succeeds, refresh local progress state so the button data-testid swaps from admin-stamp-production-<id> → admin-unstamp-production-<id>. Also guard against the duplicate PATCH (toast fires twice per click).",
+    "Verify Orders rows visually still render order-webstore-badge-<orderId> when source=webstore (test selector matched 0 elements on the filtered page)."
+  ],
+  "critical_code_review_comments": [
+    "WebstoreStatus enum drift: Phase 6 writes a new status value ('completed') that the existing Pydantic response enum rejects — a silent forward-compat break of the existing GET endpoint. Add the value or relax to str.",
+    "Webstore response model is missing the 5 new lifecycle timestamp fields. Add them (Optional[str]=None) so the same payload that powers the admin card can be fetched from /v2/{id} too — currently only /admin-progress and /owner-portal/progress expose them.",
+    "/app/backend/routes/webstores.py is 3470 lines — well over the 700-line threshold; consider splitting into ORM/model, route, admin, and progress modules to ease maintenance.",
+    "Frontend AdminStoreProgressCard PATCH handler likely missing single-fire guard (toast duplicates) and missing refetch of progress payload (button state stale). The owner card likely has the same risk if it shares the handler."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration170_phase6_admin_progress.py"
+  ],
+  "success_rate": {"backend": "100% (10/10 pytest)", "frontend": "~80% — TEST 4,5,6,7,8,9 pass visually; TEST 10 stamp persistence via UI fails; TEST 11 owner login could not be verified (401 on tenant fetch with provided owner creds — may be stale account)"},
+  "test_credentials": "Admin thesigntistslab@gmail.com / password123 (works). phase5-owner-test@example.com / OwnerPass123! — login itself returned 200 but follow-up tenant API calls return 401 in the UI; owner-portal progress API does work via direct backend curl with this account so backend is fine.",
+  "seed_data_creation": "None. Mongo doc fc0bad7e... was temporarily mutated (production_started_at + completed_at + status) during testing and restored to status='active' with all stage timestamps cleared.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend admin-progress endpoint is solid — 10 pytest cases cover schema, finance-parity, stamp persistence, 404, tenant guard, and orders source/webstore_id filters. The UI bugs to retest after fixes: (1) admin-stamp-production should swap to admin-unstamp-production after click; (2) only one PATCH should fire per click; (3) GET /api/webstores/v2/{id} should not 500 when status='completed'. Use Admin: thesigntistslab@gmail.com / password123 and store fc0bad7e-9040-477e-93b9-a3f0b1a2df90. To open the dashboard tab: /webstores → click [data-testid='view-store-<id>'] (the gear-style icon).",
+  "rca_of_the_issue": "Stamp button does not swap: AdminStoreProgressCard probably PATCHes then doesn't await-refetch the admin-progress endpoint, OR doesn't pass the new payload into state. Duplicate PATCH: likely an effect-handler double-binding or double-render under StrictMode. Status-500 bug: Pydantic v2 enum strict validation — WebstoreStatus accepts only active/disabled/pending. Phase 6 PATCH (mark_completed) writes status='completed' which the model rejects on GET serialization. Either widen the enum or move status to a free-form str column."
+}
