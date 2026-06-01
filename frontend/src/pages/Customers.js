@@ -197,9 +197,14 @@ export default function Customers() {
   const getCustomerStats = (customerId) => {
     const customerJobs = getCustomerJobs(customerId);
     const customerInvoices = getCustomerInvoices(customerId);
-    
-    const activeJobs = customerJobs.filter(j => !['complete', 'archived'].includes(j.status));
-    const completedJobs = customerJobs.filter(j => j.status === 'complete');
+
+    // Job status enum value is "completed" (see backend/models/enums.py
+    // JobStatus.COMPLETED). The previous filter used the production task
+    // value "complete" which never matched any real job — so the
+    // "Completed Jobs" stat was always 0 and the "Active Jobs" list
+    // double-counted finished work.
+    const activeJobs = customerJobs.filter(j => !['completed', 'archived'].includes(j.status));
+    const completedJobs = customerJobs.filter(j => j.status === 'completed');
     const totalRevenue = customerInvoices.reduce((sum, i) => sum + (i.total || 0), 0);
     const outstandingBalance = customerInvoices
       .filter(i => i.status !== 'paid')
