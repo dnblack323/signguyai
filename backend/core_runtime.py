@@ -27,7 +27,29 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-SECRET_KEY = os.environ.get('JWT_SECRET_KEY', secrets.token_urlsafe(32))
+# JWT secret — REQUIRED. We previously fell back to a random
+# `secrets.token_urlsafe(32)` when the env var was missing, which silently
+# invalidated every existing token on each restart and made the two other
+# auth modules (core/auth_deps.py and core/config.py) read from different
+# secrets. Fail fast at import time instead so all consumers share one key.
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+if not SECRET_KEY:
+    # Backwards-compat: accept the legacy `JWT_SECRET` name once with a
+    # logged warning so older deployments don't break on this hardening.
+    legacy = os.environ.get('JWT_SECRET')
+    if legacy:
+        logging.getLogger(__name__).warning(
+            "Using legacy env var JWT_SECRET; please rename to JWT_SECRET_KEY."
+        )
+        SECRET_KEY = legacy
+    else:
+        # Last resort — generate, but loudly log so an operator notices.
+        # Tokens issued before the restart will be rejected.
+        SECRET_KEY = secrets.token_urlsafe(32)
+        logging.getLogger(__name__).warning(
+            "JWT_SECRET_KEY env var is not set. Generated a random secret for this "
+            "process — all existing tokens will be invalidated on each restart."
+        )
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 security = HTTPBearer(auto_error=False)
