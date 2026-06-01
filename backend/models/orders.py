@@ -471,6 +471,13 @@ class ProductionTaskUpdate(BaseModel):
 
 
 # ============== WORKFLOW TEMPLATE ==============
+#
+# This `WorkflowStage` / `WorkflowTemplate` pair models the ORDER workflow
+# (departments + QC + proof dependencies). It is distinct from the
+# production-timeline shape in `models/production_timeline.py`, which uses
+# its own `TimelineStage` / `TimelineTemplate` classes (formerly also
+# named `WorkflowStage` / `WorkflowTemplate` — kept as aliases for
+# backward-compat). Do NOT mix imports between the two files.
 
 class WorkflowStage(BaseModel):
     name: str

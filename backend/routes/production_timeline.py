@@ -13,8 +13,12 @@ from server import db, get_current_active_user, logger
 from models import UserInDB
 from models.production_timeline import (
     ProductionTimeline, TimelineStageEntry, TimelineStageUpdate,
-    WorkflowTemplate, WorkflowStage, TimelineAnalytics,
-    DEFAULT_WORKFLOW_TEMPLATES, SIMPLE_WORKFLOW_TEMPLATES, ProductionCategory
+    # Canonical names — `WorkflowTemplate` / `WorkflowStage` aliases kept
+    # for one cycle; new code should reference the Timeline* names.
+    TimelineTemplate as WorkflowTemplate,
+    TimelineStage as WorkflowStage,
+    TimelineAnalytics,
+    DEFAULT_WORKFLOW_TEMPLATES, SIMPLE_WORKFLOW_TEMPLATES, ProductionCategory,
 )
 
 
