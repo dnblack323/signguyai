@@ -28,6 +28,81 @@ db = mongo_client[os.environ.get('DB_NAME', 'signguy')]
 router = APIRouter(prefix="/questionnaires", tags=["Questionnaires"])
 
 
+# ============== SUBMISSION VALIDATION HELPERS ==============
+
+# Question types that never collect an answer and are exempt from required checks.
+_NON_INPUT_QUESTION_TYPES = {"heading", "paragraph"}
+
+
+def iter_questionnaire_questions(questionnaire: dict):
+    """Yield every question in a questionnaire.
+
+    Walks both the top-level ``questions`` list and any nested
+    ``sections[*].questions`` so section-based templates are validated
+    with the same rigor as flat templates.
+    """
+    for q in questionnaire.get("questions", []) or []:
+        if isinstance(q, dict):
+            yield q
+    for section in questionnaire.get("sections", []) or []:
+        if not isinstance(section, dict):
+            continue
+        for q in section.get("questions", []) or []:
+            if isinstance(q, dict):
+                yield q
+
+
+def _answer_is_empty(answer) -> bool:
+    """True when an answer carries no usable value (None, blank, or empty list)."""
+    if answer is None:
+        return True
+    if isinstance(answer, str):
+        return answer.strip() == ""
+    if isinstance(answer, (list, tuple, set, dict)):
+        return len(answer) == 0
+    return False
+
+
+def _question_is_visible(question: dict, answers: dict) -> bool:
+    """Evaluate a question's conditional rule against the submitted answers.
+
+    Mirrors the storefront show/hide logic so the backend never enforces a
+    required field that the respondent could not see. Questions without a
+    conditional are always visible.
+    """
+    cond = question.get("conditional")
+    if not cond or not isinstance(cond, dict):
+        return True
+    depends_on = cond.get("depends_on")
+    if not depends_on:
+        return True
+    operator = (cond.get("operator") or "equals").lower()
+    expected = cond.get("value")
+    actual = (answers or {}).get(depends_on)
+
+    def _as_float(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    if operator == "equals":
+        return str(actual) == str(expected)
+    if operator == "not_equals":
+        return str(actual) != str(expected)
+    if operator == "contains":
+        if isinstance(actual, (list, tuple, set)):
+            return expected in actual or str(expected) in [str(a) for a in actual]
+        return str(expected) in str(actual or "")
+    if operator in ("greater_than", "less_than"):
+        a, e = _as_float(actual), _as_float(expected)
+        if a is None or e is None:
+            return False
+        return a > e if operator == "greater_than" else a < e
+    # Unknown operator → fail open (visible) so we never silently drop a field.
+    return True
+
+
 # ============== QUESTIONNAIRE CRUD ==============
 
 @router.get("")
@@ -307,27 +382,41 @@ async def submit_questionnaire_response(
     if not questionnaire:
         raise HTTPException(status_code=404, detail="Questionnaire not found or not active")
     
-    # Validate required fields and per-field format
+    # Validate required fields and per-field format.
+    # Walks top-level questions AND nested sections[*].questions, respects
+    # conditional visibility, and skips locked (provider-set) fields.
     import re as _re
     _EMAIL_RE = _re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
     _PHONE_RE = _re.compile(r'^[\d\s\+\-\(\)\.]{7,20}$')
-    for question in questionnaire.get("questions", []):
+    answers = request.answers or {}
+    locked_ids = set(questionnaire.get("locked_answer_ids") or [])
+
+    for question in iter_questionnaire_questions(questionnaire):
         q_type = question.get("type", "")
-        if question.get("required") and q_type not in ["heading", "paragraph"]:
-            q_id = question.get("id")
-            if q_id not in request.answers or not request.answers[q_id]:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Required field missing: {question.get('label')}"
-                )
-        # Per-field format validation
         q_id = question.get("id")
-        answer = request.answers.get(q_id) if request.answers else None
-        if answer and q_type == "email":
-            if not _EMAIL_RE.match(str(answer)):
+
+        if q_type in _NON_INPUT_QUESTION_TYPES:
+            continue
+        # Provider-locked fields are populated server-side via prefill — never
+        # block the respondent on them.
+        if q_id in locked_ids:
+            continue
+        # Hidden-by-condition questions are not required.
+        if not _question_is_visible(question, answers):
+            continue
+
+        answer = answers.get(q_id)
+        if question.get("required") and _answer_is_empty(answer):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Required field missing: {question.get('label')}"
+            )
+
+        # Per-field format validation (only when a value is present).
+        if not _answer_is_empty(answer):
+            if q_type == "email" and not _EMAIL_RE.match(str(answer)):
                 raise HTTPException(status_code=422, detail=f"Invalid email format for field: {question.get('label')}")
-        if answer and q_type == "phone":
-            if not _PHONE_RE.match(str(answer)):
+            if q_type == "phone" and not _PHONE_RE.match(str(answer)):
                 raise HTTPException(status_code=422, detail=f"Invalid phone format for field: {question.get('label')}")
     
     # Get client IP
@@ -411,13 +500,13 @@ async def get_single_response(
     # Get the questionnaire for question labels
     questionnaire = await db.questionnaires.find_one(
         {"id": response["questionnaire_id"]},
-        {"_id": 0, "questions": 1}
+        {"_id": 0, "questions": 1, "sections": 1}
     )
     
     # Create a formatted response with question labels
     formatted_answers = []
     if questionnaire:
-        question_map = {q["id"]: q for q in questionnaire.get("questions", [])}
+        question_map = {q["id"]: q for q in iter_questionnaire_questions(questionnaire) if q.get("id")}
         for q_id, answer in response.get("answers", {}).items():
             question = question_map.get(q_id, {})
             formatted_answers.append({
