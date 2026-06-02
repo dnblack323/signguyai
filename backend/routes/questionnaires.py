@@ -585,8 +585,8 @@ async def send_questionnaire_via_email(
     link = f"{origin}/questionnaire/{questionnaire_id}" if origin else f"/questionnaire/{questionnaire_id}"
 
     # Tenant branding (company name)
-    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
-    company_name = (tenant or {}).get("company_name") or "SignGuy AI"
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    company_name = (tenant or {}).get("company_name") or (tenant or {}).get("name") or "SignGuy AI"
 
     # Customer greeting
     greeting_name = (payload.customer_name or "").strip() or "there"

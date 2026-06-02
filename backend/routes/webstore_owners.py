@@ -204,8 +204,8 @@ async def _send_invite(
     path = "owner-portal-signup" if portal_invite else "webstore-owner/onboard"
     link = f"{origin}/{path}/{token}" if origin else f"/{path}/{token}"
 
-    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
-    company_name = (tenant or {}).get("company_name") or "SignGuy AI"
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    company_name = (tenant or {}).get("company_name") or (tenant or {}).get("name") or "SignGuy AI"
 
     intro = payload.message or (
         f"{company_name} has set up a webstore for you on SignGuy AI. "
@@ -327,8 +327,8 @@ async def get_onboard_context(token: str):
     ws = await db.webstores_v2.find_one({"id": invite["webstore_id"]}, {"_id": 0})
     if not ws:
         raise HTTPException(status_code=404, detail="Webstore not found")
-    tenant = await db.tenants.find_one({"tenant_id": ws.get("tenant_id")}, {"_id": 0})
-    company = (tenant or {}).get("company_name") or "Your Sign Shop"
+    tenant = await db.tenants.find_one({"id": ws.get("tenant_id")}, {"_id": 0})
+    company = (tenant or {}).get("company_name") or (tenant or {}).get("name") or "Your Sign Shop"
 
     return OwnerOnboardContext(
         webstore_id=ws["id"],

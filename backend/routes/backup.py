@@ -10,8 +10,24 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from datetime import datetime, timezone
 import hashlib
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 backup_router = APIRouter(prefix="/backup", tags=["backup"])
+
+
+def _is_owner(user) -> bool:
+    """Enum-safe owner check.
+
+    ``user.role`` may be a ``UserRole`` str-enum or a plain string depending on
+    how the user doc was loaded, so normalize to the underlying value before
+    comparing. Avoids brittle ``role != "owner"`` checks that can deny valid
+    owners (or pass non-owners) if the role representation changes.
+    """
+    role = getattr(user, "role", None)
+    role_value = getattr(role, "value", role)
+    return role_value == "owner"
 
 # Collections to back up (tenant-scoped)
 BACKUP_COLLECTIONS = [
@@ -97,7 +113,7 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
     @backup_router.get("/export")
     async def export_tenant_data(current_user: UserInDB = Depends(get_current_active_user)):
         """Export all tenant data as JSON. Owner only."""
-        if current_user.role != "owner":
+        if not _is_owner(current_user):
             raise HTTPException(status_code=403, detail="Only the account owner can create backups")
 
         tenant_id = current_user.tenant_id
@@ -218,7 +234,7 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
         current_user: UserInDB = Depends(get_current_active_user)
     ):
         """Preview what a restore would do without actually restoring."""
-        if current_user.role != "owner":
+        if not _is_owner(current_user):
             raise HTTPException(status_code=403, detail="Only the account owner can restore backups")
 
         try:
@@ -261,7 +277,7 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
         current_user: UserInDB = Depends(get_current_active_user)
     ):
         """Restore tenant data from backup. Owner only. Replaces existing data."""
-        if current_user.role != "owner":
+        if not _is_owner(current_user):
             raise HTTPException(status_code=403, detail="Only the account owner can restore backups")
 
         try:
@@ -282,6 +298,19 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
             if resolved_collection not in BACKUP_COLLECTIONS:
                 continue
 
+            # Validate payload shape up-front so a malformed file is rejected
+            # BEFORE any data is touched (fail-safe, no partial mutation).
+            if not isinstance(docs, list):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid backup file: '{col_name}' must be a list of records.",
+                )
+            if any(not isinstance(d, dict) for d in docs):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid backup file: '{col_name}' contains a non-object record.",
+                )
+
             # Prefer canonical collection payload when both alias and canonical exist.
             if (
                 resolved_collection not in normalized_collections
@@ -289,22 +318,52 @@ def setup_backup_routes(app, db, get_current_active_user, UserInDB):
             ):
                 normalized_collections[resolved_collection] = docs
 
+        # Prepare incoming docs (re-assign tenant, strip any leaked _id).
         for col_name, docs in normalized_collections.items():
+            for doc in (docs or []):
+                doc["tenant_id"] = tenant_id
+                doc.pop("_id", None)
 
-            collection = db[col_name]
+        # ── Atomicity: snapshot-and-rollback ──────────────────────────────
+        # MongoDB standalone has no multi-document transactions, so we snapshot
+        # each target collection's current tenant data BEFORE mutating. If any
+        # delete/insert fails mid-way, we restore every touched collection from
+        # its snapshot so a partial restore can never destroy the owner's data.
+        snapshots = {}
+        for col_name in normalized_collections.keys():
+            snapshots[col_name] = await db[col_name].find(
+                {"tenant_id": tenant_id}, {"_id": 0}
+            ).to_list(length=None)
 
-            # Delete existing tenant data for this collection
-            await collection.delete_many({"tenant_id": tenant_id})
-
-            if docs:
-                # Re-assign to current tenant
-                for doc in docs:
-                    doc["tenant_id"] = tenant_id
-                    # Remove any _id that might have leaked in
-                    doc.pop("_id", None)
-
-                await collection.insert_many(docs)
-                restored_counts[col_name] = len(docs)
+        try:
+            for col_name, docs in normalized_collections.items():
+                collection = db[col_name]
+                # Delete existing tenant data for this collection
+                await collection.delete_many({"tenant_id": tenant_id})
+                if docs:
+                    await collection.insert_many(docs)
+                    restored_counts[col_name] = len(docs)
+        except Exception as exc:
+            logger.error(
+                "Restore failed for tenant %s; rolling back %d collections: %s",
+                tenant_id, len(snapshots), exc,
+            )
+            for col_name, original_docs in snapshots.items():
+                try:
+                    await db[col_name].delete_many({"tenant_id": tenant_id})
+                    if original_docs:
+                        for d in original_docs:
+                            d.pop("_id", None)
+                        await db[col_name].insert_many(original_docs)
+                except Exception as rollback_exc:  # pragma: no cover - defensive
+                    logger.error(
+                        "Rollback failed for collection %s (tenant %s): %s",
+                        col_name, tenant_id, rollback_exc,
+                    )
+            raise HTTPException(
+                status_code=500,
+                detail="Restore failed and was rolled back. Your existing data was not changed.",
+            )
 
         total = sum(restored_counts.values())
         return {

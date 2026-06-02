@@ -81,10 +81,10 @@ class EmailService:
     
     async def get_tenant_branding(self, tenant_id: str) -> dict:
         """Get tenant branding info for emails"""
-        tenant = await db.tenants.find_one({"tenant_id": tenant_id}, {"_id": 0})
+        tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
         
         return {
-            "company_name": tenant.get("company_name", "SignGuy AI") if tenant else "SignGuy AI",
+            "company_name": (tenant.get("company_name") or tenant.get("name") or "SignGuy AI") if tenant else "SignGuy AI",
             "logo_url": tenant.get("logo_url", "") if tenant else "",
             "primary_color": tenant.get("primary_color", "#0D9488") if tenant else "#0D9488",
             "secondary_color": tenant.get("secondary_color", "#14B8A6") if tenant else "#14B8A6",

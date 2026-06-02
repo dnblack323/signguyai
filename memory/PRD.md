@@ -22,6 +22,14 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-02 — **Security Code-Review Remediation (Part 2 report — COMPLETE)**
+  - Promo-code findings (#2, #3) intentionally SKIPPED per owner instruction (only the owner uses promo codes). Fixed the other 4:
+  - **#1 Workflow template tenant scoping** (`backend/routes/workflow_templates.py`): `update_template` now scopes both the `update_one` and the read-back `find_one` by `tenant_id` (previously keyed by `id` only). Verified: scoped update returns the doc; unknown id → 404.
+  - **#5 Tenant lookup key standardized** — the `tenants` collection is keyed by `id`, but multiple call sites queried `{"tenant_id": ...}` (always `None` → fell back to default "SignGuy AI" branding). Fixed across `webstores.py`, `webstore_owners.py` (x2), `documents.py` (x3), `questionnaires.py`, and `services/email_service.py` to `{"id": ...}`, plus added a `name` fallback so company branding actually resolves. Verified at query level (`{"id": tid}` resolves, `{"tenant_id": tid}` did not).
+  - **#6 Backup owner-role check** (`backend/routes/backup.py`): replaced brittle `current_user.role != "owner"` (x3: export/preview/restore) with an enum-safe `_is_owner()` helper that normalizes `UserRole` enum or plain string. Unit-tested; E2E verified owner allowed, platform_admin denied (403).
+  - **#4 Backup restore atomicity** (`backend/routes/backup.py`): restore was destructive delete-then-insert per collection with no rollback (partial failure = data loss). Added (a) upfront payload-shape validation (non-list/non-dict → clean 400 before any mutation) and (b) snapshot-and-rollback: snapshots each target collection's tenant docs before mutating and restores them all if any delete/insert throws. E2E verified: corrupt backup → 400 with data intact; valid backup → 200; mid-failure rolls back.
+  - **Tests**: `backend/tests/test_backup_security.py` (3 tests, `_is_owner`). All passing. Note: changes are in PREVIEW — production (signguy-ai.com) requires a redeploy to receive them.
+
 - 2026-06-02 — **Security Code-Review Remediation (Part 1 report — COMPLETE)**
   - Audited 6 findings from `Part1_Code_Review_Report.pdf`. Findings #4 (hardcoded JWT fallback) and #6 (unconditional dev routes) were already fixed in prior work (Issues 1 & 2). Fixed the remaining 4:
   - **#3 Credentials in query params** — removed `recover_owner_password(email, new_password)` query-param endpoint entirely.

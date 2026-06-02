@@ -78,8 +78,12 @@ async def update_template(template_id: str, data: TemplateUpdate, current_user: 
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     update_data["is_default"] = False  # No longer default if edited
 
-    await db.workflow_templates.update_one({"id": template_id}, {"$set": update_data})
-    updated = await db.workflow_templates.find_one({"id": template_id}, {"_id": 0})
+    await db.workflow_templates.update_one(
+        {"id": template_id, "tenant_id": current_user.tenant_id}, {"$set": update_data}
+    )
+    updated = await db.workflow_templates.find_one(
+        {"id": template_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
     return updated
 
 

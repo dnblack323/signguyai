@@ -3242,8 +3242,8 @@ async def send_event_store_questionnaire(
     )
 
     # ── Tenant branding ──
-    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
-    company_name = (tenant or {}).get("company_name") or "SignGuy AI"
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    company_name = (tenant or {}).get("company_name") or (tenant or {}).get("name") or "SignGuy AI"
 
     greeting_name = (
         (payload.customer_name or webstore.get("owner_name") or "").strip() or "there"
