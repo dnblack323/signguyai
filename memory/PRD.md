@@ -22,6 +22,15 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-02 — **Branding & Templates Settings (invoice / email / document) — COMPLETE & TESTED**
+  - **Data model** (`backend/models/auth.py`): new `BrandingSettings` (shared `primary_color`/`secondary_color`; invoice accent/logo-position/show-logo/show-company-info/footer/payment-terms; email from-name/show-logo/header-color/signature; document show-logo/header-text/footer-text). Added `branding_settings` to `TenantBase` + `TenantUpdate`; persisted via existing owner-only `PUT /api/tenant`.
+  - **Settings UI** (`frontend/src/pages/CompanySettings.js`): new "Branding & Templates" card with Brand Colors + Invoice / Email / Document sub-sections, loads from `tenant.branding_settings`, saves via `updateTenant({branding_settings})`. data-testids on all controls.
+  - **Wiring (settings actually apply)**:
+    - **Invoice** (`frontend/src/components/InvoicePreviewModal.js`): replaced hardcoded "SignGuy AI" From block + footer with real tenant name/address/phone/website (gated by `invoice_show_company_info`), branded logo (position-aware, `invoice_show_logo`), accent color on INVOICE heading + Balance Due, payment terms, and custom footer text.
+    - **Email** (`services/email_service.py`): `send_email` now wraps outgoing HTML in a branded shell (logo header + header color + signature) and overrides the SendGrid from-name when the tenant has configured branding — **no-op for unconfigured tenants (zero regression)**.
+    - **Document** (`routes/documents.py` generate-pdf): embeds tenant logo (`document_show_logo`), header text, and footer text into generated PDFs.
+  - **Testing**: owner-account E2E — settings persist via `PUT/GET /api/tenant`; UI save shows success toast and reloads correctly; invoice preview renders full branding; document PDF generates valid `%PDF` with branding; email wrapper unit-verified (wraps + from-name override when configured, unchanged otherwise). All throwaway test data cleaned up. Note: editing requires the **owner** role (PUT /tenant is owner-only); platform_admin is 403.
+
 - 2026-06-02 — **Security Code-Review Remediation (Part 2 report — COMPLETE)**
   - Promo-code findings (#2, #3) intentionally SKIPPED per owner instruction (only the owner uses promo codes). Fixed the other 4:
   - **#1 Workflow template tenant scoping** (`backend/routes/workflow_templates.py`): `update_template` now scopes both the `update_one` and the read-back `find_one` by `tenant_id` (previously keyed by `id` only). Verified: scoped update returns the doc; unknown id → 404.

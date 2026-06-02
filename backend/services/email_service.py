@@ -82,16 +82,68 @@ class EmailService:
     async def get_tenant_branding(self, tenant_id: str) -> dict:
         """Get tenant branding info for emails"""
         tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
-        
+        bs = (tenant or {}).get("branding_settings") or {}
+        primary = bs.get("primary_color") or (tenant.get("primary_color") if tenant else None) or "#0D9488"
+
         return {
             "company_name": (tenant.get("company_name") or tenant.get("name") or "SignGuy AI") if tenant else "SignGuy AI",
             "logo_url": tenant.get("logo_url", "") if tenant else "",
-            "primary_color": tenant.get("primary_color", "#0D9488") if tenant else "#0D9488",
-            "secondary_color": tenant.get("secondary_color", "#14B8A6") if tenant else "#14B8A6",
+            "primary_color": primary,
+            "secondary_color": bs.get("secondary_color") or (tenant.get("secondary_color") if tenant else None) or "#14B8A6",
             "portal_url": tenant.get("portal_url", "") if tenant else "",
-            "current_year": str(datetime.now().year)
+            "current_year": str(datetime.now().year),
+            "branding_settings": bs,
         }
-    
+
+    async def _apply_email_branding(self, html_content: str, tenant_id: Optional[str]) -> tuple:
+        """Wrap email HTML in the tenant's branded shell when email branding is
+        configured. Returns (wrapped_html, from_name_override).
+
+        For tenants that have NOT configured branding_settings, returns the
+        original HTML unchanged and no from-name override (zero regression).
+        """
+        if not tenant_id:
+            return html_content, None
+        tenant = await db.tenants.find_one(
+            {"id": tenant_id},
+            {"_id": 0, "name": 1, "logo_url": 1, "branding_settings": 1},
+        )
+        if not tenant:
+            return html_content, None
+        bs = tenant.get("branding_settings")
+        if not bs:
+            return html_content, None  # branding not configured → leave as-is
+
+        company_name = tenant.get("name") or "SignGuy AI"
+        from_name = bs.get("email_from_name") or company_name
+        header_color = bs.get("email_header_color") or bs.get("primary_color") or "#0D9488"
+        show_logo = bs.get("email_show_logo", True)
+        logo_url = tenant.get("logo_url") if show_logo else None
+        signature = bs.get("email_signature")
+
+        logo_block = (
+            f'<img src="{logo_url}" alt="{company_name}" '
+            f'style="max-height:48px;max-width:200px;margin-bottom:8px;" />'
+            if logo_url else
+            f'<div style="font-size:18px;font-weight:700;color:#ffffff;">{company_name}</div>'
+        )
+        signature_block = (
+            f'<div style="margin-top:24px;padding-top:16px;border-top:1px solid #E2E8F0;'
+            f'color:#475569;font-size:13px;white-space:pre-wrap;">{signature}</div>'
+            if signature else ""
+        )
+
+        wrapped = f"""
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;">
+          <div style="background:{header_color};padding:20px 24px;">{logo_block}</div>
+          <div style="padding:8px 24px 24px 24px;">
+            {html_content}
+            {signature_block}
+          </div>
+        </div>
+        """
+        return wrapped, from_name
+
     async def send_email(
         self,
         to_email: str,
@@ -111,8 +163,13 @@ class EmailService:
             return {"success": False, "error": "Email service not configured"}
         
         try:
+            # Apply tenant branding wrapper + from-name override (no-op when
+            # the tenant has not configured branding_settings).
+            html_content, from_name_override = await self._apply_email_branding(html_content, tenant_id)
+            from_name = from_name_override or self.from_name
+
             message = Mail(
-                from_email=(self.from_email, self.from_name),
+                from_email=(self.from_email, from_name),
                 to_emails=to_email,
                 subject=subject,
                 html_content=html_content,

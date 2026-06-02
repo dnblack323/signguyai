@@ -21,7 +21,7 @@ import { getAuthToken } from '../lib/authStorage';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
-  const { customers, fetchCustomers, jobs, fetchJobs } = useApp();
+  const { customers, fetchCustomers, jobs, fetchJobs, tenant } = useApp();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAIEmail, setShowAIEmail] = useState(false);
@@ -122,6 +122,14 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
     }
   };
 
+  const branding = tenant?.branding_settings || {};
+  const accent = branding.invoice_accent_color || branding.primary_color || '#2563eb';
+  const showInvoiceLogo = branding.invoice_show_logo !== false && tenant?.logo_url;
+  const logoAlign = branding.invoice_logo_position === 'center' ? 'center' : branding.invoice_logo_position === 'right' ? 'flex-end' : 'flex-start';
+  const showCompanyInfo = branding.invoice_show_company_info !== false;
+  const companyName = tenant?.name || 'SignGuy AI';
+  const companyAddressLine = [tenant?.city, tenant?.state, tenant?.zip_code].filter(Boolean).join(', ');
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
@@ -171,10 +179,16 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
           </div>
         ) : invoice ? (
           <div className="invoice-preview space-y-6 p-6 bg-white rounded-lg border border-gray-200 shadow-sm print:border-none print:p-0 print:shadow-none">
+            {/* Branded logo header */}
+            {showInvoiceLogo && (
+              <div className="flex" style={{ justifyContent: logoAlign }}>
+                <img src={tenant.logo_url} alt={companyName} style={{ maxHeight: '56px', maxWidth: '220px' }} data-testid="invoice-brand-logo" />
+              </div>
+            )}
             {/* Invoice Header */}
             <div className="flex justify-between items-start">
               <div>
-                <h2 className="text-2xl font-bold font-heading uppercase tracking-tight text-blue-600">
+                <h2 className="text-2xl font-bold font-heading uppercase tracking-tight" style={{ color: accent }}>
                   INVOICE
                 </h2>
                 <p className="text-gray-500 font-mono text-sm mt-1">
@@ -236,8 +250,19 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
                   From
                 </h3>
                 <div className="space-y-1">
-                  <p className="font-bold text-lg text-gray-900">SignGuy AI</p>
-                  <p className="text-gray-600">Your Sign Shop</p>
+                  <p className="font-bold text-lg text-gray-900" data-testid="invoice-from-company">{companyName}</p>
+                  {showCompanyInfo && tenant?.address && (
+                    <p className="text-gray-600 text-sm">{tenant.address}</p>
+                  )}
+                  {showCompanyInfo && companyAddressLine && (
+                    <p className="text-gray-600 text-sm">{companyAddressLine}</p>
+                  )}
+                  {showCompanyInfo && tenant?.phone && (
+                    <p className="text-gray-600 text-sm">{tenant.phone}</p>
+                  )}
+                  {showCompanyInfo && tenant?.website && (
+                    <p className="text-gray-600 text-sm">{tenant.website}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -307,7 +332,7 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
                 <Separator className="bg-gray-200" />
                 <div className="flex justify-between font-bold text-lg">
                   <span className="text-gray-900">Balance Due:</span>
-                  <span className={invoice.total - invoice.amount_paid > 0 ? 'text-blue-600' : 'text-green-600'}>
+                  <span style={{ color: invoice.total - invoice.amount_paid > 0 ? accent : '#16a34a' }}>
                     {formatCurrency(invoice.total - invoice.amount_paid)}
                   </span>
                 </div>
@@ -329,11 +354,18 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
               </>
             )}
 
+            {/* Payment terms */}
+            {branding.invoice_payment_terms && (
+              <div className="text-sm text-gray-600" data-testid="invoice-payment-terms">
+                <span className="font-semibold text-gray-700">Payment Terms: </span>{branding.invoice_payment_terms}
+              </div>
+            )}
+
             {/* Footer */}
             <Separator />
-            <div className="text-center text-xs text-muted-foreground print:mt-8">
-              <p>Thank you for your business!</p>
-              <p className="mt-1">SignGuy AI - Your Professional Sign Shop</p>
+            <div className="text-center text-xs text-muted-foreground print:mt-8" data-testid="invoice-footer">
+              <p>{branding.invoice_footer_text || 'Thank you for your business!'}</p>
+              <p className="mt-1">{companyName}</p>
             </div>
           </div>
         ) : (
@@ -355,7 +387,7 @@ export default function InvoicePreviewModal({ invoiceId, isOpen, onClose }) {
           job_name: job?.name,
           amount: invoice?.total,
           due_date: invoice?.due_date,
-          company_name: 'SignGuy AI'
+          company_name: companyName
         }}
       />
     </Dialog>
