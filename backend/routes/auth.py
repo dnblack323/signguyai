@@ -15,7 +15,10 @@ from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 import jwt
 import re
-from pydantic import BaseModel
+import os
+import hashlib
+import secrets
+from pydantic import BaseModel, Field
 
 from models import (
     User, UserCreate, UserLogin, UserInDB, UserRoleUpdate,
@@ -214,70 +217,155 @@ async def login(input: UserLogin):
     return Token(access_token=access_token, expires_in=expires_in)
 
 
-@router.post("/recover-password")
-async def recover_owner_password(email: str, new_password: str):
-    """
-    Recovery endpoint for tenant owners who cannot log in.
-    Verifies the email belongs to a tenant owner, then resets the password.
-    Only works for owner-role accounts.
-    """
-    email_lower = email.lower()
-    
-    # Find user
-    user = await db.users.find_one({"email": email_lower}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="No account found with this email")
-    
-    # Only allow for owner accounts
-    if user.get("role") != "owner":
-        raise HTTPException(status_code=403, detail="Password recovery is only available for account owners. Contact your admin.")
-    
-    # Verify this email is associated with a valid tenant
-    tenant = await db.tenants.find_one({"id": user.get("tenant_id")}, {"_id": 0})
-    if not tenant:
-        raise HTTPException(status_code=403, detail="Could not verify account ownership")
-    
-    # If owner_email is set, verify it matches (skip check if not set)
-    owner_email = tenant.get("owner_email", "")
-    if owner_email and owner_email.lower() != email_lower:
-        raise HTTPException(status_code=403, detail="Could not verify account ownership")
-    
-    # Validate new password
-    if len(new_password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-    
-    # Reset password with fresh bcrypt hash
-    hashed_password = get_password_hash(new_password)
-    await db.users.update_one(
-        {"email": email_lower},
-        {"$set": {"hashed_password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
+class ForgotPasswordRequest(BaseModel):
+    """Request a password-reset link by email (no auth)."""
+    email: str
+    origin: Optional[str] = None  # frontend origin for building the reset link
+
+
+class ResetPasswordRequest(BaseModel):
+    """Complete a password reset using a single-use token."""
+    token: str
+    new_password: str = Field(min_length=6)
+
+
+# Reset tokens live in their own collection and are stored as SHA-256 hashes,
+# never in plaintext. Tokens are single-use and expire after this window.
+_RESET_TOKEN_TTL_MINUTES = 60
+
+
+def _hash_reset_token(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _build_reset_link(origin: Optional[str], raw_token: str) -> str:
+    base = (
+        (origin or "").rstrip("/")
+        or os.environ.get("APP_URL", "").rstrip("/")
+        or os.environ.get("META_PUBLIC_URL", "").rstrip("/")
     )
-    
-    # Also set owner_email on tenant if not set, so future recoveries work
-    if not owner_email:
-        await db.tenants.update_one(
-            {"id": user.get("tenant_id")},
-            {"$set": {"owner_email": email_lower}}
+    return f"{base}/reset-password?token={raw_token}"
+
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    """
+    Begin a secure password reset. Generates a single-use, time-limited token,
+    stores only its hash, and emails the reset link to the account owner.
+
+    Always returns a generic success response so the endpoint cannot be used to
+    enumerate which emails have accounts.
+    """
+    generic_response = {
+        "message": "If an account exists for that email, a password reset link has been sent."
+    }
+
+    email_lower = request.email.lower().strip()
+    if not email_lower:
+        return generic_response
+
+    user = await db.users.find_one({"email": email_lower}, {"_id": 0})
+    # Silently no-op for unknown or disabled accounts (no enumeration).
+    if not user or not user.get("is_active", True):
+        return generic_response
+
+    raw_token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=_RESET_TOKEN_TTL_MINUTES)
+
+    # Invalidate any prior outstanding tokens for this user, then store the new one.
+    await db.password_reset_tokens.update_many(
+        {"user_id": user["id"], "used": False},
+        {"$set": {"used": True, "invalidated_at": now.isoformat()}},
+    )
+    await db.password_reset_tokens.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "email": email_lower,
+        "token_hash": _hash_reset_token(raw_token),
+        "expires_at": expires_at.isoformat(),
+        "used": False,
+        "created_at": now.isoformat(),
+    })
+
+    reset_link = _build_reset_link(request.origin, raw_token)
+    try:
+        from services.email_service import email_service
+        await email_service.send_password_reset_email(
+            to_email=email_lower,
+            reset_link=reset_link,
+            user_name=user.get("full_name"),
+            expires_minutes=_RESET_TOKEN_TTL_MINUTES,
         )
-    
-    return {"message": "Password has been reset successfully. You can now log in with your new password."}
+    except Exception as e:  # never leak delivery state to the caller
+        logger.warning(f"Password reset email dispatch failed for {email_lower}: {e}")
+
+    return generic_response
+
+
+@router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    """
+    Complete a password reset. Verifies the single-use token (hash match, not
+    expired, not used), updates the password with a fresh bcrypt hash, and burns
+    the token.
+    """
+    token_hash = _hash_reset_token(request.token.strip())
+    record = await db.password_reset_tokens.find_one({"token_hash": token_hash}, {"_id": 0})
+
+    if not record or record.get("used"):
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has already been used.")
+
+    try:
+        expired = datetime.fromisoformat(record["expires_at"]) < datetime.now(timezone.utc)
+    except (KeyError, ValueError):
+        expired = True
+    if expired:
+        raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
+
+    user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=400, detail="This reset link is invalid.")
+
+    hashed_password = get_password_hash(request.new_password)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "hashed_password": hashed_password,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    # Burn the token so it cannot be replayed.
+    await db.password_reset_tokens.update_one(
+        {"id": record["id"]},
+        {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    return {"message": "Your password has been reset. You can now log in with your new password."}
 
 
 @router.post("/setup-admin")
 async def setup_admin_account(request_body: dict):
     """
-    One-time production setup: reset admin password and seed promo codes.
-    Protected by JWT_SECRET_KEY — only someone with access to the .env can call this.
+    One-time production bootstrap: reset admin password and seed promo codes.
+
+    SECURITY: This endpoint is DISABLED by default and only mounted when the
+    environment flag ENABLE_SETUP_ADMIN=true is set. Even when enabled it
+    additionally requires the shared setup_key to equal JWT_SECRET_KEY. Keep it
+    off in normal deployments and only flip it on for a controlled bootstrap.
     """
-    import os
     import uuid as uuid_mod
-    
+
+    if os.environ.get("ENABLE_SETUP_ADMIN", "").strip().lower() != "true":
+        # Behave as if the route does not exist when disabled.
+        raise HTTPException(status_code=404, detail="Not Found")
+
     setup_key = request_body.get("setup_key", "")
     expected_key = os.environ.get("JWT_SECRET_KEY", "")
-    
-    if not setup_key or setup_key != expected_key:
+
+    if not expected_key or not setup_key or not secrets.compare_digest(setup_key, expected_key):
         raise HTTPException(status_code=403, detail="Invalid setup key")
-    
+
     results = []
     
     # 1. Reset admin password if email provided

@@ -37,6 +37,7 @@ import Storefront from "./pages/Storefront";
 import Approvals from "./pages/Approvals";
 import Documents from "./pages/Documents/Documents";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
 import Pricing from "./pages/Pricing";
 import PricingSettings from "./pages/PricingSettings";
@@ -309,6 +310,7 @@ function App() {
                 
                 {/* Auth Routes - Public */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/account-suspended" element={<AccountSuspended />} />
                 <Route path="/register" element={<Navigate to="/login?register=true" replace />} />
                 

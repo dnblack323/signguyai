@@ -317,6 +317,52 @@ class EmailService:
             tenant_id=tenant_id
         )
     
+    async def send_password_reset_email(
+        self,
+        to_email: str,
+        reset_link: str,
+        user_name: Optional[str] = None,
+        expires_minutes: int = 60,
+    ) -> dict:
+        """Send a single-use password reset link to a user."""
+        greeting = f"Hi {user_name}," if user_name else "Hi,"
+        subject = "Reset your SignGuy AI password"
+        html_content = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;
+                    padding:24px;color:#111827;">
+          <h2 style="color:#0D9488;margin-top:0;">Reset your password</h2>
+          <p>{greeting}</p>
+          <p>We received a request to reset the password for your SignGuy AI account.
+          Click the button below to choose a new password. This link is valid for
+          {expires_minutes} minutes and can only be used once.</p>
+          <p style="margin:28px 0;">
+            <a href="{reset_link}"
+               style="background:#0D9488;color:#fff;padding:12px 24px;
+                      text-decoration:none;border-radius:6px;font-weight:600;">
+              Reset Password
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:13px;">If the button doesn't work, copy and
+          paste this link into your browser:</p>
+          <p style="word-break:break-all;font-size:13px;color:#0D9488;">{reset_link}</p>
+          <p style="color:#6b7280;font-size:13px;margin-top:32px;">
+            If you didn't request a password reset, you can safely ignore this email —
+            your password will not be changed.
+          </p>
+        </div>
+        """
+        plain_content = (
+            f"{greeting}\n\nReset your SignGuy AI password using this link "
+            f"(valid {expires_minutes} minutes, single use):\n{reset_link}\n\n"
+            "If you didn't request this, ignore this email."
+        )
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            plain_content=plain_content,
+        )
+
     async def send_welcome_email(
         self,
         customer_email: str,

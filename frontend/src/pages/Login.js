@@ -47,8 +47,6 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const [resetNewPassword, setResetNewPassword] = useState('');
-  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
 
@@ -117,33 +115,27 @@ export default function Login() {
       setResetError('Email is required');
       return;
     }
-    if (!resetNewPassword || resetNewPassword.length < 6) {
-      setResetError('New password must be at least 6 characters');
-      return;
-    }
-    if (resetNewPassword !== resetConfirmPassword) {
-      setResetError('Passwords do not match');
-      return;
-    }
 
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${API_URL}/api/auth/recover-password?email=${encodeURIComponent(resetEmail)}&new_password=${encodeURIComponent(resetNewPassword)}`,
-        { method: 'POST' }
+        `${API_URL}/api/auth/forgot-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: resetEmail, origin: window.location.origin }),
+        }
       );
       if (response.ok) {
         const data = await response.json();
-        setResetMessage(data.message || 'Password reset successfully!');
+        setResetMessage(data.message || 'If an account exists for that email, a password reset link has been sent.');
         setResetEmail('');
-        setResetNewPassword('');
-        setResetConfirmPassword('');
       } else {
-        let msg = 'Password reset failed';
+        let msg = 'Could not process your request. Please try again.';
         try {
           const data = await response.json();
-          msg = data.detail || msg;
-        } catch {}
+          msg = typeof data.detail === 'string' ? data.detail : msg;
+        } catch { /* ignore */ }
         setResetError(msg);
       }
     } catch {
@@ -176,7 +168,7 @@ export default function Login() {
                 Reset Password
               </CardTitle>
               <CardDescription className="text-center" style={{ color: 'var(--text-muted)' }}>
-                Enter your owner email and a new password
+                Enter your account email and we'll send you a secure reset link
               </CardDescription>
             </CardHeader>
 
@@ -189,45 +181,19 @@ export default function Login() {
                 )}
                 {resetMessage && (
                   <Alert className="border-green-300 bg-green-50">
-                    <AlertDescription className="text-green-700">{resetMessage}</AlertDescription>
+                    <AlertDescription className="text-green-700" data-testid="reset-success-message">{resetMessage}</AlertDescription>
                   </Alert>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="resetEmail" style={{ color: 'var(--text)' }}>Owner Email</Label>
+                  <Label htmlFor="resetEmail" style={{ color: 'var(--text)' }}>Account Email</Label>
                   <Input
                     id="resetEmail"
                     data-testid="reset-email-input"
                     type="email"
-                    placeholder="owner@example.com"
+                    placeholder="you@example.com"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)', color: 'var(--text)' }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="resetNewPassword" style={{ color: 'var(--text)' }}>New Password</Label>
-                  <Input
-                    id="resetNewPassword"
-                    data-testid="reset-new-password-input"
-                    type="password"
-                    placeholder="Min 6 characters"
-                    value={resetNewPassword}
-                    onChange={(e) => setResetNewPassword(e.target.value)}
-                    style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)', color: 'var(--text)' }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="resetConfirmPassword" style={{ color: 'var(--text)' }}>Confirm New Password</Label>
-                  <Input
-                    id="resetConfirmPassword"
-                    data-testid="reset-confirm-password-input"
-                    type="password"
-                    placeholder="Repeat password"
-                    value={resetConfirmPassword}
-                    onChange={(e) => setResetConfirmPassword(e.target.value)}
                     style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-light)', color: 'var(--text)' }}
                   />
                 </div>
@@ -245,7 +211,7 @@ export default function Login() {
                   ) : (
                     <KeyRound className="mr-2 h-4 w-4" />
                   )}
-                  {isLoading ? 'Resetting...' : 'Reset Password'}
+                  {isLoading ? 'Sending...' : 'Send Reset Link'}
                 </Button>
 
                 <button

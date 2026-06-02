@@ -38,6 +38,13 @@
 - Login at: /owner-portal via POST /api/auth/login (NOT /api/portal/auth/login). Token stored under localStorage key `owner_portal_token`.
 
 
+## Password Recovery Flow (updated 2026-06-02 — secure token flow)
+- `POST /api/auth/forgot-password` body `{email, origin?}` → always 200 generic (no email enumeration). Emails a single-use, 60-min reset link via SendGrid.
+- `POST /api/auth/reset-password` body `{token, new_password}` → verifies hashed token (SHA-256, single-use, not expired), sets new bcrypt hash.
+- Frontend: `/login` "Forgot password?" collects email only; `/reset-password?token=…` page sets the new password.
+- Old `POST /auth/recover-password` (email+password query params) was REMOVED.
+- `POST /auth/setup-admin` is gated behind env `ENABLE_SETUP_ADMIN=true` (default OFF → 404). Keep OFF except for controlled bootstrap.
+
 ## Meta/Facebook Integration — Tenant Isolation Test Account
 - Email: tenant_b_isolation_test@example.com
 - Password: IsolationTest@2026!

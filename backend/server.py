@@ -4728,14 +4728,24 @@ async def maintenance_mode_middleware(request, call_next):
     return await call_next(request)
 
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+# Add CORS middleware.
+# A literal wildcard ("*") with allow_credentials=True is rejected by browsers,
+# so when no explicit origin list is configured we reflect the request origin
+# via allow_origin_regex (valid with credentials) instead of sending "*".
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "").strip()
+_cors_kwargs = dict(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if _cors_origins_raw and _cors_origins_raw != "*":
+    _cors_kwargs["allow_origins"] = [
+        o.strip() for o in _cors_origins_raw.split(",") if o.strip()
+    ]
+else:
+    _cors_kwargs["allow_origin_regex"] = ".*"
+
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 
 # ============== SHUTDOWN EVENT ==============
