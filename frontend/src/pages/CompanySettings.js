@@ -11,6 +11,7 @@ import { Switch } from '../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon, Palette, FileText, Mail, Receipt } from 'lucide-react';
 import { Textarea } from '../components/ui/textarea';
+import BrandingPreview from '../components/BrandingPreview';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { getAuthToken } from '../lib/authStorage';
@@ -696,8 +697,19 @@ export default function CompanySettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
+          {/* Live Preview */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Live Preview</h3>
+              <span className="text-xs text-gray-400">Updates as you edit — save to apply</span>
+            </div>
+            <div className="rounded-xl p-4" style={{ background: '#F5F7FA', border: '1px solid #EEF1F4' }}>
+              <BrandingPreview branding={brandingSettings} company={formData} />
+            </div>
+          </div>
+
           {/* Brand Colors */}
-          <div className="space-y-4">
+          <div className="space-y-4 border-t pt-6" style={{ borderColor: '#EEF1F4' }}>
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Brand Colors</h3>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
