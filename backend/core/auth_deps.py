@@ -1,90 +1,41 @@
 """
-Core Authentication Dependencies
+Core Authentication Dependencies (canonical-source shim).
 
-This module contains the authentication functions that routes can import
-without causing circular dependencies with server.py
+Historically this module duplicated the JWT secret, DB connection, and
+auth helpers found in :mod:`core_runtime`. Two divergences crept in:
+
+* DB_NAME defaulted to ``"signage_erp"`` here, ``"signguy_ai"`` in
+  :mod:`core.config`, and was strict in :mod:`core_runtime`. Token
+  validation could read users from a different database depending on
+  which symbol a route imported.
+* JWT secret was sourced from ``JWT_SECRET_KEY`` here and in
+  :mod:`core_runtime` but from ``JWT_SECRET`` in :mod:`core.config`.
+
+This shim re-exports the canonical names so every route module shares the
+same DB client, secret, algorithm, and auth dependency chain regardless
+of which import path it uses.
 """
 
-from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from motor.motor_asyncio import AsyncIOMotorClient
-from datetime import datetime, timezone, timedelta
-import jwt
-import bcrypt
-import secrets
-import os
+from core_runtime import (  # re-export — single source of truth
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    SECRET_KEY,
+    client as _client,
+    db as _db,
+    get_current_active_user,
+    get_current_user,
+    pwd_context,
+    security,
+)
 
-from models import UserInDB, TokenData
-
-# MongoDB connection - reuse from environment
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-DB_NAME = os.environ.get('DB_NAME', 'signage_erp')
-_client = AsyncIOMotorClient(MONGO_URL)
-_db = _client[DB_NAME]
-
-# Auth configuration
-SECRET_KEY = os.environ.get('JWT_SECRET_KEY', secrets.token_urlsafe(32))
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
-pwd_context = None  # Backwards-compatible reference
-security = HTTPBearer(auto_error=False)
-
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UserInDB:
-    """Get the current authenticated user from JWT token"""
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    if credentials is None:
-        raise credentials_exception
-    
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-        token_data = TokenData(user_id=user_id)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.PyJWTError:
-        raise credentials_exception
-    
-    user = await _db.users.find_one({"id": token_data.user_id}, {"_id": 0})
-    if user is None:
-        raise credentials_exception
-    
-    return UserInDB(**user)
-
-
-async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
-    """Get the current active (non-disabled) user"""
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-
-    # Block users whose tenant is suspended (skip platform admins).
-    # Platform admins must always be able to reach Platform Admin endpoints
-    # in order to reactivate a tenant.
-    if (
-        current_user.tenant_id
-        and getattr(current_user, "role", None)
-        and getattr(current_user.role, "value", current_user.role) != "platform_admin"
-    ):
-        tenant = await _db.tenants.find_one(
-            {"id": current_user.tenant_id},
-            {"_id": 0, "is_active": 1, "suspension_reason": 1, "suspended_at": 1},
-        )
-        if tenant and tenant.get("is_active") is False:
-            raise HTTPException(
-                status_code=403,
-                detail={
-                    "code": "tenant_suspended",
-                    "message": "This account is suspended. Please contact support.",
-                    "reason": tenant.get("suspension_reason"),
-                    "suspended_at": tenant.get("suspended_at"),
-                },
-            )
-    return current_user
+__all__ = [
+    "ALGORITHM",
+    "ACCESS_TOKEN_EXPIRE_MINUTES",
+    "SECRET_KEY",
+    "_client",
+    "_db",
+    "get_current_active_user",
+    "get_current_user",
+    "pwd_context",
+    "security",
+]

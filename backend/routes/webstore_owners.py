@@ -887,6 +887,17 @@ async def _build_store_progress_payload(ws: dict) -> dict:
             "total": len(stages),
         },
         "stages": stages,
+        # Phase 6 — raw stamp timestamps so the admin UI can show "stamped"
+        # state even when the strict-sequential walker keeps the stage pill
+        # at 'todo' (e.g. production stamped while questionnaire is still
+        # outstanding). UI uses these flags to swap stamp ↔ unstamp buttons.
+        "stage_stamps": {
+            "preview_ready_at":      ws.get("preview_ready_at"),
+            "owner_approved_at":     ws.get("owner_approved_at"),
+            "production_started_at": ws.get("production_started_at"),
+            "ready_for_pickup_at":   ws.get("ready_for_pickup_at"),
+            "completed_at":          ws.get("completed_at"),
+        },
         "next_blocker": next_blocker,
         "required_actions": required_actions,
         "finance": finance,

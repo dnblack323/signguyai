@@ -28,17 +28,16 @@ class TierLevel(str, Enum):
     BUSINESS = "business"  # Business tier
 
 
-class FeatureStatus(str, Enum):
-    ON = "on"
-    OFF = "off"
-    LIMITED = "limited"
-
-
-class FeatureValue(BaseModel):
-    """Represents a feature's status and optional limit"""
-    status: FeatureStatus = FeatureStatus.OFF
-    limit: Optional[int] = None  # For LIMITED features
-    description: Optional[str] = None
+# ── Feature flag primitives ──────────────────────────────────────────────
+#
+# `FeatureStatus` and `FeatureValue` previously had IDENTICAL copy-paste
+# definitions in `models/product_tiers.py`. The duplication meant a future
+# change (e.g. adding a `PREVIEW` status, or a `usage_count` field) had to
+# be applied in two places and would silently drift if either was missed.
+# `models/product_tiers.py` is now the canonical owner — this module re-
+# exports the same classes so any consumer importing from `models.tiers`
+# gets the exact same Python objects.
+from models.product_tiers import FeatureStatus, FeatureValue  # noqa: F401
 
 
 # ============== FEATURE CATEGORIES ==============

@@ -375,7 +375,11 @@ async def get_onboarding_status(current_user: UserInDB = Depends(get_current_act
     })
     has_email_templates = custom_templates > 0
     
-    # Check for webstores
+    # Check for webstores. Source of truth is `webstores_v2` — the legacy
+    # `webstores` collection has been retired (see routes/webstores.py, all
+    # routers prefix `/webstores/v2`). Reading from the old collection would
+    # silently return 0 forever, marking the webstore onboarding step as
+    # incomplete even when the tenant has live stores.
     webstore_count = await db.webstores_v2.count_documents({"tenant_id": tenant_id})
     has_webstores = webstore_count > 0
     

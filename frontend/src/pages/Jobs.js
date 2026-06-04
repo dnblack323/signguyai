@@ -1393,6 +1393,10 @@ export function JobDetails() {
               <Button variant="outline" onClick={() => setShowHistoryPanel(true)} data-testid="view-job-history-btn">
                 <GitBranch className="h-4 w-4 mr-2" /> View Timeline
               </Button>
+              {/* Job status enum value is "completed" (see models/enums.py
+                  JobStatus.COMPLETED). The previous check used the production
+                  task value "complete", which never matched a real job so the
+                  Mark Complete button stayed visible after completion. */}
               {job.status !== 'completed' && !isArchived && (
                 <Button variant="outline" onClick={handleComplete}>
                   <CheckCircle className="h-4 w-4 mr-2" /> Mark Complete

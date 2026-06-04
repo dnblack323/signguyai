@@ -41,7 +41,7 @@
 
   "success_rate": {"backend": "n/a (frontend only)", "frontend": "3/3 retest checks PASS (Check 1, Check 3b, Check 4c)"},
 
-  "test_credentials": "Admin thesigntistslab@gmail.com / password123 (verified). Customer Portal demo-fundraiser@rysoccer.example / TestPortal123! verified working via POST /api/portal/auth/login — returns access_token + customer_id=ed7cd925-1a59-44a8-80ee-d995c06e9935 (Riverside Youth Soccer League).",
+  "test_credentials": "Admin thesigntistslab@gmail.com / password123 (verified). Customer Portal demo-fundraiser@rysoccer.example / TestPortal123! verified working via POST /api/portal/auth/login — returns access_token + customer_id=owner-portal-dev (Riverside Youth Soccer League).",
 
   "seed_data_creation": "None this iteration.",
 

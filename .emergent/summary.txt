@@ -1,61 +1,59 @@
-<analysis>**original_problem_statement**: App is a full-stack SaaS for sign shops. Current focus is fulfilling the user's request to retrieve historical changelog data (Jan 2026 - Feb 15, 2026) by analyzing git commits, as well as maintaining recent Event Store, Dashboard, and Webstore stability. PRODUCT REQUIREMENTS: Provide an accurate, detailed historical daily changelog of features/bugs from early platform development (Jan 27 to Feb 15, 2026).
+<analysis>**original_problem_statement**: App is a full-stack SaaS for sign shops. Initial request was to implement Phase 1: Verify/Fix Critical Webstore Bugs and Trust States. The project then expanded sequentially through Phase 6 (involving webstore navigation consolidation, store setup wizard, questionnaire/customer syncing, owner portal progress/finance tracking, and admin UI filters). Following the phases, the user sequentially assigned specific isolated bug fixes (Issues 1 through 6).
+
+PRODUCT REQUIREMENTS (for phases):
+- Build out webstore admin functionality without moving pricing fields.
+- Establish robust owner portals and sync webstore orders/customers to the main dashboard.
+- Fix UI/UX layouts, missing logic, and data duplication.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in the user's preferred language only)
 
-**what currently exists?**: A fully functional full-stack Sign Shop SaaS with recently stabilized Event Store features, populated demo data, and a functional dashboard. The application contains a rich history of development which has now been documented into a retrospective PDF changelog for the period of Jan 27 to Feb 15, 2026. 
+**what currently exists?**: A fully functional full-stack Sign Shop SaaS. Phases 1 through 6 for Webstore enhancements and Owner Portals are 100% complete and tested. Bug fixes (Issues 1-6) regarding auth conflicts, dev panel security, legacy API URL mapping, onboarding checks, job status enums, and duplicate backend models are also completed and verified.
 
 **Last working item**: 
-    - Last item agent was working: Fulfilling user request to parse git history between Jan 27 2026 and Feb 15 2026 and write a summarized day-by-day PDF changelog saved in the memory directory. 
+    - Last item agent was working: Fixing Issue 6: Resolving duplicate/parallel model systems (/ and /) in backend models to establish canonical ownership and prevent drift.
     - Status: USER VERIFICATION PENDING
     - Agent Testing Done: Y
-    - Which testing method agent to use? Python file analysis () to verify the contents of the generated PDF. 
+    - Which testing method agent to use? manual testing by python -c / bash execution / curl.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
-  - Issue 1: Meta OAuth / Webhook End-to-End Verification (P2)
-     - Attempted fixes: NA
-     - Next debug checklist: Await User Meta app configuration.
-     - Why fix this issue and what will be achieved with the fix? Completes social integration.
-     - Status: BLOCKED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on other issue: User Meta app config
+  - No active/pending issues in progress. The agent successfully finished Issue 6 and the user is expected to supply Issue 7 in the next message.
 
 **In progress Task List**: 
-  - Task 1: Add Template Selector to Wrap Command Center Files Tab (P1)
-     - Where to resume:  
-     - What will be achieved with this? Allows users to quickly attach pre-filled templates to a wrap job.
-     - Status: BLOCKED (Currently paused by user)
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on something: User preference/Paused
-  - Task 2: Verify AI Document Creator saves to Library (P1)
-     - Where to resume: .
-     - What will be achieved with this? Ensures AI-generated documents insert properly into the DB.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix? Backend
-     - Blocked on something: None
+  - No tasks currently in progress.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
+    - P0: Implement Issue 7 (User will provide this in their next message).
+    - P1: Phase 7 extensions (e.g.,  collection to track who stamped which stage and when).
     - P1: Yard Signs Pricing Setup and Calculator Integration (Next category after Banners).
     - P1: Rigid Signs, Digital Print, Cut Vinyl, Vehicle Graphics Category Integrations.
-    - P3: Platform Admin Phase 2 Extensions (Internal Notes, User invite flow).
     Future Tasks:
+    - P3: Platform Admin Phase 2 Extensions (Internal Notes, User invite flow).
     - P4: Admin Portal communication template system.
     - P4: Platform Admin Phase 3/4 Extensions.
     - P4: Meta Messenger Phase 2.
 
 **Completed work in this session**
-- Wrote python script  to parse commits and PRD text.
-- Generated and saved  containing the day-by-day historical changelog.
-- Recently completed:
-  - Generated last 20 days changelog (Feb 12 - May 21) based on PRD (DONE)
-  - Created full set of realistic demo data via  (DONE)
-  - Fixed Dashboard productivity schedule widget filter bug (DONE)
-  - Fixed Event Store P0 Bugs (financial settings mapped, stripe card UI, 422 errors) (DONE)
+- Phase 1: Webstore critical bug fixes, crash preventions, and Stripe contrast updates (DONE)
+- Phase 2: Webstores Ribbon & Navigation Consolidation (DONE)
+- Phase 3: Store Setup Wizard Upgrade (DONE)
+- Phase 4: Store-Type Questionnaire Coverage & Customer/Order Sync (DONE)
+- Phase 5: Owner Portal Progress & Financial Transparency (DONE)
+- Phase 6: Selected-Store Admin Workflow Polish + Orders/Customers Filters (DONE)
+- Issue 1: Fixed conflicting auth/database runtime sources by establishing  as canonical (DONE)
+- Issue 2: Secured  mutation endpoints behind  flag (DONE)
+- Issue 3: Deprecated legacy webstore frontend API methods () and mapped to  endpoints (DONE)
+- Issue 4: Fixed onboarding signal to use  collection instead of legacy collection (DONE)
+- Issue 5: Fixed Job status string mismatch ( vs ) on frontend (DONE)
+- Issue 6: Deduped parallel model systems for  and  (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-None.
+   - Issue 1: Questionnaire Section Validation
+     - Debug checklist: Backend required-field validator for public submit currently only walks top-level , not . New section-based templates don't enforce required fields strictly server-side yet.
+     - Why to solve this issue and what will be achieved with this? Enforces complete data integrity for multi-section questionnaires.
+     - Should Test frontend/backend/both after fix: Backend
+     - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: None
@@ -63,84 +61,84 @@ None.
   - Status: RESOLVED
 
 **Code Architecture**
-- Frontend: React + Shadcn UI. Context inside . Webstores UI handled in .
-- Backend: FastAPI. Routing in .  handles dashboard data filters. 
-- Database: MongoDB.
+- Frontend: React + Shadcn UI + Tailwind CSS (). Routing managed in , state mostly via .
+- Backend: FastAPI (). 
+- Database: MongoDB. Configuration managed through  and .
 
 **Key Technical Concepts**
-- **Webstore Financials:** Global/locked settings at the store level (shipping/handling), product-level settings for item costs (, , ). Do not put product-level fields in store-level setup.
-- **Productivity Filtering:** When filtering by , ensure it encompasses 23:59:59 to include items scheduled later in the day.
+- Centralized auth config now lives strictly in  to prevent JWT drift.
+- Webstore lifecycle stages are sequentially evaluated.
+- Webstore owner/customer sync automatically applies DB tags (, ).
 
 **key DB schema**
-  - : configurations (, ).
-  - : Holds individual product financial costs.
-  - : Tracks appointments using , .
+  - : {id, name, store_type, status, owner_name, owner_email, locked_settings, ...}
+  - : {id, order_number, source, webstore_id, webstore_name, status, ...}
+  - : {id, email, phone, tags, ...}
+  - : {tenant_id, template_name, ...}
 
 **changes in tech stack**
   - None
 
 **All files of reference** 
-  -  (Created in this session to export the PDF)
-  -  (Generated file output requested by user)
-  -  (For generating mock demo data)
-  -  
-  -  
-  -  
-  -  
+  -  (Canonical DB and Auth configuration)
+  -  &  (Dev mutation gating)
+  -  (Frontend context, legacy mappings applied here)
+  - , , 
+  - , ,  (De-duped models)
+  -  (Iteration 164-170 logs)
 
 **Areas that need refactoring**: 
--  and  are extremely long. **DO NOT refactor them.** Use targeted .
+- The backend questionnaire validation logic (as detailed in Earlier issues found) needs updating to parse nested sections to ensure server-side data integrity.
 
 **key api endpoints**
 - 
+-  (now supports  and  queries)
 - 
 - 
 
 **Critical Info for New Agent** 
-- **Current Status:** The user's request for a historical changelog (Jan 27 to Feb 15) has been fully satisfied. A PDF was generated and saved to the  folder. Await the user's next commands (they may request the proposed marketing-ready changelog version or direct you to start on the upcoming P1 tasks like Yard Signs Pricing).
-- **Production Notification:** The user has deployed the app to production (), but we are strictly working in the preview environment. Do not mention this unprompted, but clarify if testing domains are ever brought up.
-- **Webstore Stability:** Ensure Event Store features remain stable; do not revert financial fields back to the global store level.
+- **Wait for the user's prompt**: The user has been sequentially assigning Issues. They explicitly left off at Ready for issue 7.
+- **Production Notification**: The user has deployed the app to production. You are working in PREVIEW. If the user complains about a bug, confirm if it is in PREVIEW or PRODUCTION before fixing. Do not modify domains or environment variables unless absolutely necessary for PREVIEW.
+- Dev API routes are strictly gated. Do not assume  is accessible without the  environment flag.
+- Model imports for DB and Auth MUST come through  or canonical models to avoid recreating bugs patched in Issue 1 and Issue 6.
 
 **documents and test reports created in this job** 
-  - 
-  - 
-  -  (Dashboard Widget Test)
-  -  (Webstore P0 Bug Test)
-  - 
+  -  (Updated repeatedly)
+  -  (Updated with owner isolation test credentials)
+  -  through 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- 1. User: Asked to list the date and updates made over the last 20 days to post publicly.
- 2. Agent: Provided the daily changelog.
- 3. User: Requested creation of real demo data (customers, orders, invoices, schedule, etc.).
- 4. Agent: Created data, debugged, and fixed dashboard logic. 
- 5. User: P0 Bug report on Event Stores.
- 6. Agent: Fixed all four Webstore bugs, verified UI.
- 7. User: Prompted to generate a historical changelog for Jan 2026 to Feb 15 2026.
- 8. User: Please use ask_human tool and confirm your plan now.
- 9. User: Responded to ask_human confirming they want a day-by-day bullet list summarizing PRD entries saved as a PDF in memory.
- 10. Agent: Finished task. **(PENDING HUMAN RESPONSE)**
+ 1. User requested Phase 5: Owner Portal Progress + Financial Transparency.
+ 2. Agent implemented and finished Phase 5.
+ 3. User requested Phase 6: Selected-Store Admin Workflow Polish + Orders/Customers Webstore Filters UI.
+ 4. Agent implemented and finished Phase 6.
+ 5. User submitted Issue 1: Conflicting auth/database runtime sources.
+ 6. Agent fixed and finished Issue 1.
+ 7. User submitted Issue 2: Dev mutation endpoints are mounted in main API with weak default secret path.
+ 8. Agent fixed and finished Issue 2.
+ 9. User submitted Issue 3: Legacy webstore frontend API methods conflict with current backend contract ... followed immediately by Issues 4, 5, and 6. 
+ 10. Agent fixed Issues 3, 4, 5, and 6 sequentially. (User verification pending on Issue 6, user will likely provide Issue 7 next).
 
 **Project Health Check:**
-Broken: None.
-Mocked: Meta OAuth.
+- Broken: None.
+- Mocked: Meta OAuth.
 
 **3rd Party Integrations** 
 - Stripe (Payments) — requires User API Key
 - SendGrid (Emails) — requires User API Key
 - OpenAI GPT-4o-mini & GPT-4o — uses Emergent LLM Key
+- Meta/Facebook Integration — Requires User app config
 
 **Testing status**
-  - Testing agent used after significant changes: NO (No application code was changed, only a PDF script was executed).
+  - Testing agent used after significant changes: YES (Tested Phase 1 through Phase 6 rigorously via )
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
 
 **Credentials to test flow:**
+Available in 
 - Admin/Tenant:  / 
 - Webstore Owner Customer Portal:  / 
 
 **What agent forgot to execute**
-- The agent successfully delivered the PDF as requested but did not execute a PRD/Changelog update in the finish tool (acceptable here since no new code features were implemented).
-
-**Debugging checklist for current issue**
-    Issue: None currently active. Awaiting user response on the generated PDF ().</analysis>
+- Nothing. The agent successfully addressed and verified every phase and assigned issue. Ensure you await the user's next set of instructions (Issue 7).</analysis>

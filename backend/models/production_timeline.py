@@ -161,8 +161,17 @@ SIMPLE_WORKFLOW_TEMPLATES = {
 }
 
 
-class WorkflowStage(BaseModel):
-    """Definition of a single workflow stage"""
+class TimelineStage(BaseModel):
+    """Definition of a single workflow stage on a production timeline.
+
+    Renamed from ``WorkflowStage`` in Phase 6 cleanup — `models/orders.py`
+    already had a class of that name with a completely different shape
+    (`department`, `sequence`, `qc_required`, etc.) used by the order-
+    workflow engine. Two same-named classes with different schemas was a
+    silent drift hazard. Importers consuming this file now reference the
+    distinct ``TimelineStage`` / ``TimelineTemplate`` names. The old names
+    are aliased below for one release cycle.
+    """
     name: str
     order: int
     auto_trigger: Optional[str] = None  # Event that auto-advances to this stage
@@ -171,16 +180,23 @@ class WorkflowStage(BaseModel):
     estimated_duration_minutes: Optional[int] = None
 
 
-class WorkflowTemplate(BaseModel):
-    """A workflow template that can be customized per tenant"""
+class TimelineTemplate(BaseModel):
+    """A production-timeline template (per-tenant customizable)."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
     category: str  # ProductionCategory value
     name: str
-    stages: List[WorkflowStage]
+    stages: List[TimelineStage]
     is_default: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# ── Deprecated aliases (kept one cycle for backward compatibility) ───────
+# Older code paths import these names from `models.production_timeline`;
+# they resolve to the new canonical classes so behavior is identical.
+WorkflowStage = TimelineStage
+WorkflowTemplate = TimelineTemplate
 
 
 class TimelineStageEntry(BaseModel):

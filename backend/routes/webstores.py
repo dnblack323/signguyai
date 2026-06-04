@@ -70,6 +70,12 @@ class WebstoreStatus(str, Enum):
     ACTIVE = "active"
     DISABLED = "disabled"
     PENDING = "pending"
+    # Phase 6 — lifecycle close-out states. Admin sets COMPLETED via the
+    # mark_completed stage stamp; CLOSED is reserved for owner-initiated
+    # close (e.g. fundraiser ended). Both walk the lifecycle past
+    # "store_closed".
+    COMPLETED = "completed"
+    CLOSED = "closed"
 
 class ProductCategory(str, Enum):
     APPAREL = "apparel"

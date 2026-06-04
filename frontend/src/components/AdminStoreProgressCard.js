@@ -58,6 +58,7 @@ export default function AdminStoreProgressCard({ storeId }) {
   useEffect(() => { load(); }, [load]);
 
   const stamp = async (flagKey, label) => {
+    if (stamping) return; // single-fire guard — ignore double-clicks while a PATCH is in flight
     setStamping(flagKey);
     try {
       const res = await axios.patch(
@@ -75,6 +76,7 @@ export default function AdminStoreProgressCard({ storeId }) {
   };
 
   const clearStamp = async (flagKey, label) => {
+    if (stamping) return;
     setStamping(flagKey);
     try {
       const res = await axios.patch(
@@ -107,13 +109,17 @@ export default function AdminStoreProgressCard({ storeId }) {
     );
   }
 
-  const { current_stage, stages, next_blocker, required_actions, finance } = data;
+  const { current_stage, stages, next_blocker, required_actions, finance, stage_stamps } = data;
   const pct = Math.round((current_stage.index / Math.max(current_stage.total, 1)) * 100);
 
-  const stagesByKey = Object.fromEntries(stages.map((s) => [s.key, s]));
-  const productionDone = stagesByKey.production_started?.status === 'done';
-  const pickupDone = stagesByKey.ready_for_pickup?.status === 'done';
-  const completedDone = stagesByKey.completed?.status === 'done';
+  // Phase 6 — button state derives from the raw stamp timestamps, not the
+  // strict-sequential walker's stage status. Stamps are additive and may
+  // exist even when the walker keeps the pill at 'todo' (because earlier
+  // stages aren't complete).
+  const stamps = stage_stamps || {};
+  const productionDone = !!stamps.production_started_at;
+  const pickupDone = !!stamps.ready_for_pickup_at;
+  const completedDone = !!stamps.completed_at;
   const todoActions = required_actions.filter((a) => a.status !== 'done');
 
   return (

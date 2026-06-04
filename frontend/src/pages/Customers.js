@@ -70,6 +70,9 @@ export default function Customers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  // Phase 6 — webstore-tag chip filter. 'all' = no filter, 'webstore_owner' or
+  // 'webstore_customer' = client-side narrow on the customer.tags array.
+  const [tagFilter, setTagFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [formData, setFormData] = useState({
@@ -194,7 +197,12 @@ export default function Customers() {
   const getCustomerStats = (customerId) => {
     const customerJobs = getCustomerJobs(customerId);
     const customerInvoices = getCustomerInvoices(customerId);
-    
+
+    // Job status enum value is "completed" (see backend/models/enums.py
+    // JobStatus.COMPLETED). The previous filter used the production task
+    // value "complete" which never matched any real job — so the
+    // "Completed Jobs" stat was always 0 and the "Active Jobs" list
+    // double-counted finished work.
     const activeJobs = customerJobs.filter(j => !['completed', 'archived'].includes(j.status));
     const completedJobs = customerJobs.filter(j => j.status === 'completed');
     const totalRevenue = customerInvoices.reduce((sum, i) => sum + (i.total || 0), 0);
@@ -452,7 +460,11 @@ export default function Customers() {
     URL.revokeObjectURL(url);
   };
 
-  const filteredCustomers = customers;
+  // Phase 6 — apply optional tag filter on top of whatever the backend
+  // already filtered (status/search). 'all' is a no-op.
+  const filteredCustomers = tagFilter === 'all'
+    ? customers
+    : customers.filter((c) => Array.isArray(c.tags) && c.tags.includes(tagFilter));
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="customers-page">
@@ -774,6 +786,28 @@ export default function Customers() {
               </SelectContent>
             </Select>
           </div>
+          {/* Phase 6 — webstore-tag filter chips */}
+          <div className="flex flex-wrap gap-2 mt-3" data-testid="customer-tag-filters">
+            {[
+              { v: 'all',                label: 'All customers' },
+              { v: 'webstore_owner',     label: 'Webstore owners' },
+              { v: 'webstore_customer',  label: 'Webstore buyers' },
+            ].map((c) => (
+              <button
+                key={c.v}
+                type="button"
+                onClick={() => setTagFilter(c.v)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  tagFilter === c.v
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                }`}
+                data-testid={`customer-tag-chip-${c.v}`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -848,6 +882,21 @@ export default function Customers() {
                           <Badge className={getStatusColor(customer.status)}>
                             {customer.status}
                           </Badge>
+                          {/* Phase 6 — webstore tag chips inline on the row */}
+                          {Array.isArray(customer.tags) && customer.tags.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1" data-testid={`customer-tags-${customer.id}`}>
+                              {customer.tags
+                                .filter((t) => t === 'webstore_owner' || t === 'webstore_customer')
+                                .map((t) => (
+                                  <span
+                                    key={t}
+                                    className="inline-block text-[10px] px-1.5 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200"
+                                  >
+                                    {t === 'webstore_owner' ? 'Webstore Owner' : 'Webstore Buyer'}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-gray-500 text-sm">
                           {formatDate(customer.created_at)}
