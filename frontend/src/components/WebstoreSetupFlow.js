@@ -8,7 +8,7 @@
  * All pre-launch actions live here. Other tabs (Products, Settings,
  * Dashboard) are secondary and linked-to from each step.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -18,7 +18,7 @@ import {
   CheckCircle2, Circle, Clock, AlertCircle, Lock,
   Mail, Eye, Package, Palette, Truck, CreditCard,
   Zap, ExternalLink, RefreshCw, Loader2, Copy, Check,
-  ChevronRight, AlertTriangle, ClipboardCheck,
+  ChevronRight, AlertTriangle, ClipboardCheck, ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { cn } from '../lib/utils';
@@ -84,11 +84,188 @@ function StepRow({ step, isLast, children }) {
 }
 
 // ── Launch gate ───────────────────────────────────────────────────────────────
-function launchReady({ storeProducts, questionnaireApplied }) {
+function launchReady({ store, storeProducts }) {
   const hasProducts = (storeProducts || []).length > 0;
+  const qSubmitted = !!store?.questionnaire_submitted_at;
+  const qReviewed  = !!store?.questionnaire_reviewed;
   const missing = [];
   if (!hasProducts) missing.push('At least one product must be assigned');
+  if (qSubmitted && !qReviewed) missing.push('Questionnaire review must be completed before launch');
   return { ok: missing.length === 0, missing };
+}
+
+// ── Staff Review Panel ────────────────────────────────────────────────────────
+function StaffReviewPanel({ webstoreId, questionnaireStatus, onApplyAnswers, applyingAnswers }) {
+  const { getWebstoreQuestionnaireReviewDetails } = useApp();
+  const [details, setDetails]   = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [expanded, setExpanded] = useState('safe');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const d = await getWebstoreQuestionnaireReviewDetails(webstoreId);
+        if (!cancelled) setDetails(d);
+      } catch {
+        if (!cancelled) setDetails(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [webstoreId, questionnaireStatus?.latest_response?.id, getWebstoreQuestionnaireReviewDetails]);
+
+  if (loading) return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading review details…
+    </div>
+  );
+  if (!details?.has_response) return (
+    <p className="text-xs text-muted-foreground">No submitted response found.</p>
+  );
+
+  const safeCount    = details.safe_fields?.length || 0;
+  const suggestCount = details.suggested_changes?.length || 0;
+  const reviewCount  = details.admin_review_answers?.length || 0;
+  const respDate     = details.response?.submitted_at
+    ? new Date(details.response.submitted_at).toLocaleString() : '';
+  const alreadyApplied = details.response?.applied_to_webstore;
+
+  return (
+    <div className="space-y-3 rounded-lg border bg-card p-4" data-testid="staff-review-panel">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-blue-500" />
+            Staff Review Required
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Submitted by <strong>{details.response.customer_name || details.response.customer_email}</strong>
+            {respDate ? ` on ${respDate}` : ''}
+          </p>
+        </div>
+        {alreadyApplied && (
+          <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] shrink-0">Applied</Badge>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* Safe fields */}
+      {safeCount > 0 && (
+        <div>
+          <button
+            className="flex items-center gap-2 text-xs font-medium text-foreground w-full text-left"
+            onClick={() => setExpanded(expanded === 'safe' ? null : 'safe')}
+            data-testid="review-safe-toggle"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            {safeCount} safe field{safeCount !== 1 ? 's' : ''} — will be applied automatically
+            <ChevronRight className={cn('h-3.5 w-3.5 ml-auto transition-transform', expanded === 'safe' && 'rotate-90')} />
+          </button>
+          {expanded === 'safe' && (
+            <ul className="mt-2 space-y-1 pl-5" data-testid="review-safe-fields">
+              {details.safe_fields.map((f) => (
+                <li key={f.field} className="text-xs flex gap-2">
+                  <span className="text-muted-foreground min-w-[140px] shrink-0">{f.label}</span>
+                  <span className="font-mono text-foreground break-all">{String(f.value)}</span>
+                  {f.current_value != null && String(f.current_value) !== String(f.value) && (
+                    <span className="text-muted-foreground text-[10px]">(was: {String(f.current_value)})</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Suggested changes (locked) */}
+      {suggestCount > 0 && (
+        <div>
+          <button
+            className="flex items-center gap-2 text-xs font-medium text-amber-700 w-full text-left"
+            onClick={() => setExpanded(expanded === 'suggest' ? null : 'suggest')}
+            data-testid="review-suggest-toggle"
+          >
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {suggestCount} field{suggestCount !== 1 ? 's' : ''} require admin decision
+            <ChevronRight className={cn('h-3.5 w-3.5 ml-auto transition-transform', expanded === 'suggest' && 'rotate-90')} />
+          </button>
+          {expanded === 'suggest' && (
+            <ul className="mt-2 space-y-1 pl-5" data-testid="review-suggest-fields">
+              {details.suggested_changes.map((f) => (
+                <li key={f.field} className="text-xs flex gap-2 flex-wrap">
+                  <span className="text-muted-foreground min-w-[140px] shrink-0">{f.label}</span>
+                  <span className="font-mono text-amber-700 break-all">{String(f.suggested_value)}</span>
+                  <Badge variant="outline" className="text-[10px] border-amber-200 text-amber-600 shrink-0">Locked — review before applying</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Other answers not mapped to store fields */}
+      {reviewCount > 0 && (
+        <div>
+          <button
+            className="flex items-center gap-2 text-xs font-medium text-muted-foreground w-full text-left"
+            onClick={() => setExpanded(expanded === 'other' ? null : 'other')}
+            data-testid="review-other-toggle"
+          >
+            <ClipboardCheck className="h-3.5 w-3.5 shrink-0" />
+            {reviewCount} other answer{reviewCount !== 1 ? 's' : ''} (for reference)
+            <ChevronRight className={cn('h-3.5 w-3.5 ml-auto transition-transform', expanded === 'other' && 'rotate-90')} />
+          </button>
+          {expanded === 'other' && (
+            <ul className="mt-2 space-y-1 pl-5" data-testid="review-other-answers">
+              {details.admin_review_answers.map((a, i) => (
+                <li key={i} className="text-xs flex gap-2 flex-wrap">
+                  <span className="text-muted-foreground min-w-[140px] shrink-0">{a.label}</span>
+                  <span className="break-all">{String(a.answer)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <Separator />
+
+      <div className="flex flex-wrap gap-2 items-center">
+        <Button
+          size="sm"
+          className="h-8 bg-orange-500 hover:bg-orange-600 text-white"
+          onClick={onApplyAnswers}
+          disabled={applyingAnswers}
+          data-testid="review-panel-apply-btn"
+        >
+          {applyingAnswers
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <><Check className="h-3.5 w-3.5 mr-1" /> Apply Safe Answers</>}
+        </Button>
+        {details.questionnaire?.id && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={() => window.open(`/questionnaire/${details.questionnaire.id}`, '_blank')}
+            data-testid="review-panel-view-btn"
+          >
+            <Eye className="h-3.5 w-3.5 mr-1" /> View Full Response
+          </Button>
+        )}
+        {alreadyApplied && (
+          <span className="text-xs text-emerald-600 flex items-center gap-1">
+            <Check className="h-3 w-3" /> Answers applied
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -121,7 +298,7 @@ export default function WebstoreSetupFlow({
   const hasProducts = (storeProducts || []).length > 0;
   const hasBranding = !!(store.branding?.logo_url || store.logo_url || store.branding?.banner_url || store.banner_url);
   const hasFulfillment = !!(store.pickup_delivery_instructions || store.pickup_delivery_date || store.order_deadline);
-  const { ok: canLaunch, missing } = launchReady({ storeProducts, questionnaireApplied: phase === 'applied' });
+  const { ok: canLaunch, missing } = launchReady({ store, storeProducts });
   const isLive = store.status === 'active';
 
   const handleSendQ = async () => {
@@ -315,38 +492,13 @@ export default function WebstoreSetupFlow({
                     </div>
                   )
                 ) : phase === 'awaiting_review' ? (
-                  // Submitted by owner — show review + apply
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      className="h-8 bg-orange-500 hover:bg-orange-600 text-white"
-                      onClick={onApplyAnswers}
-                      disabled={applyingAnswers}
-                      data-testid="setup-flow-apply-btn"
-                    >
-                      {applyingAnswers ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5 mr-1" />Apply Answers</>}
-                    </Button>
-                    {questionnaireStatus?.questionnaire?.id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8"
-                        onClick={() => window.open(`/questionnaire/${questionnaireStatus.questionnaire.id}`, '_blank')}
-                        data-testid="setup-flow-view-q-btn"
-                      >
-                        <Eye className="h-3.5 w-3.5 mr-1" /> View Answers
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 text-xs"
-                      onClick={() => { setSendingQ(false); setQEmailSent(false); }}
-                      data-testid="setup-flow-resend-q-btn"
-                    >
-                      <Mail className="h-3.5 w-3.5 mr-1" /> Resend
-                    </Button>
-                  </div>
+                  // Submitted by owner — show the full review panel
+                  <StaffReviewPanel
+                    webstoreId={store.id}
+                    questionnaireStatus={questionnaireStatus}
+                    onApplyAnswers={onApplyAnswers}
+                    applyingAnswers={applyingAnswers}
+                  />
                 ) : phase === 'sent' ? (
                   // Sent, waiting
                   <div className="flex flex-wrap gap-2">

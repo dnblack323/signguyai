@@ -449,6 +449,30 @@ async def submit_questionnaire_response(
         {"id": questionnaire_id},
         {"$inc": {"response_count": 1}}
     )
+
+    # Flag the linked webstore so staff know a review is pending.
+    # This is additive and non-blocking — failures are swallowed.
+    if questionnaire.get("webstore_id"):
+        try:
+            await db.webstores_v2.update_one(
+                {"id": questionnaire["webstore_id"]},
+                {"$set": {
+                    "questionnaire_submitted_at": now,
+                    "questionnaire_reviewed": False,
+                }},
+            )
+            await db.webstore_stage_events.insert_one({
+                "id": str(__import__("uuid").uuid4()),
+                "webstore_id": questionnaire["webstore_id"],
+                "tenant_id": questionnaire.get("tenant_id"),
+                "event_type": "questionnaire_submitted",
+                "actor_id": None,
+                "actor_email": request.customer_email,
+                "created_at": now,
+            })
+        except Exception as _exc:  # noqa: BLE001
+            import logging
+            logging.getLogger(__name__).warning(f"Webstore flag update failed (non-fatal): {_exc}")
     
     return {
         "message": questionnaire.get("thank_you_message", "Thank you for your submission!"),

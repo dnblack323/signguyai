@@ -720,6 +720,12 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Questionnaire review details (dry-run preview of apply-answers mapping)
+  const getWebstoreQuestionnaireReviewDetails = async (webstoreId) => {
+    const res = await api.get(`/webstores/${webstoreId}/questionnaire/review-details`);
+    return res.data;
+  };
+
   // Tenant / Company Settings
   const fetchTenant = useCallback(async () => {
     try {
@@ -822,6 +828,8 @@ export const AppProvider = ({ children }) => {
     getWebstoreEventChecklist,
     // Webstore Owner Stripe Connect
     getWebstoreOwnerStatus, sendWebstoreOwnerInvite,
+    // Questionnaire review
+    getWebstoreQuestionnaireReviewDetails,
     // Tenant / Company Settings
     tenant, fetchTenant, getTenant, updateTenant,
     // Stripe Connect

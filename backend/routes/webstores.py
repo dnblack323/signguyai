@@ -237,6 +237,71 @@ class WebstoreBranding(BaseModel):
     banner_url: Optional[str] = None
 
 
+# ── Questionnaire → store-field safe mapping ────────────────────────────────
+# Defined at module level so it can be reused by both apply-answers and the
+# review-details dry-run endpoint.
+# Tuple: (store_field, coerce_fn_or_None)
+# locked_settings fields MUST NOT appear here.
+def _as_bool_coerce(val):
+    if val is None:
+        return None
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.lower() in ("yes", "true", "1", "yes_all", "yes_with_permission")
+    return None
+
+def _as_float_coerce(val):
+    if val is None:
+        return None
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
+
+QUESTIONNAIRE_SAFE_MAP: dict = {
+    "Event Name":                   ("event_name",                   None),
+    "Event Date":                   ("event_start_date",             None),
+    "Event Location":               ("event_location",               None),
+    "When do you want the store to launch?":  ("event_start_date",   None),
+    "When should the store close?": ("event_end_date",               None),
+    "If pickup is available, what pickup location should be shown?":
+                                    ("pickup_delivery_instructions",  None),
+    "Pickup date / time instructions":
+                                    ("pickup_delivery_instructions",  None),
+    "Is this store raising funds for a cause or organization?":
+                                    ("fundraiser_enabled",           _as_bool_coerce),
+    "Fundraiser Name":              ("fundraiser_name",              None),
+    "Fundraiser Description":       ("fundraiser_description",       None),
+    "Fundraiser Goal Amount ($)":   ("fundraiser_goal_amount",       _as_float_coerce),
+    "Should a fundraiser progress bar be shown on the store?":
+                                    ("show_progress_bar",            _as_bool_coerce),
+    "Should customers be able to add a donation at checkout?":
+                                    ("allow_checkout_donations",     _as_bool_coerce),
+    "Donation amount options to offer at checkout":
+                                    ("donation_amount_options",      None),
+    "Should customers be able to enter a custom donation amount?":
+                                    ("allow_custom_donation",        _as_bool_coerce),
+    "Should a portion of each product sale be allocated to the fundraiser?":
+                                    ("profit_allocation_enabled",    _as_bool_coerce),
+    "Profit allocation type":       ("profit_allocation_type",       None),
+    "Profit allocation percentage (%)":
+                                    ("profit_allocation_percentage", _as_float_coerce),
+    "Fixed profit allocation amount per item ($)":
+                                    ("fixed_amount_per_item",        _as_float_coerce),
+    "Maximum fundraiser cap amount ($)":
+                                    ("fundraiser_cap_amount",        _as_float_coerce),
+    "Include checkout donations in fundraiser progress total?":
+                                    ("include_donations_in_progress", _as_bool_coerce),
+    "Include product sale profit allocation in fundraiser progress total?":
+                                    ("include_profit_allocation_in_progress", _as_bool_coerce),
+    "Show total amount raised publicly on the store?":
+                                    ("show_total_raised_publicly",   _as_bool_coerce),
+    "Show supporter names on the store?":
+                                    ("show_supporter_names",         None),
+}
+
+
 class Webstore(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -2264,10 +2329,40 @@ async def update_webstore(
     )
     old_status = (pre_update or {}).get("status")
 
+    new_status = update_data.get("status")
+
+    # ── Activation gate ─────────────────────────────────────────────────────
+    # Before switching to "active" ensure all required setup steps are done.
+    if new_status is not None:
+        # Normalise to string value for comparison
+        new_status_str = new_status.value if hasattr(new_status, "value") else str(new_status)
+        if new_status_str == "active":
+            full_store = await db.webstores_v2.find_one(
+                {"id": webstore_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+            )
+            blockers: list[str] = []
+
+            # Must have at least 1 product assigned
+            product_count = await db.webstore_products.count_documents(
+                {"webstore_id": webstore_id, "tenant_id": current_user.tenant_id}
+            )
+            if product_count == 0:
+                blockers.append("Assign at least one product before going live.")
+
+            # If a questionnaire was submitted, staff must review it first
+            if (full_store or {}).get("questionnaire_submitted_at") and not (full_store or {}).get("questionnaire_reviewed"):
+                blockers.append("Questionnaire submitted but not yet reviewed. Apply or dismiss the owner's answers first.")
+
+            if blockers:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Store cannot be activated yet. " + " | ".join(blockers),
+                )
+
     # Gate: cannot move a webstore to "active" until the owner has finished
     # their Stripe Express onboarding (charges_enabled). Tenants must invite
     # the owner via the quick-link or portal-link flow first.
-    new_status = update_data.get("status")
+    # (new_status already set above; skip re-declaration)
     if new_status == WebstoreStatus.ACTIVE.value or new_status == WebstoreStatus.ACTIVE:
         existing = await db.webstores_v2.find_one(
             {"id": webstore_id, "tenant_id": current_user.tenant_id},
@@ -3444,6 +3539,89 @@ async def send_event_store_questionnaire(
     }
 
 
+@webstores_router.get("/{webstore_id}/questionnaire/review-details")
+async def get_questionnaire_review_details(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Dry-run preview of questionnaire answer mapping without writing to DB."""
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id}, {"_id": 0}
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    questionnaire = await db.questionnaires.find_one({"webstore_id": webstore_id}, {"_id": 0})
+    if not questionnaire:
+        return {
+            "has_questionnaire": False,
+            "questionnaire_reviewed": webstore.get("questionnaire_reviewed", False),
+            "questionnaire_submitted_at": webstore.get("questionnaire_submitted_at"),
+        }
+
+    response = await db.questionnaire_responses.find_one(
+        {"questionnaire_id": questionnaire["id"]},
+        {"_id": 0},
+        sort=[("submitted_at", -1)],
+    )
+    if not response:
+        return {
+            "has_questionnaire": True, "has_response": False,
+            "questionnaire": {"id": questionnaire["id"], "name": questionnaire.get("name"), "last_sent_at": questionnaire.get("last_sent_at")},
+            "questionnaire_reviewed": webstore.get("questionnaire_reviewed", False),
+            "questionnaire_submitted_at": webstore.get("questionnaire_submitted_at"),
+        }
+
+    all_answers = {a.get("question_label", ""): a.get("answer") for a in response.get("answers", [])}
+    locked_ids: set = set()
+    for ls in webstore.get("locked_settings", {}).values():
+        if isinstance(ls, dict):
+            locked_ids.update(ls.get("locked_answer_ids", []))
+    q_label_to_id: dict = {}
+    for section in questionnaire.get("sections", []):
+        for q in section.get("questions", []):
+            q_label_to_id[q.get("label", "")] = q.get("id", "")
+
+    safe_fields = []
+    suggested_changes = []
+    for label, (store_field, coerce_fn) in QUESTIONNAIRE_SAFE_MAP.items():
+        raw_val = all_answers.get(label)
+        if raw_val is None:
+            continue
+        val = coerce_fn(raw_val) if coerce_fn else raw_val
+        if val is None:
+            continue
+        q_id = q_label_to_id.get(label)
+        if q_id in locked_ids:
+            suggested_changes.append({"field": store_field, "label": label, "suggested_value": val, "reason": "Locked by store provider"})
+        else:
+            safe_fields.append({"field": store_field, "label": label, "value": val, "current_value": webstore.get(store_field)})
+
+    mapped_labels = set(QUESTIONNAIRE_SAFE_MAP.keys())
+    admin_review_answers = [
+        {"label": label, "answer": val}
+        for label, val in all_answers.items()
+        if label and label not in mapped_labels and val not in (None, "", [])
+    ]
+    return {
+        "has_questionnaire": True, "has_response": True,
+        "questionnaire": {"id": questionnaire["id"], "name": questionnaire.get("name"), "last_sent_at": questionnaire.get("last_sent_at")},
+        "response": {
+            "id": response["id"], "submitted_at": response.get("submitted_at"),
+            "customer_name": response.get("customer_name"), "customer_email": response.get("customer_email"),
+            "applied_to_webstore": response.get("applied_to_webstore", False),
+        },
+        "safe_fields": safe_fields,
+        "suggested_changes": suggested_changes,
+        "admin_review_answers": admin_review_answers,
+        "pending_review_changes": webstore.get("pending_review_changes", []),
+        "questionnaire_reviewed": webstore.get("questionnaire_reviewed", False),
+        "questionnaire_reviewed_at": webstore.get("questionnaire_reviewed_at"),
+        "questionnaire_submitted_at": webstore.get("questionnaire_submitted_at"),
+    }
+
+
 @webstores_router.post("/{webstore_id}/questionnaire/apply-answers")
 async def apply_questionnaire_answers_to_event_store(
     webstore_id: str,
@@ -3517,8 +3695,7 @@ async def apply_questionnaire_answers_to_event_store(
     # Values are the Webstore model field names.
     # Bool/float fields are coerced; string fields map directly.
     # NOTE: locked_settings fields are NEVER in this map — they must go through admin.
-    SAFE_MAP: dict[str, tuple] = {
-        # (store_field, coerce_fn or None)
+    SAFE_MAP: dict[str, tuple] = QUESTIONNAIRE_SAFE_MAP        # (store_field, coerce_fn or None)
         # ── Event fields ──
         "Event Name":                   ("event_name",                   None),
         "Event Date":                   ("event_start_date",             None),
@@ -3593,6 +3770,15 @@ async def apply_questionnaire_answers_to_event_store(
             {"$set": {"applied_to_webstore": True, "applied_at": now}},
         )
 
+    # Persist the review outcome to the webstore regardless of whether
+    # safe fields were applied, so the Setup flow can show review status.
+    review_update = {
+        "questionnaire_reviewed": True,
+        "questionnaire_reviewed_at": now,
+        "pending_review_changes": suggested_changes,
+    }
+    await db.webstores_v2.update_one({"id": webstore_id}, {"$set": review_update})
+
     return {
         "applied_fields": {k: v for k, v in applied.items() if k != "updated_at"},
         "suggested_changes": suggested_changes,
@@ -3601,4 +3787,5 @@ async def apply_questionnaire_answers_to_event_store(
             f"Applied {len(applied) - (1 if 'updated_at' in applied else 0)} field(s)."
             + (f" {len(suggested_changes)} field(s) require admin review." if suggested_changes else "")
         ),
+        "questionnaire_reviewed": True,
     }
