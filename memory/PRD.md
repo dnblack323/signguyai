@@ -22,7 +22,16 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
-- 2026-06-05 — **Consolidated Store Setup Flow + Horizontal Scroll Fixes — COMPLETE & TESTED**
+- 2026-06-05 — **Staff Review Workflow for Questionnaire Answers — COMPLETE & TESTED**
+  - **P0 Fix**: `webstores.py` had an `IndentationError` at line 3700 (orphaned dict entries after `SAFE_MAP = QUESTIONNAIRE_SAFE_MAP`) — backend was completely DOWN. Fixed by removing the 42-line orphaned block.
+  - **P1 Fix**: `AppContext.js` `getWebstoreQuestionnaireReviewDetails` called `/webstores/` instead of `/webstores/v2/` — 404 on every review-details load. Fixed URL path.
+  - **P1 Fix**: `review-details` endpoint processed `response.answers` as a list of dicts but answers are stored as `{question_id: value}` dict. Fixed to build `q_id_to_label` map and convert correctly.
+  - **P1 Fix**: `review-details` endpoint only walked `sections` for `q_label_to_id` map; questionnaires created from templates use flat `questions`. Fixed to walk both.
+  - **P1 Fix**: `Webstore` Pydantic model was missing `questionnaire_reviewed`, `questionnaire_submitted_at`, `questionnaire_reviewed_at` fields — `ConfigDict(extra='ignore')` silently stripped them from GET responses. Frontend `launchReady()` gate always read `undefined`. Added all three as `Optional` fields.
+  - **What the workflow does**: (1) Staff sends questionnaire → owner fills it out → `questionnaire_submitted_at` stamped + `questionnaire_reviewed=false` on webstore → Setup tab shows "Ready for Review" badge + `StaffReviewPanel` → staff clicks "Apply Safe Answers" → safe fields applied to store, `questionnaire_reviewed=true` stamped → launch button unblocked. Backend PUT gate also enforces this server-side.
+  - **Tests**: 3/3 backend pytest pass (`tests/test_staff_review_workflow.py`). Frontend StaffReviewPanel renders with all testids verified.
+
+ — COMPLETE & TESTED**
   - `WebstoreSetupFlow.js` (new): Sequential 8-step setup checklist (Store Created → Questionnaire → Branding → Products → Fulfillment → Stripe → Preview → Launch). Each step shows status badge (Complete/Action Needed/Waiting/Ready for Review/Not Started/Blocked). Inline questionnaire send with email-fail link fallback. Products/Branding/Fulfillment steps link to the correct secondary tab. Stripe step embeds `WebstoreOwnerConnectCard`. Launch gate prevents activation until ≥1 product assigned.
   - `Webstores.js`: Added "Setup" tab (4th tab alongside Dashboard, Products, Settings). Pending/disabled/closed stores default to Setup tab; active/completed stores default to Dashboard. `TabsList` changed from `grid-cols-3` to `flex overflow-x-auto` — no overflow at any viewport. `overflow-x-hidden` added to both create and detail `DialogContent`.
   - Tests: 16/16 acceptance criteria verified (14 browser-tested; 2 code-verified for edge cases not testable in current test env). (iteration_175.json)
