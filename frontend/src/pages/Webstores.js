@@ -47,6 +47,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import WebstoreDetailDashboard from '../components/WebstoreDetailDashboard';
 import StoreSetupWizard from '../components/webstores/StoreSetupWizard';
+import WebstoreSetupFlow from '../components/WebstoreSetupFlow';
 
 // Product category options
 const categoryOptions = [
@@ -711,7 +712,8 @@ export default function Webstores() {
     setLoadingStoreDetails(true);
 
     setSelectedStore(store);
-    setDetailTab('dashboard');
+    // Default to Setup tab for stores that aren't live yet; Dashboard for live/completed stores.
+    setDetailTab(store.status === 'active' || store.status === 'completed' ? 'dashboard' : 'setup');
 
     // Reset branding form state
     setLogoPreview(null);
@@ -1282,7 +1284,7 @@ export default function Webstores() {
 
       {/* Create Dialog — simplified 3-step wizard (type → basics → owner) then questionnaire */}
       <Dialog open={isCreateDialogOpen} onOpenChange={(open) => { if (!open) handleCloseCreateDialog(); }}>
-        <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto" data-testid="create-webstore-dialog">
+        <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto overflow-x-hidden" data-testid="create-webstore-dialog">
           <DialogHeader>
             <DialogTitle className="font-heading uppercase">Create New Webstore</DialogTitle>
             <DialogDescription className="text-xs text-gray-500">
@@ -1647,7 +1649,7 @@ export default function Webstores() {
           setSendMessageOverride('');
         }
       }}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto" data-testid="store-detail-dialog">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto overflow-x-hidden" data-testid="store-detail-dialog">
           {selectedStore && (
             <>
               <DialogHeader>
@@ -1669,13 +1671,49 @@ export default function Webstores() {
               </DialogHeader>
 
               <Tabs value={detailTab} onValueChange={setDetailTab}>
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="dashboard">
-                    <BarChart3 className="h-4 w-4 mr-2" /> Dashboard
+                {/* Scrollable tab bar — no overflow clipping at any viewport */}
+                <TabsList className="flex w-full overflow-x-auto bg-muted rounded-lg p-1 gap-0 h-auto">
+                  <TabsTrigger value="setup" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-setup">
+                    Setup
                   </TabsTrigger>
-                  <TabsTrigger value="products">Products</TabsTrigger>
-                  <TabsTrigger value="settings">Settings & Branding</TabsTrigger>
+                  <TabsTrigger value="dashboard" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-dashboard">
+                    Dashboard
+                  </TabsTrigger>
+                  <TabsTrigger value="products" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-products">
+                    Products
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-settings">
+                    Settings
+                  </TabsTrigger>
                 </TabsList>
+
+                {/* ── Setup tab ──────────────────────────────────────────── */}
+                <TabsContent value="setup" className="mt-4" data-testid="tab-content-setup">
+                  <WebstoreSetupFlow
+                    store={selectedStore}
+                    questionnaireStatus={questionnaireStatus}
+                    loadingQuestionnaire={loadingQuestionnaire}
+                    storeProducts={storeProducts}
+                    applyingAnswers={applyingAnswers}
+                    onApplyAnswers={handleApplyQuestionnaireAnswers}
+                    onSendQuestionnaire={handleSendQuestionnaireAfterCreate}
+                    onShowTab={setDetailTab}
+                    onUpdateStore={async (payload) => {
+                      await updateWebstore(selectedStore.id, payload);
+                      setSelectedStore((s) => ({ ...s, ...payload }));
+                    }}
+                    onActivateStore={async () => {
+                      try {
+                        const updated = await updateWebstore(selectedStore.id, { status: 'active' });
+                        setSelectedStore((s) => ({ ...s, status: 'active', ...updated }));
+                        toast.success('Store is now live!');
+                      } catch (err) {
+                        const detail = err?.response?.data?.detail;
+                        toast.error(typeof detail === 'string' ? detail : 'Could not activate store');
+                      }
+                    }}
+                  />
+                </TabsContent>
 
                 <TabsContent value="dashboard" className="mt-4">
                   <WebstoreDetailDashboard 
