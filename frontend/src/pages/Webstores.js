@@ -85,6 +85,8 @@ const getStatusBadge = (status) => {
     active: 'bg-green-500/20 text-green-400 border-green-500/30',
     disabled: 'bg-red-500/20 text-red-400 border-red-500/30',
     pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    closed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
   };
   return colors[status] || colors.pending;
 };
@@ -1922,6 +1924,14 @@ export default function Webstores() {
                             data-testid="open-store-btn"
                           >
                             <ExternalLink className="h-4 w-4 mr-1" /> Open Store
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`${window.location.origin}/store/${selectedStore.id}?admin_preview=1`, '_blank')}
+                            data-testid="preview-store-btn"
+                          >
+                            <Eye className="h-4 w-4 mr-1" /> Admin Preview
                           </Button>
                         </div>
                       </div>

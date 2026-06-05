@@ -714,6 +714,7 @@ async def _upsert_webstore_customer(
     )
     doc = customer.model_dump()
     await db.customers.insert_one(doc)
+    doc.pop("_id", None)
     return doc
 
 
@@ -1065,6 +1066,38 @@ def sanitize_webstore_for_public(webstore: dict) -> dict:
     return safe
 
 
+# ---- Audit trail helper -----------------------------------------------
+
+async def _log_stage_event(
+    webstore_id: str,
+    tenant_id: str,
+    event_type: str,
+    actor_id: Optional[str] = None,
+    actor_email: Optional[str] = None,
+    extra: Optional[dict] = None,
+) -> None:
+    """Insert one row into the additive `webstore_stage_events` audit collection.
+
+    Failures are swallowed so that audit logging never blocks a business
+    operation.
+    """
+    try:
+        doc = {
+            "id": str(__import__("uuid").uuid4()),
+            "webstore_id": webstore_id,
+            "tenant_id": tenant_id,
+            "event_type": event_type,
+            "actor_id": actor_id,
+            "actor_email": actor_email,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if extra:
+            doc.update(extra)
+        await db.webstore_stage_events.insert_one(doc)
+    except Exception as _exc:  # noqa: BLE001
+        logger.warning(f"webstore_stage_events insert failed (non-fatal): {_exc}")
+
+
 @storefront_router.get("/{webstore_id}/asset/{kind}")
 async def get_public_webstore_asset(webstore_id: str, kind: str):
     """Public fetch for a webstore logo/banner (W12).
@@ -1110,19 +1143,81 @@ async def get_public_store(webstore_id: str):
     if not webstore:
         raise HTTPException(status_code=404, detail="Store not found")
     
-    # Only return if store is public and active
+    # Only return if store is public
     if not webstore.get("is_public", True):
         raise HTTPException(status_code=404, detail="Store not found")
-    
+
+    # For non-active stores return a limited "status page" payload so the
+    # frontend can render a branded Coming-Soon / Closed / Unavailable screen
+    # without exposing any internal data.
     if webstore.get("status") != "active":
-        raise HTTPException(status_code=404, detail="Store is not currently available")
-    
+        branding_raw = webstore.get("branding") or {}
+        return {
+            "id": webstore.get("id"),
+            "name": webstore.get("name"),
+            "store_type": webstore.get("store_type"),
+            "status": webstore.get("status"),
+            "description": webstore.get("description"),
+            "order_deadline": webstore.get("order_deadline"),
+            "pickup_delivery_date": webstore.get("pickup_delivery_date"),
+            "pickup_delivery_instructions": webstore.get("pickup_delivery_instructions"),
+            "event_name": webstore.get("event_name"),
+            "branding": {
+                "logo_url": (branding_raw.get("logo_url")
+                             or webstore.get("logo_url")
+                             or webstore.get("logo_image_data")),
+                "primary_color": branding_raw.get("primary_color") or "#0D9488",
+                "banner_url": (branding_raw.get("banner_url")
+                               or webstore.get("banner_url")
+                               or webstore.get("banner_image_data")),
+            },
+            "_status_page": True,
+        }
+
     public_webstore = sanitize_webstore_for_public(webstore)
     tenant = await db.tenants.find_one({"id": webstore.get("tenant_id")}, {"_id": 0})
     checkout = _get_stripe_checkout_status(tenant.get("stripe_connect_account_id") if tenant else None)
     public_webstore["checkout_enabled"] = checkout["enabled"]
     public_webstore["checkout_status"] = checkout["status"]
     public_webstore["checkout_message"] = checkout["message"]
+    return public_webstore
+
+
+@storefront_router.get("/{webstore_id}/preview")
+async def get_public_store_preview(
+    webstore_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Admin preview of a webstore regardless of its live status.
+
+    Requires a valid admin JWT so non-staff cannot bypass the status check.
+    Returns the same sanitized public payload as the live endpoint PLUS an
+    `is_admin_preview: true` flag so the frontend can render a preview banner.
+    Also logs an `admin_preview_accessed` stage event.
+    """
+    _require_permission(current_user, Permission.WEBSTORES_MANAGE)
+    webstore = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not webstore:
+        raise HTTPException(status_code=404, detail="Webstore not found")
+
+    public_webstore = sanitize_webstore_for_public(webstore)
+    tenant = await db.tenants.find_one({"id": webstore.get("tenant_id")}, {"_id": 0})
+    checkout = _get_stripe_checkout_status(tenant.get("stripe_connect_account_id") if tenant else None)
+    public_webstore["checkout_enabled"] = checkout["enabled"]
+    public_webstore["checkout_status"] = checkout["status"]
+    public_webstore["checkout_message"] = checkout["message"]
+    public_webstore["is_admin_preview"] = True
+
+    await _log_stage_event(
+        webstore_id=webstore_id,
+        tenant_id=current_user.tenant_id,
+        event_type="admin_preview_accessed",
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+    )
     return public_webstore
 
 
@@ -1191,10 +1286,11 @@ async def get_public_store_supporters(webstore_id: str, limit: int = 5):
 
 
 @storefront_router.get("/{webstore_id}/products")
-async def get_public_store_products(webstore_id: str):
+async def get_public_store_products(webstore_id: str, admin_preview: bool = False):
     """
     Get products for a public webstore (no auth required).
     Ensures products belong to the same tenant as the webstore.
+    Pass ?admin_preview=true to bypass the active-status gate (used by admin preview).
     """
     webstore = await db.webstores_v2.find_one(
         {"id": webstore_id}, 
@@ -1207,7 +1303,7 @@ async def get_public_store_products(webstore_id: str):
     if not webstore.get("is_public", True):
         raise HTTPException(status_code=404, detail="Store not found")
     
-    if webstore.get("status") != "active":
+    if not admin_preview and webstore.get("status") != "active":
         raise HTTPException(status_code=404, detail="Store is not currently available")
     
     tenant_id = webstore.get("tenant_id")
@@ -1884,6 +1980,18 @@ async def patch_webstore_admin_progress(
 
     await db.webstores_v2.update_one({"id": webstore_id}, mongo_update)
 
+    # Audit: log each stamp that was applied.
+    stamped = [flag for flag, _ in _STAGE_STAMP_FIELDS if getattr(payload, flag, None) is True]
+    if stamped:
+        await _log_stage_event(
+            webstore_id=webstore_id,
+            tenant_id=current_user.tenant_id,
+            event_type="stage_stamped",
+            actor_id=current_user.id,
+            actor_email=current_user.email,
+            extra={"stamps_applied": stamped},
+        )
+
     fresh = await db.webstores_v2.find_one(
         {"id": webstore_id, "tenant_id": current_user.tenant_id},
         {"_id": 0},
@@ -2149,6 +2257,13 @@ async def update_webstore(
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
+    # Read current status before any mutation (needed for audit trail).
+    pre_update = await db.webstores_v2.find_one(
+        {"id": webstore_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "status": 1},
+    )
+    old_status = (pre_update or {}).get("status")
+
     # Gate: cannot move a webstore to "active" until the owner has finished
     # their Stripe Express onboarding (charges_enabled). Tenants must invite
     # the owner via the quick-link or portal-link flow first.
@@ -2176,6 +2291,18 @@ async def update_webstore(
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Webstore not found")
     webstore = await db.webstores_v2.find_one({"id": webstore_id}, {"_id": 0})
+
+    # Audit: log status changes to webstore_stage_events.
+    if new_status:
+        await _log_stage_event(
+            webstore_id=webstore_id,
+            tenant_id=current_user.tenant_id,
+            event_type="status_changed",
+            actor_id=current_user.id,
+            actor_email=current_user.email,
+            extra={"to_status": str(new_status), "from_status": str(old_status)},
+        )
+
     return webstore
 
 
