@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 
 BASE_URL = os.environ.get(
     "REACT_APP_BACKEND_URL",
-    "https://owner-portal-dev.preview.emergentagent.com",
+    "https://sign-shop-checkout.preview.emergentagent.com",
 ).rstrip("/")
 
 ADMIN_EMAIL = "thesigntistslab@gmail.com"

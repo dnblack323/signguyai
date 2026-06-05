@@ -326,7 +326,7 @@ cd /app/backend
 sudo supervisorctl restart backend
 
 # 3. Verify rollback
-curl -X POST https://owner-portal-dev.preview.emergentagent.com/api/pricing/calculate \
+curl -X POST https://sign-shop-checkout.preview.emergentagent.com/api/pricing/calculate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"category":"rigid_signs","pricing_data":{"width_inches":24,"length_inches":36},"quantity":1}'

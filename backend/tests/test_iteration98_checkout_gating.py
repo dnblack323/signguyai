@@ -186,7 +186,7 @@ class TestCheckoutGatingBehavior:
             }
         }
         
-        origin_url = "https://owner-portal-dev.preview.emergentagent.com"
+        origin_url = "https://sign-shop-checkout.preview.emergentagent.com"
         response = requests.post(
             f"{BASE_URL}/api/stripe-connect/webstore/{TEST_STORE_ID}/checkout?origin_url={origin_url}",
             json=checkout_payload

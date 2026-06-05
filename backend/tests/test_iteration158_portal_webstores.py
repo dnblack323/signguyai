@@ -11,7 +11,7 @@ import time
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://owner-portal-dev.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sign-shop-checkout.preview.emergentagent.com").rstrip("/")
 
 POSITIVE_EMAIL = "demo-fundraiser@rysoccer.example"
 POSITIVE_PASSWORD = "TestPortal123!"
