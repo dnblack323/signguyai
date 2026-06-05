@@ -22,6 +22,11 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-05 — **Consolidated Store Setup Flow + Horizontal Scroll Fixes — COMPLETE & TESTED**
+  - `WebstoreSetupFlow.js` (new): Sequential 8-step setup checklist (Store Created → Questionnaire → Branding → Products → Fulfillment → Stripe → Preview → Launch). Each step shows status badge (Complete/Action Needed/Waiting/Ready for Review/Not Started/Blocked). Inline questionnaire send with email-fail link fallback. Products/Branding/Fulfillment steps link to the correct secondary tab. Stripe step embeds `WebstoreOwnerConnectCard`. Launch gate prevents activation until ≥1 product assigned.
+  - `Webstores.js`: Added "Setup" tab (4th tab alongside Dashboard, Products, Settings). Pending/disabled/closed stores default to Setup tab; active/completed stores default to Dashboard. `TabsList` changed from `grid-cols-3` to `flex overflow-x-auto` — no overflow at any viewport. `overflow-x-hidden` added to both create and detail `DialogContent`.
+  - Tests: 16/16 acceptance criteria verified (14 browser-tested; 2 code-verified for edge cases not testable in current test env). (iteration_175.json)
+
 - 2026-06-05 — **Webstore Owner Stripe Connect Buttons Fixed — COMPLETE & TESTED**
   - `AppContext.js`: Added `getWebstoreOwnerStatus` (`GET /api/webstore-owners/{id}/owner-status`) and `sendWebstoreOwnerInvite` (`POST /api/webstore-owners/{id}/invite/quick`). Both exported in `useApp()`.
   - `WebstoreOwnerConnectCard.js`: Renamed destructured functions to match new AppContext names. Fixed response field mapping: `charges_enabled` (was `stripe_onboarding_complete`), `owner_stripe_account_id` (was `stripe_account_id`), `success` (was `sent`). 502-from-SendGrid now shows "Email delivery failed. Check your SendGrid API key in settings." instead of raw error.
