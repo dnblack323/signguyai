@@ -131,6 +131,7 @@ export default function Webstores() {
   
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createdStore, setCreatedStore]             = useState(null); // set after successful creation
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState(null);
   const [storeProducts, setStoreProducts] = useState([]);
@@ -434,6 +435,23 @@ export default function Webstores() {
     setCreatingStore(false);
   };
 
+  /** Close the create dialog and clear all related state. */
+  const handleCloseCreateDialog = () => {
+    setIsCreateDialogOpen(false);
+    setCreatedStore(null);
+    resetForm();
+  };
+
+  /** Send the setup questionnaire for a just-created store. Returns the API response. */
+  const handleSendQuestionnaireAfterCreate = async (storeId, email) => {
+    const origin = window.location.origin;
+    const result = await sendWebstoreQuestionnaire(storeId, {
+      email: email || undefined,
+      public_url: origin,
+    });
+    return result; // { email_sent, link, email }
+  };
+
   // Handle logo file selection
   const handleLogoSelect = (e) => {
     const file = e.target.files?.[0];
@@ -620,18 +638,16 @@ export default function Webstores() {
         });
       }
 
-      setIsCreateDialogOpen(false);
-      resetForm();
-      // Ensure the freshly-created store is visible: clear any filter/search
-      // that would otherwise hide it from the list view.
+      // Show the result / questionnaire screen instead of closing immediately.
+      setCreatedStore(newStore);
+
+      // Ensure the freshly-created store is visible: clear any filter/search.
       if (newStore?.store_type && newStore.store_type !== selectedType) {
         setSelectedType('all');
       }
       setStoreSearch('');
-      const refreshResult = await loadData({ suppressStoreErrorToast: true });
-      if (!refreshResult?.storesLoaded) {
-        toast.warning('Store created. Auto-refresh failed, but your new store was added locally.');
-      }
+      // Refresh in background (non-blocking).
+      loadData({ suppressStoreErrorToast: true });
     } catch (err) {
       console.error('Failed to create webstore:', err);
       const rawDetail = err.response?.data?.detail;
@@ -1220,15 +1236,15 @@ export default function Webstores() {
         </div>
       </ShellCard>
 
-      {/* Create Dialog — Phase 3 staged Setup Wizard.
-          The dialog still controls open/close; the wizard owns the multi-step
-          UX and calls handleCreateStore on the final step. */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      {/* Create Dialog — simplified 3-step wizard (type → basics → owner) then questionnaire */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => { if (!open) handleCloseCreateDialog(); }}>
         <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto" data-testid="create-webstore-dialog">
           <DialogHeader>
             <DialogTitle className="font-heading uppercase">Create New Webstore</DialogTitle>
             <DialogDescription className="text-xs text-gray-500">
-              Step through Store Type, Basics, Owner, Branding, Dates, Fulfillment, Questionnaire, Payments, and Review to set up the new webstore.
+              {createdStore
+                ? 'Store created — send the setup questionnaire to the owner.'
+                : 'Select a store type, name your store, and provide the owner contact. Dates, fulfillment, and payments are collected via questionnaire after creation.'}
             </DialogDescription>
           </DialogHeader>
           <StoreSetupWizard
@@ -1237,15 +1253,9 @@ export default function Webstores() {
             setFormData={setFormData}
             creatingStore={creatingStore}
             onSubmit={() => handleCreateStore()}
-            onCancel={() => setIsCreateDialogOpen(false)}
-            logoPreview={logoPreview}
-            logoFile={logoFile}
-            onLogoSelect={handleLogoSelect}
-            onClearLogo={() => { setLogoFile(null); setLogoPreview(null); }}
-            bannerPreview={bannerPreview}
-            bannerFile={bannerFile}
-            onBannerSelect={handleBannerSelect}
-            onClearBanner={() => { setBannerFile(null); setBannerPreview(null); }}
+            onCancel={handleCloseCreateDialog}
+            createdStore={createdStore}
+            onSendQuestionnaire={handleSendQuestionnaireAfterCreate}
           />
         </DialogContent>
       </Dialog>
