@@ -22,6 +22,15 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-05 — **Questionnaire Support for All Store Types — COMPLETE & TESTED**
+  - `Webstores.js`: Removed `store_type === 'event'` gate on questionnaire loading and questionnaire card. All 4 store types (event, fundraiser, creator/team, business) now show a questionnaire card.
+  - Added `getQuestionnaireLabel` helper returning store-type-specific labels: Event Store Setup Questionnaire, Fundraiser Store Setup Questionnaire, Team / School Store Setup Questionnaire, Business Store Setup Questionnaire.
+  - Added `getQStatusPhase` + `Q_PHASE_CONFIG` for 5 visible states: Not Sent (gray), Sent (blue), Awaiting Review (amber), Applied (green), Draft (gray).
+  - Questionnaire card uses `data-testid="questionnaire-card"` and shows dynamic label, phase badge, send/resend/view/apply buttons based on state.
+  - Send dialog title updated dynamically per store type. Apply answers toast updated from "event store" to generic.
+  - Event-store-specific setup checklist loading remains event-only.
+  - Tests: 12/12 PASS (iteration_173.json).
+
 - 2026-06-05 — **Webstore Setup Flow Simplification — COMPLETE & TESTED**
   - `StoreSetupWizard.js` rewritten: 9-step wizard → 3-step minimal flow (Store Type → Basics → Owner Info). Dates, Fulfillment, Questionnaire detail, Payments, and Review steps removed from initial creation.
   - After creation: wizard transitions to `CreationResult` screen (data-testid `wizard-creation-result`) instead of closing. Shows success badge + "Send Setup Questionnaire" card with email input pre-filled from owner email.
