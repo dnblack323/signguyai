@@ -22,6 +22,17 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-05 — **Phase 7: Public Storefront Polish + Webstores Duplicate Cleanup Hardening — COMPLETE & TESTED**
+  - **Status-aware storefront screens** (`backend/routes/webstores.py` + `frontend/src/pages/Storefront.js`): public endpoint now returns a limited branded status-page payload instead of 404 for non-active stores; frontend renders distinct Coming Soon (pending), Store Closed (completed/closed), and Unavailable (disabled) screens with branding, deadline info, and pickup instructions.
+  - **Pickup/delivery info band**: `order_deadline`, `pickup_delivery_date`, `pickup_delivery_instructions` displayed in a visible info strip on active storefronts (already in public fields, now rendered).
+  - **Admin preview mode**: new `GET /api/storefront/{id}/preview` endpoint (admin JWT required); `?admin_preview=1` URL param on `/store/:id` uses `getAuthToken()` to send the admin token and shows a yellow "Admin Preview" banner. "Admin Preview" button added to Webstores detail dialog Settings & Branding tab.
+  - **Product category grouping**: products grid groups by category (Apparel, Signs, Decals, Promotional, Events, Other) with section headers and counts when multiple categories are present.
+  - **Better image fallbacks**: product cards without images show a styled gradient placeholder (category color + icon + label) instead of a bare Package icon.
+  - **webstore_stage_events audit trail** (additive): new `webstore_stage_events` MongoDB collection. Auto-logs: `status_changed` (with from/to values), `stage_stamped` (with list of applied stamps), `admin_preview_accessed`. Non-blocking (swallows failures). Clean string status values (not enum reprs).
+  - **Status badge cleanup** (`Webstores.js`): `completed` (blue) and `closed` (gray) status badge colors added to `getStatusBadge`.
+  - **Pre-existing fix**: `Product` model `base_cost` and `retail_price` changed to `Optional[float]` so legacy products without these fields no longer cause 500 on `GET /api/products`.
+  - **Tests**: `/app/backend/tests/test_iteration171_phase7_storefront.py` — 21/21 backend PASS; all 7 frontend Phase 7 UI features verified.
+
 - 2026-06-02 — **Branding & Templates Settings (invoice / email / document) — COMPLETE & TESTED**
   - **Data model** (`backend/models/auth.py`): new `BrandingSettings` (shared `primary_color`/`secondary_color`; invoice accent/logo-position/show-logo/show-company-info/footer/payment-terms; email from-name/show-logo/header-color/signature; document show-logo/header-text/footer-text). Added `branding_settings` to `TenantBase` + `TenantUpdate`; persisted via existing owner-only `PUT /api/tenant`.
   - **Settings UI** (`frontend/src/pages/CompanySettings.js`): new "Branding & Templates" card with Brand Colors + Invoice / Email / Document sub-sections, loads from `tenant.branding_settings`, saves via `updateTenant({branding_settings})`. data-testids on all controls.

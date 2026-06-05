@@ -177,8 +177,8 @@ class Product(BaseModel):
     name: str
     description: Optional[str] = None
     category: ProductCategory = ProductCategory.OTHER
-    base_cost: float
-    retail_price: float
+    base_cost: Optional[float] = None   # Optional for legacy products created without cost
+    retail_price: Optional[float] = None
     # Support up to 3 images
     images: List[str] = []
     image_url: Optional[str] = None  # Legacy field - still support for backwards compat
@@ -2294,13 +2294,15 @@ async def update_webstore(
 
     # Audit: log status changes to webstore_stage_events.
     if new_status:
+        # Ensure we store the plain string value, not the enum repr.
+        to_status_str = new_status.value if hasattr(new_status, "value") else str(new_status)
         await _log_stage_event(
             webstore_id=webstore_id,
             tenant_id=current_user.tenant_id,
             event_type="status_changed",
             actor_id=current_user.id,
             actor_email=current_user.email,
-            extra={"to_status": str(new_status), "from_status": str(old_status)},
+            extra={"to_status": to_status_str, "from_status": str(old_status)},
         )
 
     return webstore
