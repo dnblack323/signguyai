@@ -22,6 +22,14 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-05 — **Webstore Setup Flow Simplification — COMPLETE & TESTED**
+  - `StoreSetupWizard.js` rewritten: 9-step wizard → 3-step minimal flow (Store Type → Basics → Owner Info). Dates, Fulfillment, Questionnaire detail, Payments, and Review steps removed from initial creation.
+  - After creation: wizard transitions to `CreationResult` screen (data-testid `wizard-creation-result`) instead of closing. Shows success badge + "Send Setup Questionnaire" card with email input pre-filled from owner email.
+  - If email fails: amber warning + copyable questionnaire link (data-testid `questionnaire-link-fallback`). Staff can copy-paste manually.
+  - `Webstores.js`: Added `createdStore` state, `handleCloseCreateDialog`, `handleSendQuestionnaireAfterCreate`. `handleCreateStore` now sets `createdStore` instead of closing on success. Dialog description is context-aware.
+  - Acceptance: all 4 store types (business, fundraiser, creator, event) create pending stores in 3 steps. No event/fundraiser/fulfillment fields required upfront. Existing stores unaffected.
+  - Tests: 12/12 acceptance criteria PASS (iteration_172.json).
+
 - 2026-06-05 — **Phase 7: Public Storefront Polish + Webstores Duplicate Cleanup Hardening — COMPLETE & TESTED**
   - **Status-aware storefront screens** (`backend/routes/webstores.py` + `frontend/src/pages/Storefront.js`): public endpoint now returns a limited branded status-page payload instead of 404 for non-active stores; frontend renders distinct Coming Soon (pending), Store Closed (completed/closed), and Unavailable (disabled) screens with branding, deadline info, and pickup instructions.
   - **Pickup/delivery info band**: `order_deadline`, `pickup_delivery_date`, `pickup_delivery_instructions` displayed in a visible info strip on active storefronts (already in public fields, now rendered).
