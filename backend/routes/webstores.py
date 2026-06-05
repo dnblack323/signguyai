@@ -3573,15 +3573,29 @@ async def get_questionnaire_review_details(
             "questionnaire_submitted_at": webstore.get("questionnaire_submitted_at"),
         }
 
-    all_answers = {a.get("question_label", ""): a.get("answer") for a in response.get("answers", [])}
-    locked_ids: set = set()
-    for ls in webstore.get("locked_settings", {}).values():
-        if isinstance(ls, dict):
-            locked_ids.update(ls.get("locked_answer_ids", []))
+    # Build label ↔ id maps; walk both flat questions and nested sections.
     q_label_to_id: dict = {}
-    for section in questionnaire.get("sections", []):
-        for q in section.get("questions", []):
-            q_label_to_id[q.get("label", "")] = q.get("id", "")
+    q_id_to_label: dict = {}
+    for q in questionnaire.get("questions", []) or []:
+        if isinstance(q, dict) and q.get("id") and q.get("label"):
+            q_label_to_id[q["label"]] = q["id"]
+            q_id_to_label[q["id"]] = q["label"]
+    for section in questionnaire.get("sections", []) or []:
+        for q in (section.get("questions", []) or []):
+            if isinstance(q, dict) and q.get("id") and q.get("label"):
+                q_label_to_id[q["label"]] = q["id"]
+                q_id_to_label[q["id"]] = q["label"]
+
+    # answers stored as {question_id: value}; convert to {label: value}.
+    raw_answers = response.get("answers") or {}
+    all_answers: dict = {}
+    if isinstance(raw_answers, dict):
+        for q_id, val in raw_answers.items():
+            label = q_id_to_label.get(q_id, "")
+            if label and val not in (None, "", []):
+                all_answers[label] = val
+
+    locked_ids: set = set(questionnaire.get("locked_answer_ids") or [])
 
     safe_fields = []
     suggested_changes = []
@@ -3657,8 +3671,15 @@ async def apply_questionnaire_answers_to_event_store(
         raise HTTPException(status_code=404, detail="No questionnaire responses found")
     response = responses[0]
 
-    # Build label → question_id map
-    q_label_to_id = {q["label"]: q["id"] for q in questionnaire.get("questions", [])}
+    # Build label → question_id map; walk both flat questions and nested sections.
+    q_label_to_id: dict = {}
+    for q in questionnaire.get("questions", []) or []:
+        if isinstance(q, dict) and q.get("label") and q.get("id"):
+            q_label_to_id[q["label"]] = q["id"]
+    for section in questionnaire.get("sections", []) or []:
+        for q in (section.get("questions", []) or []):
+            if isinstance(q, dict) and q.get("label") and q.get("id"):
+                q_label_to_id[q["label"]] = q["id"]
     answers = response.get("answers", {})
     locked_ids = set(questionnaire.get("locked_answer_ids") or [])
 
@@ -3690,54 +3711,9 @@ async def apply_questionnaire_answers_to_event_store(
         except (TypeError, ValueError):
             return None
 
-    # ── Safe field mappings ──────────────────────────────────────────────────
-    # All keys are the exact question labels from the event_web_store_setup template.
-    # Values are the Webstore model field names.
-    # Bool/float fields are coerced; string fields map directly.
-    # NOTE: locked_settings fields are NEVER in this map — they must go through admin.
-    SAFE_MAP: dict[str, tuple] = QUESTIONNAIRE_SAFE_MAP        # (store_field, coerce_fn or None)
-        # ── Event fields ──
-        "Event Name":                   ("event_name",                   None),
-        "Event Date":                   ("event_start_date",             None),
-        "Event Location":               ("event_location",               None),
-        "When do you want the store to launch?":  ("event_start_date",   None),
-        "When should the store close?": ("event_end_date",               None),
-        "If pickup is available, what pickup location should be shown?":
-                                        ("pickup_delivery_instructions",  None),
-        "Pickup date / time instructions":
-                                        ("pickup_delivery_instructions",  None),
-        # ── Fundraiser fields ──
-        "Is this store raising funds for a cause or organization?":
-                                        ("fundraiser_enabled",           _as_bool),
-        "Fundraiser Name":              ("fundraiser_name",              None),
-        "Fundraiser Description":       ("fundraiser_description",       None),
-        "Fundraiser Goal Amount ($)":   ("fundraiser_goal_amount",       _as_float),
-        "Should a fundraiser progress bar be shown on the store?":
-                                        ("show_progress_bar",            _as_bool),
-        "Should customers be able to add a donation at checkout?":
-                                        ("allow_checkout_donations",     _as_bool),
-        "Donation amount options to offer at checkout":
-                                        ("donation_amount_options",      None),
-        "Should customers be able to enter a custom donation amount?":
-                                        ("allow_custom_donation",        _as_bool),
-        "Should a portion of each product sale be allocated to the fundraiser?":
-                                        ("profit_allocation_enabled",    _as_bool),
-        "Profit allocation type":       ("profit_allocation_type",       None),
-        "Profit allocation percentage (%)":
-                                        ("profit_allocation_percentage", _as_float),
-        "Fixed profit allocation amount per item ($)":
-                                        ("fixed_amount_per_item",        _as_float),
-        "Maximum fundraiser cap amount ($)":
-                                        ("fundraiser_cap_amount",        _as_float),
-        "Include checkout donations in fundraiser progress total?":
-                                        ("include_donations_in_progress", _as_bool),
-        "Include product sale profit allocation in fundraiser progress total?":
-                                        ("include_profit_allocation_in_progress", _as_bool),
-        "Show total amount raised publicly on the store?":
-                                        ("show_total_raised_publicly",   _as_bool),
-        "Show supporter names on the store?":
-                                        ("show_supporter_names",         None),
-    }
+    # Uses the module-level QUESTIONNAIRE_SAFE_MAP (label → (store_field, coerce_fn)).
+    # Never touches locked_settings — those remain admin-controlled.
+    SAFE_MAP: dict = QUESTIONNAIRE_SAFE_MAP
 
     applied: dict = {}
     suggested_changes: list = []

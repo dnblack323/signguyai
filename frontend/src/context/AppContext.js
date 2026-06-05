@@ -722,7 +722,7 @@ export const AppProvider = ({ children }) => {
 
   // Questionnaire review details (dry-run preview of apply-answers mapping)
   const getWebstoreQuestionnaireReviewDetails = async (webstoreId) => {
-    const res = await api.get(`/webstores/${webstoreId}/questionnaire/review-details`);
+    const res = await api.get(`/webstores/v2/${webstoreId}/questionnaire/review-details`);
     return res.data;
   };
 
