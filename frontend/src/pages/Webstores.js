@@ -91,6 +91,49 @@ const getStatusBadge = (status) => {
   return colors[status] || colors.pending;
 };
 
+/** Returns the correct questionnaire label for each store type. */
+const getQuestionnaireLabel = (storeType) => ({
+  event:       'Event Store Setup Questionnaire',
+  fundraiser:  'Fundraiser Store Setup Questionnaire',
+  creator:     'Team / School Store Setup Questionnaire',
+  team:        'Team / School Store Setup Questionnaire',
+  team_school: 'Team / School Store Setup Questionnaire',
+  business:    'Business Store Setup Questionnaire',
+  b2b:         'Business Store Setup Questionnaire',
+  company:     'Business Store Setup Questionnaire',
+}[storeType] || 'Store Setup Questionnaire');
+
+/** Returns a friendly store-type description for the "not sent" questionnaire state. */
+const getQuestionnaireDescription = (storeType) => ({
+  event:      'collect event details, fulfillment preferences, fundraiser settings, and Stripe Connect information.',
+  fundraiser: 'collect fundraiser details, profit allocation preferences, and Stripe Connect information.',
+  creator:    'collect team / school details, product preferences, and Stripe Connect information.',
+  business:   'collect business details, product requirements, and Stripe Connect information.',
+}[storeType] || 'collect store details and setup preferences.');
+
+/**
+ * Derives a display-friendly questionnaire phase from the raw status object.
+ * Phases: not_sent | draft | sent | submitted | awaiting_review | applied
+ */
+const getQStatusPhase = (questionnaireStatus) => {
+  if (!questionnaireStatus?.linked) return 'not_sent';
+  const q    = questionnaireStatus.questionnaire;
+  const resp = questionnaireStatus.latest_response;
+  if (resp?.applied_to_webstore) return 'applied';
+  if (resp?.submitted_at)         return 'awaiting_review';
+  if (q?.last_sent_at)            return 'sent';
+  if (q)                          return 'draft';
+  return 'not_sent';
+};
+
+const Q_PHASE_CONFIG = {
+  not_sent:        { label: 'Not Sent',        badge: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+  draft:           { label: 'Draft',           badge: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+  sent:            { label: 'Sent',            badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  awaiting_review: { label: 'Awaiting Review', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+  applied:         { label: 'Applied',         badge: 'bg-green-500/20 text-green-400 border-green-500/30' },
+};
+
 const normalizeWebstoreList = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.webstores)) return payload.webstores;
@@ -773,22 +816,23 @@ export default function Webstores() {
       }
     })();
 
-    // Background: event-store-only enrichments. Failures here must NOT block
-    // the dialog from rendering or crash the page — each card already shows a
-    // loading/empty fallback.
+    // Background: questionnaire status — applies to ALL store types.
+    // Failures must NOT block the dialog from rendering.
+    setLoadingQuestionnaire(true);
+    (async () => {
+      try {
+        const qs = await getWebstoreQuestionnaire(store.id);
+        setQuestionnaireStatus(qs);
+      } catch (err) {
+        console.error('Could not load questionnaire status', err);
+        setQuestionnaireStatus({ linked: false, questionnaire: null, latest_response: null });
+      } finally {
+        setLoadingQuestionnaire(false);
+      }
+    })();
+
+    // Background: event-specific setup checklist — event stores only.
     if (store.store_type === 'event') {
-      setLoadingQuestionnaire(true);
-      (async () => {
-        try {
-          const qs = await getWebstoreQuestionnaire(store.id);
-          setQuestionnaireStatus(qs);
-        } catch (err) {
-          console.error('Could not load questionnaire status', err);
-          setQuestionnaireStatus({ linked: false, questionnaire: null, latest_response: null });
-        } finally {
-          setLoadingQuestionnaire(false);
-        }
-      })();
       (async () => {
         try {
           const ck = await getWebstoreEventChecklist(store.id);
@@ -1120,7 +1164,7 @@ export default function Webstores() {
       const count = Object.keys(result.applied_fields || {}).length;
       const suggested = (result.suggested_changes || []).length;
       toast.success(
-        `Applied ${count} field${count !== 1 ? 's' : ''} to event store.`
+        `Applied ${count} field${count !== 1 ? 's' : ''} to the store.`
         + (suggested ? ` ${suggested} field(s) require admin review.` : '')
       );
       // Refresh store data
@@ -2620,137 +2664,143 @@ export default function Webstores() {
                     </Card>
                   )}
 
-                  {/* Event Store Questionnaire — send, status, apply */}
-                  {selectedStore.store_type === 'event' && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <ClipboardCheck className="h-4 w-4 text-orange-400" />
-                          Event Store Questionnaire
-                          {questionnaireStatus?.linked && (
-                            <Badge className="ml-auto text-xs bg-green-500/20 text-green-400 border-green-500/30">
-                              Linked
+                  {/* Setup Questionnaire — all store types */}
+                  {(() => {
+                    const qLabel = getQuestionnaireLabel(selectedStore.store_type);
+                    const qPhase = getQStatusPhase(questionnaireStatus);
+                    const qPhaseCfg = Q_PHASE_CONFIG[qPhase] || Q_PHASE_CONFIG.not_sent;
+                    return (
+                      <Card data-testid="questionnaire-card">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <ClipboardCheck className="h-4 w-4 text-orange-400" />
+                            {qLabel}
+                            <Badge className={`ml-auto text-xs border ${qPhaseCfg.badge}`}>
+                              {qPhaseCfg.label}
                             </Badge>
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {loadingQuestionnaire ? (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Loading questionnaire status...
-                          </div>
-                        ) : questionnaireStatus?.linked ? (
-                          <>
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                              <div>
-                                <p className="text-xs text-muted-foreground">Status</p>
-                                <Badge className={`text-xs mt-1 ${
-                                  questionnaireStatus.questionnaire?.status === 'active'
-                                    ? 'bg-green-500/20 text-green-400'
-                                    : 'bg-yellow-500/20 text-yellow-400'
-                                }`}>
-                                  {questionnaireStatus.questionnaire?.status || 'draft'}
-                                </Badge>
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground">Last Sent</p>
-                                <p className="font-medium text-xs">
-                                  {questionnaireStatus.questionnaire?.last_sent_at
-                                    ? new Date(questionnaireStatus.questionnaire.last_sent_at).toLocaleDateString()
-                                    : 'Not sent yet'}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground">Responses</p>
-                                <p className="font-medium">
-                                  {questionnaireStatus.questionnaire?.response_count ?? 0}
-                                </p>
-                              </div>
-                              {questionnaireStatus.latest_response && (
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {loadingQuestionnaire ? (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Loading questionnaire status…
+                            </div>
+                          ) : questionnaireStatus?.linked ? (
+                            <>
+                              {/* Status grid */}
+                              <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
-                                  <p className="text-xs text-muted-foreground">Last Submitted</p>
+                                  <p className="text-xs text-muted-foreground">Last Sent</p>
                                   <p className="font-medium text-xs">
-                                    {new Date(questionnaireStatus.latest_response.submitted_at).toLocaleDateString()}
+                                    {questionnaireStatus.questionnaire?.last_sent_at
+                                      ? new Date(questionnaireStatus.questionnaire.last_sent_at).toLocaleDateString()
+                                      : 'Not sent yet'}
                                   </p>
                                 </div>
-                              )}
-                            </div>
-                            {questionnaireStatus.latest_response?.applied_to_webstore && (
-                              <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 rounded p-2">
-                                <Check className="h-3 w-3" />
-                                Answers have been applied to this store.
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Responses</p>
+                                  <p className="font-medium">
+                                    {questionnaireStatus.questionnaire?.response_count ?? 0}
+                                  </p>
+                                </div>
+                                {questionnaireStatus.latest_response?.submitted_at && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Last Submitted</p>
+                                    <p className="font-medium text-xs">
+                                      {new Date(questionnaireStatus.latest_response.submitted_at).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setShowSendDialog(true)}
-                                data-testid="resend-questionnaire-btn"
-                              >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Resend Questionnaire
-                              </Button>
-                              {questionnaireStatus.questionnaire?.id && (
+
+                              {/* Phase-specific callouts */}
+                              {qPhase === 'awaiting_review' && (
+                                <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 rounded p-2" data-testid="q-awaiting-review-notice">
+                                  <ClipboardCheck className="h-3 w-3 shrink-0" />
+                                  Owner has submitted answers. Review and apply when ready.
+                                </div>
+                              )}
+                              {qPhase === 'applied' && (
+                                <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 rounded p-2" data-testid="q-applied-notice">
+                                  <Check className="h-3 w-3 shrink-0" />
+                                  Answers have been reviewed and applied to this store.
+                                </div>
+                              )}
+
+                              {/* Actions */}
+                              <div className="flex flex-wrap gap-2">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => window.open(`/questionnaire/${questionnaireStatus.questionnaire.id}`, '_blank')}
-                                  data-testid="view-questionnaire-btn"
+                                  onClick={() => setShowSendDialog(true)}
+                                  data-testid="resend-questionnaire-btn"
                                 >
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Form
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Resend
                                 </Button>
-                              )}
-                              {questionnaireStatus.latest_response && (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={handleApplyQuestionnaireAnswers}
-                                  disabled={applyingAnswers}
-                                  data-testid="apply-answers-btn"
-                                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                                >
-                                  {applyingAnswers
-                                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    : <Check className="h-4 w-4 mr-2" />}
-                                  Apply Safe Answers
-                                </Button>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-sm text-muted-foreground">
-                              Send the <strong>Event Store Setup Questionnaire</strong> to the store owner to collect event details, fulfillment preferences, fundraiser settings, and Stripe Connect information.
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Tenant-controlled financial values will be shown as read-only. Store owner answers will not overwrite your locked settings.
-                            </p>
-                            <Button
-                              size="sm"
-                              onClick={() => setShowSendDialog(true)}
-                              className="bg-orange-500 hover:bg-orange-600 text-white"
-                              data-testid="send-questionnaire-btn"
-                            >
-                              <Send className="h-4 w-4 mr-2" />
-                              Send Event Store Questionnaire
-                            </Button>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
+                                {questionnaireStatus.questionnaire?.id && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(`/questionnaire/${questionnaireStatus.questionnaire.id}`, '_blank')}
+                                    data-testid="view-questionnaire-btn"
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View Form
+                                  </Button>
+                                )}
+                                {questionnaireStatus.latest_response && (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={handleApplyQuestionnaireAnswers}
+                                    disabled={applyingAnswers}
+                                    data-testid="apply-answers-btn"
+                                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                                  >
+                                    {applyingAnswers
+                                      ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      : <Check className="h-4 w-4 mr-2" />}
+                                    Apply Safe Answers
+                                  </Button>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm text-muted-foreground">
+                                Send the <strong>{qLabel}</strong> to the store owner to{' '}
+                                {getQuestionnaireDescription(selectedStore.store_type)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Tenant-controlled financial values will be shown as read-only.
+                                Store owner answers will not overwrite your locked settings.
+                              </p>
+                              <Button
+                                size="sm"
+                                onClick={() => setShowSendDialog(true)}
+                                className="bg-orange-500 hover:bg-orange-600 text-white"
+                                data-testid="send-questionnaire-btn"
+                              >
+                                <Send className="h-4 w-4 mr-2" />
+                                Send {qLabel}
+                              </Button>
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
 
-                  {/* Send Questionnaire Dialog */}
+                  {/* Send / Resend Questionnaire Dialog */}
                   {showSendDialog && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
                       <Card className="w-full max-w-md mx-4">
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-orange-400" />
-                            Send Event Store Questionnaire
+                            {getQuestionnaireLabel(selectedStore.store_type)}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -2779,7 +2829,7 @@ export default function Webstores() {
                           </div>
                           <div className="bg-amber-500/10 border border-amber-500/20 rounded p-3 text-xs text-amber-400">
                             <Lock className="h-3 w-3 inline mr-1" />
-                            Tenant-controlled financial values (locked settings) will be shown as read-only in the questionnaire. Store owner answers cannot overwrite them.
+                            Tenant-controlled financial values (locked settings) will be shown as read-only. Store owner answers cannot overwrite them.
                           </div>
                           <div className="flex justify-end gap-2">
                             <Button
