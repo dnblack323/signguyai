@@ -22,6 +22,11 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-05 — **Webstore Owner Stripe Connect Buttons Fixed — COMPLETE & TESTED**
+  - `AppContext.js`: Added `getWebstoreOwnerStatus` (`GET /api/webstore-owners/{id}/owner-status`) and `sendWebstoreOwnerInvite` (`POST /api/webstore-owners/{id}/invite/quick`). Both exported in `useApp()`.
+  - `WebstoreOwnerConnectCard.js`: Renamed destructured functions to match new AppContext names. Fixed response field mapping: `charges_enabled` (was `stripe_onboarding_complete`), `owner_stripe_account_id` (was `stripe_account_id`), `success` (was `sent`). 502-from-SendGrid now shows "Email delivery failed. Check your SendGrid API key in settings." instead of raw error.
+  - Tests: 10/10 PASS, 11/11 backend pytest PASS (iteration_174.json).
+
 - 2026-06-05 — **Questionnaire Support for All Store Types — COMPLETE & TESTED**
   - `Webstores.js`: Removed `store_type === 'event'` gate on questionnaire loading and questionnaire card. All 4 store types (event, fundraiser, creator/team, business) now show a questionnaire card.
   - Added `getQuestionnaireLabel` helper returning store-type-specific labels: Event Store Setup Questionnaire, Fundraiser Store Setup Questionnaire, Team / School Store Setup Questionnaire, Business Store Setup Questionnaire.

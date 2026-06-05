@@ -98,13 +98,17 @@ export default function WebstoreOwnerConnectCard({ webstore }) {
       }
     } catch (err) {
       const rawDetail = err?.response?.data?.detail;
-      toast.error(
-        typeof rawDetail === 'string'
-          ? rawDetail
-          : Array.isArray(rawDetail)
-            ? rawDetail.map((e) => e.msg || JSON.stringify(e)).join('; ')
-            : 'Failed to send invite — check backend logs'
-      );
+      // Backend throws 502 when SendGrid fails — surface a clear, user-friendly message.
+      const status = err?.response?.status;
+      const userMsg =
+        status === 502
+          ? 'Email delivery failed. Check your SendGrid API key in settings.'
+          : typeof rawDetail === 'string'
+            ? rawDetail
+            : Array.isArray(rawDetail)
+              ? rawDetail.map((e) => e.msg || JSON.stringify(e)).join('; ')
+              : 'Failed to send invite — check backend logs';
+      toast.error(userMsg);
     } finally {
       setSendingEmail(false);
     }
