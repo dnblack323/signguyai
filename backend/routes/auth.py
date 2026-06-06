@@ -368,18 +368,25 @@ async def setup_admin_account(request_body: dict):
 
     results = []
     
-    # 1. Reset admin password if email provided
+    # 1. Reset admin password and/or promote role if email provided
     email = request_body.get("email", "").lower().strip()
     new_password = request_body.get("new_password", "")
-    if email and new_password:
+    promote_to_platform_admin = request_body.get("promote_to_platform_admin", False)
+    if email:
         user = await db.users.find_one({"email": email}, {"_id": 0})
         if user:
-            hashed = get_password_hash(new_password)
-            await db.users.update_one({"email": email}, {"$set": {"hashed_password": hashed}})
-            results.append(f"Password reset for {email}")
+            updates = {}
+            if new_password:
+                updates["hashed_password"] = get_password_hash(new_password)
+                results.append(f"Password reset for {email}")
+            if promote_to_platform_admin:
+                updates["role"] = "platform_admin"
+                results.append(f"Role promoted to platform_admin for {email}")
+            if updates:
+                await db.users.update_one({"email": email}, {"$set": updates})
             
             # Ensure tenant has owner_email and is_platform_owner
-            if user.get("role") == "owner" and user.get("tenant_id"):
+            if user.get("role") in ("owner", "platform_admin") and user.get("tenant_id"):
                 await db.tenants.update_one(
                     {"id": user["tenant_id"]},
                     {"$set": {
