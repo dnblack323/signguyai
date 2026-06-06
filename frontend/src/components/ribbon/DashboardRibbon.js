@@ -84,10 +84,10 @@ export const DashboardRibbon = () => {
           testId="dashboard-ribbon-new-customer"
         />
         <RibbonButton
-          icon={Receipt}
-          label="New Invoice"
-          onClick={() => navigate('/invoices?new=true')}
-          testId="dashboard-ribbon-new-invoice"
+          icon={Calculator}
+          label="Pricing Calc"
+          onClick={() => navigate('/pricing-calculator')}
+          testId="dashboard-ribbon-pricing-calc"
         />
       </RibbonGroup>
 
@@ -95,6 +95,12 @@ export const DashboardRibbon = () => {
 
       {/* ── Customer ───────────────────────────── */}
       <RibbonGroup title="Customer" testId="dashboard-ribbon-group-customer">
+        <RibbonButton
+          icon={Eye}
+          label="Send Proof"
+          onClick={() => navigate('/approvals')}
+          testId="dashboard-ribbon-send-proof"
+        />
         <RibbonButton
           icon={ClipboardCheck}
           label="Request Approval"
@@ -108,10 +114,10 @@ export const DashboardRibbon = () => {
           testId="dashboard-ribbon-send-document"
         />
         <RibbonButton
-          icon={Eye}
-          label="Send Proof"
-          onClick={() => navigate('/approvals')}
-          testId="dashboard-ribbon-send-proof"
+          icon={Receipt}
+          label="New Invoice"
+          onClick={() => navigate('/invoices?new=true')}
+          testId="dashboard-ribbon-new-invoice"
         />
       </RibbonGroup>
 
@@ -120,10 +126,10 @@ export const DashboardRibbon = () => {
       {/* ── Production ─────────────────────────── */}
       <RibbonGroup title="Production" testId="dashboard-ribbon-group-production">
         <RibbonButton
-          icon={Calculator}
-          label="Pricing Calc"
-          onClick={() => navigate('/pricing-calculator')}
-          testId="dashboard-ribbon-pricing-calc"
+          icon={Mail}
+          label="Send Email"
+          onClick={() => navigate('/admin-portal')}
+          testId="dashboard-ribbon-send-email"
         />
         <RibbonButton
           icon={CheckSquare}
@@ -136,18 +142,6 @@ export const DashboardRibbon = () => {
           label="Schedule Install"
           onClick={() => navigate('/productivity?view=calendar')}
           testId="dashboard-ribbon-schedule-install"
-        />
-      </RibbonGroup>
-
-      <GroupSeparator />
-
-      {/* ── Communication ──────────────────────── */}
-      <RibbonGroup title="Communication" testId="dashboard-ribbon-group-communication">
-        <RibbonButton
-          icon={Mail}
-          label="Send Email"
-          onClick={() => navigate('/admin-portal')}
-          testId="dashboard-ribbon-send-email"
         />
         <RibbonButton
           icon={Calendar}
