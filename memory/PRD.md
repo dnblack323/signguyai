@@ -22,6 +22,12 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-06 — **Store Snapshot Feature — COMPLETE & TESTED**
+  - New `StoreSnapshotModal.js` component renders a branded, printable snapshot of any webstore.
+  - Accessed via "Store Snapshot" button (`data-testid="store-snapshot-btn"`) in the Analytics tab.
+  - Snapshot includes: branded header (accent color, logo, store name, type/status badges), QR code, store URL, 4 KPI tiles (Revenue/Orders/Avg Order/Items Sold), fundraiser progress bar (if applicable), order deadline (if applicable), top products list, and footer.
+  - "Print / Save as PDF" button (`data-testid="snapshot-print-btn"`) opens new window with inline-styled print-ready HTML (QR code via `QRCodeCanvas` → data URL). No new dependencies.
+
 - 2026-06-06 — **Branding Tab Cleanup + Launch Gate Verification — COMPLETE & TESTED (100%)**
   - **Branding tab de-duplicated**: Removed "Store Link / QR Code" section from top of Branding tab. Section had "Open Store" and "Admin Preview" buttons which duplicated Setup flow Step 9 (Preview) and Step 11 (Launch). Branding tab now opens directly on the Store Branding card (Logo/Banner/Accent Color).
   - **Launch gate verified**: Backend (`PUT /api/webstores/v2/{id}` with status=active) correctly blocks with "Store cannot be activated yet. Assign at least one product before going live." Frontend `launchReady()` gate shows "Complete Required Steps First" disabled button when `storeProducts.length === 0`. Both layers confirmed via API test.

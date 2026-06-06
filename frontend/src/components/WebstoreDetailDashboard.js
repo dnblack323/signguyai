@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { formatCurrency } from '../lib/utils';
-import { TrendingUp, ShoppingCart, DollarSign, Package, BarChart3 } from 'lucide-react';
+import { TrendingUp, ShoppingCart, DollarSign, Package, BarChart3, Camera } from 'lucide-react';
+import StoreSnapshotModal from './StoreSnapshotModal';
 
 // Simple bar chart component
 const SimpleBarChart = ({ data, maxValue }) => {
@@ -41,6 +43,7 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [showSnapshot, setShowSnapshot] = useState(false);
 
   useEffect(() => {
     if (store?.id) {
@@ -156,6 +159,28 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
 
   return (
     <div className="space-y-6" data-testid="webstore-dashboard">
+      {/* Snapshot Modal */}
+      <StoreSnapshotModal
+        store={store}
+        analytics={analytics}
+        open={showSnapshot}
+        onClose={() => setShowSnapshot(false)}
+      />
+
+      {/* Store Snapshot CTA */}
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowSnapshot(true)}
+          className="gap-1.5"
+          data-testid="store-snapshot-btn"
+        >
+          <Camera className="h-4 w-4" />
+          Store Snapshot
+        </Button>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
