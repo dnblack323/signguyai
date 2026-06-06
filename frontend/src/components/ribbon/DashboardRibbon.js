@@ -1,11 +1,10 @@
 /**
  * Dashboard command ribbon — matches WebstoresRibbon dimensions exactly.
  *
- * 12 visible actions in 4 groups:
- *   Create    — New Order | New Quote | New Customer | New Invoice
- *   Customer  — Request Approval | Send Document | Send Proof
- *   Production — Pricing Calculator | New Task | Schedule Install
- *   Communication — Send Email | Open Calendar
+ * 12 visible actions in 3 groups:
+ *   Create     — New Order | New Quote | New Customer | Pricing Calc
+ *   Customer   — Send Proof | Request Approval | Send Document | New Invoice
+ *   Production — Send Email | New Task | Schedule Install | Open Calendar
  *
  * Design mirrors WebstoresRibbon:
  *   h-14, bg-white, border-b border-gray-100, RibbonButton (min-w-[68px]),
