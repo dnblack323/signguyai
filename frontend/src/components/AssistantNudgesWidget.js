@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useReducer, useCallback, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Sparkles, Loader2, X, Mail, AlertCircle, CalendarCheck, ChevronRight, Bell } from 'lucide-react';
@@ -24,61 +24,55 @@ const KIND_STYLE = {
 /**
  * Proactive Assistant Nudges — surfaced on the Dashboard.
  *
- * Pulls /api/ai/assistant/nudges (cached/dismissed in localStorage for the
- * current day so a user who dismisses doesn't see the same items spam-loop)
- * and renders a one-click action pill per item.
- *
- * For stale-quote / overdue-invoice nudges, "Draft" calls /assistant/draft-email
- * and opens a small inline review-and-send modal. For appointment nudges, we
- * route to the appointment detail page.
+ * Props:
+ *   sectionMode (bool) — when true, renders content inline without the outer
+ *   card shell so it can be embedded as a section inside another card.
  */
-export default function AssistantNudgesWidget() {
+export default function AssistantNudgesWidget({ sectionMode = false }) {
   const navigate = useNavigate();
-  const [nudges, setNudges] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      const k = `assistant_nudges_dismissed_${new Date().toISOString().slice(0, 10)}`;
-      return new Set(JSON.parse(localStorage.getItem(k) || '[]'));
-    } catch { return new Set(); }
-  });
-  const [draftState, setDraftState] = useState(null); // { nudge, subject, body, sending }
 
-  const persistDismissed = useCallback((s) => {
-    const k = `assistant_nudges_dismissed_${new Date().toISOString().slice(0, 10)}`;
-    localStorage.setItem(k, JSON.stringify(Array.from(s)));
-  }, []);
+  const [state, dispatch] = useReducer((s, action) => {
+    switch (action.type) {
+      case 'LOADED':     return { ...s, nudges: action.nudges, loading: false };
+      case 'LOAD_ERR':   return { ...s, nudges: [], loading: false };
+      case 'DISMISS':    return { ...s, dismissed: (() => { const n = new Set(s.dismissed); n.add(action.key); try { localStorage.setItem(`assistant_nudges_dismissed_${new Date().toISOString().slice(0,10)}`, JSON.stringify([...n])); } catch (e) { /* ignore */ } return n; })() };
+      case 'FILTER':     return { ...s, nudges: s.nudges.filter(action.pred) };
+      case 'DRAFT':      return { ...s, draft: action.payload };
+      case 'DRAFT_UPD':  return { ...s, draft: { ...s.draft, ...action.patch } };
+      case 'DRAFT_DONE': return { ...s, draft: null };
+      default:           return s;
+    }
+  }, {
+    nudges: [], loading: true,
+    dismissed: (() => { try { return new Set(JSON.parse(localStorage.getItem(`assistant_nudges_dismissed_${new Date().toISOString().slice(0,10)}`) || '[]')); } catch { return new Set(); } })(),
+    draft: null,
+  });
+
+  const { nudges, loading, dismissed, draft: draftState } = state;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+
+  const dismiss = useCallback((nudgeKey) => dispatch({ type: 'DISMISS', key: nudgeKey }), []);
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const r = await axios.get(`${API}/ai/assistant/nudges`, {
         headers: { Authorization: `Bearer ${getAuthToken()}` },
       });
-      setNudges(r.data?.nudges || []);
+      if (mounted.current) dispatch({ type: 'LOADED', nudges: r.data?.nudges || [] });
     } catch {
-      setNudges([]);
-    } finally {
-      setLoading(false);
+      if (mounted.current) dispatch({ type: 'LOAD_ERR' });
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const dismiss = (nudgeKey) => {
-    const next = new Set(dismissed);
-    next.add(nudgeKey);
-    setDismissed(next);
-    persistDismissed(next);
-  };
-
-  const handleAction = async (n, idx) => {
+  const handleAction = useCallback(async (n, idx) => {
     const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || idx}`;
     if (n.kind === 'pending_appointment' && n.ref?.appointment_id) {
       navigate(`/appointments/${n.ref.appointment_id}`);
       return;
     }
-    // Reminder — mark done on the server, then hide
     if (n.kind === 'reminder' && n.ref?.reminder_id) {
       try {
         await axios.post(
@@ -88,17 +82,13 @@ export default function AssistantNudgesWidget() {
         );
         toast.success('Reminder marked done');
         dismiss(key);
-        setNudges((prev) => prev.filter((x) => x.ref?.reminder_id !== n.ref.reminder_id));
+        if (mounted.current) dispatch({ type: 'FILTER', pred: (x) => x.ref?.reminder_id !== n.ref.reminder_id });
       } catch (err) {
         toast.error(err.response?.data?.detail || 'Could not dismiss reminder');
       }
       return;
     }
-    // Draft email path (stale_quote or overdue_invoice)
-    if (!n.customer?.id) {
-      toast.error('Missing customer id — cannot draft email');
-      return;
-    }
+    if (!n.customer?.id) { toast.error('Missing customer id — cannot draft email'); return; }
     try {
       const r = await axios.post(`${API}/ai/assistant/draft-email`, {
         customer_id: n.customer.id,
@@ -107,22 +97,15 @@ export default function AssistantNudgesWidget() {
         invoice_id: n.ref?.invoice_id,
         about: n.subtitle,
       }, { headers: { Authorization: `Bearer ${getAuthToken()}` } });
-      setDraftState({
-        nudge: n,
-        nudgeKey: key,
-        subject: r.data?.subject || '',
-        body: r.data?.body || '',
-        to: r.data?.to,
-        sending: false,
-      });
+      if (mounted.current) dispatch({ type: 'DRAFT', payload: { nudge: n, nudgeKey: key, subject: r.data?.subject || '', body: r.data?.body || '', to: r.data?.to, sending: false }});
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Could not draft email');
     }
-  };
+  }, [dismiss, navigate]);
 
-  const sendDraft = async () => {
+  const sendDraft = useCallback(async () => {
     if (!draftState) return;
-    setDraftState((p) => ({ ...p, sending: true }));
+    dispatch({ type: 'DRAFT_UPD', patch: { sending: true } });
     try {
       await axios.post(`${API}/ai/assistant/send-email`, {
         customer_id: draftState.nudge.customer.id,
@@ -133,12 +116,12 @@ export default function AssistantNudgesWidget() {
       }, { headers: { Authorization: `Bearer ${getAuthToken()}` } });
       toast.success(`Email sent to ${draftState.to}`);
       dismiss(draftState.nudgeKey);
-      setDraftState(null);
+      if (mounted.current) dispatch({ type: 'DRAFT_DONE' });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Send failed');
-      setDraftState((p) => ({ ...p, sending: false }));
+      if (mounted.current) dispatch({ type: 'DRAFT_UPD', patch: { sending: false } });
     }
-  };
+  }, [dismiss, draftState]);
 
   const visible = nudges.filter((n, i) => {
     const k = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || i}`;
@@ -148,6 +131,67 @@ export default function AssistantNudgesWidget() {
   if (loading) return null;
   if (visible.length === 0) return null;
 
+  // ── Section mode: no outer card shell ────────────────────────────────
+  if (sectionMode) {
+    return (
+      <>
+        <div className="space-y-1.5" data-testid="assistant-nudges-section">
+          {visible.slice(0, 4).map((n, idx) => {
+            const Icon = KIND_ICON[n.kind] || Sparkles;
+            const s = KIND_STYLE[n.kind] || { bg: '#F3E8FF', border: '#D8B4FE', iconColor: '#7C3AED' };
+            const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || idx}`;
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-3 rounded-md px-3 py-2"
+                style={{ backgroundColor: s.bg, border: `1px solid ${s.border}` }}
+                data-testid={`nudge-${n.kind}-${idx}`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: s.iconColor }} />
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium truncate" style={{ color: '#0F172A' }}>{n.title}</div>
+                    <div className="text-[10px] truncate" style={{ color: '#475569' }}>{n.subtitle}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() => handleAction(n, idx)}
+                    className="h-6 text-[10px] px-2"
+                    variant="outline"
+                    style={{ color: s.iconColor, borderColor: s.border }}
+                    data-testid={`nudge-${n.kind}-${idx}-act`}
+                  >
+                    {n.confirm_label} <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                  <button
+                    onClick={() => dismiss(key)}
+                    className="p-1 rounded transition-colors hover:bg-black/10"
+                    style={{ color: '#94A3B8' }}
+                    aria-label="Dismiss"
+                    data-testid={`nudge-${n.kind}-${idx}-dismiss`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {draftState && (
+          <DraftEmailModal
+            state={draftState}
+            onChange={(patch) => dispatch({ type: 'DRAFT_UPD', patch })}
+            onClose={() => dispatch({ type: 'DRAFT_DONE' })}
+            onSend={sendDraft}
+          />
+        )}
+      </>
+    );
+  }
+
+  // ── Standalone card mode (default) ───────────────────────────────────
   return (
     <>
       <div
@@ -212,8 +256,8 @@ export default function AssistantNudgesWidget() {
       {draftState && (
         <DraftEmailModal
           state={draftState}
-          onChange={(patch) => setDraftState((p) => ({ ...p, ...patch }))}
-          onClose={() => setDraftState(null)}
+          onChange={(patch) => dispatch({ type: 'DRAFT_UPD', patch })}
+          onClose={() => dispatch({ type: 'DRAFT_DONE' })}
           onSend={sendDraft}
         />
       )}

@@ -4,7 +4,7 @@
  * 12 visible actions in 3 groups:
  *   Create     — New Order | New Quote | New Customer | Pricing Calc
  *   Customer   — Send Proof | Request Approval | Send Document | New Invoice
- *   Production — Send Email | New Task | Schedule Install | Open Calendar
+ *   Workflow   — Send Email | New Task | Schedule Install | Open Calendar
  *
  * Design mirrors WebstoresRibbon:
  *   h-14, bg-white, border-b border-gray-100, RibbonButton (min-w-[68px]),
@@ -122,8 +122,8 @@ export const DashboardRibbon = () => {
 
       <GroupSeparator />
 
-      {/* ── Production ─────────────────────────── */}
-      <RibbonGroup title="Production" testId="dashboard-ribbon-group-production">
+      {/* ── Workflow ─────────────────────────── */}
+      <RibbonGroup title="Workflow" testId="dashboard-ribbon-group-workflow">
         <RibbonButton
           icon={Mail}
           label="Send Email"

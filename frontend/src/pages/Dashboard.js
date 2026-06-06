@@ -1000,7 +1000,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
   const totalActions = approvals.length + totalUnread + quotes.length + overdueCount;
 
   return (
-    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="action-required">
       {/* Card header */}
       <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
         <div className="flex items-center gap-2">
@@ -1150,6 +1150,17 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Customer Actions</span>
             </div>
             <PendingCustomerActionsWidget />
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 6. Assistant Suggestions (inline — no outer card) ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Sparkles} iconColor="text-purple-400" label="Suggestions"
+              right={null}
+            />
+            <AssistantNudgesWidget sectionMode />
           </div>
         </>
       )}
@@ -1769,7 +1780,6 @@ export default function Dashboard() {
             onRetry={fetchCustomerAttention}
             summaryData={summaryV2}
           />
-          <AssistantNudgesWidget />
         </div>
         <div>
           <CollapsibleOnboarding />
