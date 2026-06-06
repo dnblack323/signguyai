@@ -167,10 +167,10 @@ export const PrimaryNav = ({ activeTab, onTabChange }) => {
 
   return (
     <nav 
-      className="h-12 flex items-center px-4 bg-white border-b border-gray-100 overflow-x-auto scrollbar-none"
+      className="h-12 flex items-center px-2 sm:px-4 bg-white border-b border-gray-100 overflow-x-auto scrollbar-none"
       data-testid="primary-nav"
     >
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0">
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -180,7 +180,7 @@ export const PrimaryNav = ({ activeTab, onTabChange }) => {
               key={item.id}
               onClick={() => handleNavClick(item)}
               className={cn(
-                "relative flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors rounded-md whitespace-nowrap",
+                "relative flex items-center gap-1 px-2 xl:px-3 py-2 text-[11px] xl:text-sm font-medium transition-colors rounded-md whitespace-nowrap",
                 isActive 
                   ? "text-gray-900 bg-blue-50" 
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
@@ -188,7 +188,7 @@ export const PrimaryNav = ({ activeTab, onTabChange }) => {
               data-testid={`nav-${item.id}`}
             >
               <Icon className={cn(
-                "h-3.5 w-3.5 flex-shrink-0",
+                "h-3 xl:h-3.5 w-3 xl:w-3.5 flex-shrink-0",
                 isActive ? "text-blue-600" : "text-gray-400"
               )} />
               <span>{item.label}</span>
