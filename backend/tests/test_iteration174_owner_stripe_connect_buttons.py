@@ -167,7 +167,7 @@ class TestOwnerInviteQuick:
             f"{BASE}/api/webstore-owners/{TEST_STORE_ID}/invite/quick",
             json={
                 "email": "TEST_owner_invite@example.com",
-                "public_url": "https://platform-insights-4.preview.emergentagent.com",
+                "public_url": "https://action-central-35.preview.emergentagent.com",
             },
             headers=admin_headers,
             timeout=30,

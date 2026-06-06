@@ -89,7 +89,7 @@
 
   "main_agent_can_self_test": true,
 
-  "context_for_next_testing_agent": "Sections 2.4 and 2.5 fully tested. Main findings: (1) Clone endpoint works correctly for all 3 modes (duplicate/variation/copy_to_category) and all carry_over options; (2) Legacy /duplicate endpoint also working; (3) Quote→Job conversion flow fully working; (4) Invoice from order with tax logic confirmed working; (5) Partial payment and mark-paid working. Only bug: sent_at not returned in GET /api/quotes/{id} (Quote model missing field). Test file: /app/backend/tests/test_iteration129_clone_quotes_invoices.py (32 tests). Run with: REACT_APP_BACKEND_URL=https://platform-insights-4.preview.emergentagent.com pytest backend/tests/test_iteration129_clone_quotes_invoices.py -v",
+  "context_for_next_testing_agent": "Sections 2.4 and 2.5 fully tested. Main findings: (1) Clone endpoint works correctly for all 3 modes (duplicate/variation/copy_to_category) and all carry_over options; (2) Legacy /duplicate endpoint also working; (3) Quote→Job conversion flow fully working; (4) Invoice from order with tax logic confirmed working; (5) Partial payment and mark-paid working. Only bug: sent_at not returned in GET /api/quotes/{id} (Quote model missing field). Test file: /app/backend/tests/test_iteration129_clone_quotes_invoices.py (32 tests). Run with: REACT_APP_BACKEND_URL=https://action-central-35.preview.emergentagent.com pytest backend/tests/test_iteration129_clone_quotes_invoices.py -v",
 
   "rca_of_issues": {
     "bug_sent_at_not_returned": {
