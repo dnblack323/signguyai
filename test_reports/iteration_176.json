@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 176 — Staff Review Workflow for Webstore Questionnaires. Full E2E tested: backend 3/3 pass, frontend UI verified with test store. Key finding: critical bug in Webstore Pydantic model missing questionnaire_reviewed/questionnaire_submitted_at fields causing frontend launch gate to be non-functional (backend gate works).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/webstores/v2/{id}",
+        "issue": "Webstore Pydantic model (response_model=Webstore) does not include questionnaire_reviewed or questionnaire_submitted_at fields. ConfigDict(extra='ignore') strips these fields from the GET response. Frontend launchReady() reads store.questionnaire_reviewed and store.questionnaire_submitted_at — both are always undefined/falsy, making the frontend launch gate for questionnaire review completely non-functional. Backend gate (PUT /{id}) works correctly reading from MongoDB directly.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Frontend launch gate for questionnaire review",
+        "issue": "launchReady() checks store.questionnaire_submitted_at and store.questionnaire_reviewed but GET /api/webstores/v2/{id} never returns these fields (Webstore model lacks them). Button never shows disabled state due to questionnaire — only the backend PUT gate enforces this. Fix: add Optional[bool] questionnaire_reviewed and Optional[str] questionnaire_submitted_at to Webstore model.",
+        "affected_selectors": ["[data-testid='setup-flow-launch-btn']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_staff_review_workflow.py",
+    "/app/test_reports/pytest/staff_review_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Add questionnaire_reviewed: Optional[bool] = None and questionnaire_submitted_at: Optional[str] = None to the Webstore Pydantic model in webstores.py (~line 305). Without this fix, the frontend launch gate for questionnaire review never activates — store staff can try to launch before reviewing, only the backend PUT blocks it.",
+    "After fixing the model, verify the frontend launchReady() disables the launch button when questionnaire_submitted_at is set and questionnaire_reviewed is false"
+  ],
+  "critical_code_review_comments": [
+    "Webstore Pydantic model (class Webstore ~line 305) is missing questionnaire_reviewed (Optional[bool]) and questionnaire_submitted_at (Optional[str]) fields. These are stored in MongoDB and the backend PUT launch gate reads them correctly. But GET uses response_model=Webstore with extra='ignore', so these fields are silently dropped from all GET responses, breaking the frontend gate.",
+    "Staff review panel (StaffReviewPanel) renders correctly when questionnaire phase=awaiting_review. All testids present: staff-review-panel, review-safe-toggle, review-safe-fields, review-other-toggle, review-panel-apply-btn, review-panel-view-btn.",
+    "apply-answers endpoint correctly sets questionnaire_reviewed=True and returns it in response. review-details endpoint correctly returns all fields including questionnaire_reviewed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_staff_review_workflow.py"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3 tests pass: health, review-details-no-q, full-E2E-workflow)",
+    "frontend": "85% (StaffReviewPanel renders, Apply Safe Answers works, questionnaire step shows Complete after apply; launch gate frontend-side broken due to missing model fields)"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123",
+  "seed_data_creation": "Created and deleted test store 359f56b7-d9ad-48bb-b5ca-d12e1793f47f (TEST_UIReview) with questionnaire submitted for UI testing.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend staff review workflow is fully functional: review-details returns correct structure, apply-answers sets questionnaire_reviewed=True, backend launch gate blocks activation when questionnaire_submitted_at set but not reviewed. Frontend UI (StaffReviewPanel) renders correctly with all expected testids, Apply Safe Answers button works (toast 'Applied 1 field to the store.', questionnaire step changes from 'Ready for Review' to 'Complete'). REMAINING BUG: Webstore Pydantic model missing questionnaire_reviewed/questionnaire_submitted_at → frontend launchReady() gate never fires. Fix: add these 2 fields to class Webstore in /app/backend/routes/webstores.py ~line 305. Dialog opens via 3rd action button (index 2) in webstores list row.",
+  "rca_of_issue": {
+    "bug": "Frontend launch gate for questionnaire review is non-functional",
+    "root_cause": "class Webstore(BaseModel) with ConfigDict(extra='ignore') is used as response_model for GET /api/webstores/v2/{id}. The questionnaire_reviewed and questionnaire_submitted_at fields are stored in MongoDB but not declared in the Webstore model, so they are excluded from the GET response. The frontend launchReady() function in WebstoreSetupFlow.js reads store.questionnaire_reviewed and store.questionnaire_submitted_at from the store prop which comes from the GET response — both fields are always undefined.",
+    "mitigation": "Add to class Webstore: questionnaire_reviewed: Optional[bool] = None and questionnaire_submitted_at: Optional[str] = None",
+    "impact": "Backend PUT /{id} launch gate still works (reads from MongoDB directly). Only the frontend visual indicator is broken — staff can see the Activate button enabled even when they haven't reviewed the questionnaire. The actual activation will still be blocked by the backend."
+  }
+}

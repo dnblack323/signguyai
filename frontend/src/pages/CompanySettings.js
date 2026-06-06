@@ -9,7 +9,9 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Building2, Phone, MapPin, Globe, Save, AlertTriangle, Crown, Timer, Clock, Users, Shield, Eye, EyeOff, Upload, X, Image as ImageIcon, Palette, FileText, Mail, Receipt } from 'lucide-react';
+import { Textarea } from '../components/ui/textarea';
+import BrandingPreview from '../components/BrandingPreview';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { getAuthToken } from '../lib/authStorage';
@@ -73,6 +75,28 @@ export default function CompanySettings() {
   });
   const [savingPayrollSettings, setSavingPayrollSettings] = useState(false);
 
+  // Branding & template preferences (invoice / email / document)
+  const DEFAULT_BRANDING = {
+    primary_color: '#0D9488',
+    secondary_color: '#14B8A6',
+    invoice_accent_color: '',
+    invoice_show_logo: true,
+    invoice_logo_position: 'left',
+    invoice_show_company_info: true,
+    invoice_footer_text: '',
+    invoice_payment_terms: '',
+    email_from_name: '',
+    email_show_logo: true,
+    email_header_color: '',
+    email_signature: '',
+    document_show_logo: true,
+    document_header_text: '',
+    document_footer_text: '',
+  };
+  const [brandingSettings, setBrandingSettings] = useState(DEFAULT_BRANDING);
+  const [savingBranding, setSavingBranding] = useState(false);
+  const setBrand = (key, value) => setBrandingSettings((prev) => ({ ...prev, [key]: value }));
+
   // Logo upload state
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef(null);
@@ -86,6 +110,9 @@ export default function CompanySettings() {
     try {
       const data = await getTenant();
       setTenant(data);
+      if (data.branding_settings) {
+        setBrandingSettings({ ...DEFAULT_BRANDING, ...data.branding_settings });
+      }
       setFormData({
         name: data.name || '',
         phone: data.phone || '',
@@ -113,8 +140,7 @@ export default function CompanySettings() {
         }
       }
       // Load time tracking settings from tenant
-      if (data.time_tracking_settings) {
-        setTimeTrackingSettings({
+      if (data.time_tracking_settings) {        setTimeTrackingSettings({
           track_per_job: data.time_tracking_settings.track_per_job ?? true,
           track_per_line_item: data.time_tracking_settings.track_per_line_item ?? false,
           enable_employee_portal: data.time_tracking_settings.enable_employee_portal ?? false,
@@ -246,6 +272,22 @@ export default function CompanySettings() {
       toast.error('Failed to update payroll settings');
     }
     setSavingPayrollSettings(false);
+  };
+
+  const handleSaveBranding = async () => {
+    if (!canEditSettings) {
+      toast.error('You do not have permission to edit settings');
+      return;
+    }
+    setSavingBranding(true);
+    try {
+      await updateTenant({ branding_settings: brandingSettings });
+      toast.success('Branding & template preferences saved');
+    } catch (err) {
+      console.error('Error updating branding settings:', err);
+      toast.error(err?.response?.data?.detail || 'Failed to save branding settings');
+    }
+    setSavingBranding(false);
   };
 
   // Logo upload handler
@@ -640,6 +682,161 @@ export default function CompanySettings() {
               </div>
             )}
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Branding & Templates Card */}
+      <Card className="border" style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }} data-testid="branding-settings-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-900">
+            <Palette className="h-5 w-5" style={{ color: '#2F8BFB' }} />
+            Branding & Templates
+          </CardTitle>
+          <CardDescription className="text-gray-500">
+            Control how your logo, colors, and text appear on invoices, emails, and generated documents.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Live Preview */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Live Preview</h3>
+              <span className="text-xs text-gray-400">Updates as you edit — save to apply</span>
+            </div>
+            <div className="rounded-xl p-4" style={{ background: '#F5F7FA', border: '1px solid #EEF1F4' }}>
+              <BrandingPreview branding={brandingSettings} company={formData} />
+            </div>
+          </div>
+
+          {/* Brand Colors */}
+          <div className="space-y-4 border-t pt-6" style={{ borderColor: '#EEF1F4' }}>
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Brand Colors</h3>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-gray-900">Primary Color</Label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={brandingSettings.primary_color || '#0D9488'} onChange={(e) => setBrand('primary_color', e.target.value)} disabled={!canEditSettings} className="h-10 w-14 rounded border cursor-pointer" data-testid="branding-primary-color" />
+                  <Input value={brandingSettings.primary_color || ''} onChange={(e) => setBrand('primary_color', e.target.value)} disabled={!canEditSettings} className="font-mono" placeholder="#0D9488" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Secondary Color</Label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={brandingSettings.secondary_color || '#14B8A6'} onChange={(e) => setBrand('secondary_color', e.target.value)} disabled={!canEditSettings} className="h-10 w-14 rounded border cursor-pointer" data-testid="branding-secondary-color" />
+                  <Input value={brandingSettings.secondary_color || ''} onChange={(e) => setBrand('secondary_color', e.target.value)} disabled={!canEditSettings} className="font-mono" placeholder="#14B8A6" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Invoice Branding */}
+          <div className="space-y-4 border-t pt-6" style={{ borderColor: '#EEF1F4' }}>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 uppercase tracking-wide">
+              <Receipt className="h-4 w-4" style={{ color: '#2F8BFB' }} /> Invoice Layout & Branding
+            </h3>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-gray-900">Accent Color <span className="text-gray-400 font-normal">(defaults to primary)</span></Label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={brandingSettings.invoice_accent_color || brandingSettings.primary_color || '#0D9488'} onChange={(e) => setBrand('invoice_accent_color', e.target.value)} disabled={!canEditSettings} className="h-10 w-14 rounded border cursor-pointer" data-testid="branding-invoice-accent-color" />
+                  <Input value={brandingSettings.invoice_accent_color || ''} onChange={(e) => setBrand('invoice_accent_color', e.target.value)} disabled={!canEditSettings} className="font-mono" placeholder="Leave blank to use primary" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Logo Position</Label>
+                <Select value={brandingSettings.invoice_logo_position || 'left'} onValueChange={(v) => setBrand('invoice_logo_position', v)} disabled={!canEditSettings}>
+                  <SelectTrigger data-testid="branding-invoice-logo-position"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">Left</SelectItem>
+                    <SelectItem value="center">Center</SelectItem>
+                    <SelectItem value="right">Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex items-center justify-between rounded-lg border p-3" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <Label className="text-gray-900">Show logo on invoices</Label>
+                <Switch checked={brandingSettings.invoice_show_logo} onCheckedChange={(c) => setBrand('invoice_show_logo', c)} disabled={!canEditSettings} data-testid="branding-invoice-show-logo" />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+                <Label className="text-gray-900">Show company address</Label>
+                <Switch checked={brandingSettings.invoice_show_company_info} onCheckedChange={(c) => setBrand('invoice_show_company_info', c)} disabled={!canEditSettings} data-testid="branding-invoice-show-company" />
+              </div>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-gray-900">Payment Terms</Label>
+                <Input value={brandingSettings.invoice_payment_terms || ''} onChange={(e) => setBrand('invoice_payment_terms', e.target.value)} disabled={!canEditSettings} placeholder="e.g. Net 30" data-testid="branding-invoice-payment-terms" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Invoice Footer Text</Label>
+                <Input value={brandingSettings.invoice_footer_text || ''} onChange={(e) => setBrand('invoice_footer_text', e.target.value)} disabled={!canEditSettings} placeholder="Thank you for your business!" data-testid="branding-invoice-footer" />
+              </div>
+            </div>
+          </div>
+
+          {/* Email Branding */}
+          <div className="space-y-4 border-t pt-6" style={{ borderColor: '#EEF1F4' }}>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 uppercase tracking-wide">
+              <Mail className="h-4 w-4" style={{ color: '#2F8BFB' }} /> Email Branding
+            </h3>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-gray-900">Email "From" Name <span className="text-gray-400 font-normal">(defaults to company name)</span></Label>
+                <Input value={brandingSettings.email_from_name || ''} onChange={(e) => setBrand('email_from_name', e.target.value)} disabled={!canEditSettings} placeholder={formData.name || 'Your Company'} data-testid="branding-email-from-name" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Email Header Color <span className="text-gray-400 font-normal">(defaults to primary)</span></Label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={brandingSettings.email_header_color || brandingSettings.primary_color || '#0D9488'} onChange={(e) => setBrand('email_header_color', e.target.value)} disabled={!canEditSettings} className="h-10 w-14 rounded border cursor-pointer" data-testid="branding-email-header-color" />
+                  <Input value={brandingSettings.email_header_color || ''} onChange={(e) => setBrand('email_header_color', e.target.value)} disabled={!canEditSettings} className="font-mono" placeholder="Leave blank to use primary" />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3 md:w-1/2" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+              <Label className="text-gray-900">Show logo in email header</Label>
+              <Switch checked={brandingSettings.email_show_logo} onCheckedChange={(c) => setBrand('email_show_logo', c)} disabled={!canEditSettings} data-testid="branding-email-show-logo" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-900">Email Signature</Label>
+              <Textarea value={brandingSettings.email_signature || ''} onChange={(e) => setBrand('email_signature', e.target.value)} disabled={!canEditSettings} rows={3} placeholder={'Best regards,\nThe Team'} data-testid="branding-email-signature" />
+              <p className="text-xs text-gray-400">Appended to the bottom of every email you send to customers.</p>
+            </div>
+            <p className="text-xs text-gray-500 rounded-lg p-3" style={{ background: '#F0F7FF' }}>
+              Once saved, your outgoing emails are wrapped with your logo, header color, and signature automatically.
+            </p>
+          </div>
+
+          {/* Document Branding */}
+          <div className="space-y-4 border-t pt-6" style={{ borderColor: '#EEF1F4' }}>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 uppercase tracking-wide">
+              <FileText className="h-4 w-4" style={{ color: '#2F8BFB' }} /> Document Branding
+            </h3>
+            <div className="flex items-center justify-between rounded-lg border p-3 md:w-1/2" style={{ borderColor: '#D7DCE2', background: '#F5F7FA' }}>
+              <Label className="text-gray-900">Show logo on generated PDFs</Label>
+              <Switch checked={brandingSettings.document_show_logo} onCheckedChange={(c) => setBrand('document_show_logo', c)} disabled={!canEditSettings} data-testid="branding-document-show-logo" />
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-gray-900">Document Header Text</Label>
+                <Input value={brandingSettings.document_header_text || ''} onChange={(e) => setBrand('document_header_text', e.target.value)} disabled={!canEditSettings} placeholder="e.g. Official Document" data-testid="branding-document-header" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Document Footer Text</Label>
+                <Input value={brandingSettings.document_footer_text || ''} onChange={(e) => setBrand('document_footer_text', e.target.value)} disabled={!canEditSettings} placeholder="e.g. Confidential" data-testid="branding-document-footer" />
+              </div>
+            </div>
+          </div>
+
+          {canEditSettings && (
+            <div className="flex justify-end border-t pt-4" style={{ borderColor: '#D7DCE2' }}>
+              <Button onClick={handleSaveBranding} disabled={savingBranding} data-testid="save-branding-btn" style={{ background: '#2F8BFB' }} className="text-white hover:opacity-90">
+                <Save className="mr-2 h-4 w-4" />
+                {savingBranding ? 'Saving...' : 'Save Branding & Templates'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

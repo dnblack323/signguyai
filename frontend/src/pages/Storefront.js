@@ -23,16 +23,30 @@ import {
 import { formatCurrency } from '../lib/utils';
 import { 
   ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle,
-  Store, Heart, Building2, User, ArrowLeft, X, Share2
+  Store, Heart, Building2, User, ArrowLeft, X, Share2,
+  Clock, CalendarDays, MapPin, Info, Eye, AlertCircle,
+  Shirt, Sticker, Gift, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAuthToken } from '../lib/authStorage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Category display config
+const CATEGORY_DISPLAY = {
+  apparel:     { label: 'Apparel',     Icon: Shirt },
+  signs:       { label: 'Signs',       Icon: Package },
+  decals:      { label: 'Decals',      Icon: Sticker },
+  promotional: { label: 'Promotional', Icon: Gift },
+  events:      { label: 'Events',      Icon: CalendarDays },
+  other:       { label: 'Other',       Icon: Tag },
+};
 
 export default function Storefront() {
   const { storeId } = useParams();
   const [searchParams] = useSearchParams();
   const embedded = searchParams.get('embedded') === 'true';
+  const adminPreview = searchParams.get('admin_preview') === '1';
   
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState(null);
@@ -132,27 +146,38 @@ export default function Storefront() {
   const loadStore = async () => {
     setLoading(true);
     try {
-      // Fetch store details using public storefront endpoint
-      const storeRes = await fetch(`${API}/api/storefront/${storeId}`);
+      let storeRes;
+      if (adminPreview) {
+        // Admin preview: call authenticated preview endpoint
+        const token = getAuthToken();
+        storeRes = await fetch(`${API}/api/storefront/${storeId}/preview`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+      } else {
+        storeRes = await fetch(`${API}/api/storefront/${storeId}`);
+      }
       if (!storeRes.ok) throw new Error('Store not found');
       const storeData = await storeRes.json();
       setStore(storeData);
-      
-      // Fetch store products using public storefront endpoint
-      const productsRes = await fetch(`${API}/api/storefront/${storeId}/products`);
-      const productsData = await productsRes.json();
-      setProducts(productsData);
 
-      // Fetch recent supporters (Event Store fundraisers only — endpoint
-      // returns [] for non-event/non-fundraiser stores or when names are
-      // hidden, so we can safely call it unconditionally).
-      try {
-        const supRes = await fetch(`${API}/api/storefront/${storeId}/supporters?limit=5`);
-        if (supRes.ok) {
-          const sup = await supRes.json();
-          setSupporters(Array.isArray(sup) ? sup : []);
-        }
-      } catch (_) { /* non-critical */ }
+      // Only load products if store is active or admin preview
+      if (storeData.status === 'active' || adminPreview) {
+        // Fetch store products using public storefront endpoint
+        const productsRes = await fetch(
+          `${API}/api/storefront/${storeId}/products${adminPreview ? '?admin_preview=true' : ''}`
+        );
+        const productsData = await productsRes.json();
+        setProducts(Array.isArray(productsData) ? productsData : []);
+
+        // Fetch recent supporters (Event Store fundraisers only)
+        try {
+          const supRes = await fetch(`${API}/api/storefront/${storeId}/supporters?limit=5`);
+          if (supRes.ok) {
+            const sup = await supRes.json();
+            setSupporters(Array.isArray(sup) ? sup : []);
+          }
+        } catch (_) { /* non-critical */ }
+      }
     } catch (err) {
       console.error('Error loading store:', err);
       toast.error('Store not found');
@@ -418,18 +443,8 @@ export default function Storefront() {
     );
   }
 
-  if (store.status !== 'active') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="max-w-md">
-          <CardContent className="p-8 text-center">
-            <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-bold mb-2">Store Unavailable</h2>
-            <p className="text-muted-foreground">This store is currently not accepting orders.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (store.status !== 'active' && !store.is_admin_preview) {
+    return <StorageStatusPage store={store} primaryColor={store.branding?.primary_color || '#0D9488'} />;
   }
 
   if (orderPlaced) {
@@ -464,8 +479,25 @@ export default function Storefront() {
     || store.logo_image_url
     || store.logo_image_data;
 
+  // Category grouping — preserve insertion order, ungrouped falls to "Other"
+  const productsByCategory = products.reduce((acc, item) => {
+    const cat = (item.product?.category || 'other').toLowerCase();
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(item);
+    return acc;
+  }, {});
+  const categoryGroups = Object.entries(productsByCategory);
+  const showCategoryHeaders = categoryGroups.length > 1;
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Admin Preview Banner */}
+      {(adminPreview || store.is_admin_preview) && (
+        <div className="w-full bg-amber-400 text-amber-900 py-2 px-4 text-center text-sm font-semibold flex items-center justify-center gap-2" data-testid="admin-preview-banner">
+          <Eye className="h-4 w-4" />
+          Admin Preview — This store is not live yet. Changes here won't affect customers.
+        </div>
+      )}
       {/* Banner Image */}
       {bannerUrl && (
         <div className="w-full h-48 sm:h-64 overflow-hidden">
@@ -634,6 +666,32 @@ export default function Storefront() {
         </div>
       )}
 
+      {/* Order Deadline + Pickup / Delivery Info */}
+      {(store.order_deadline || store.pickup_delivery_instructions || store.pickup_delivery_date) && (
+        <div className="border-b border-border bg-card" data-testid="store-info-band">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-4 text-sm">
+            {store.order_deadline && (
+              <div className="flex items-center gap-1.5 text-amber-700" data-testid="store-order-deadline">
+                <Clock className="h-4 w-4 flex-shrink-0" />
+                <span><strong>Order by:</strong> {store.order_deadline}</span>
+              </div>
+            )}
+            {store.pickup_delivery_date && (
+              <div className="flex items-center gap-1.5 text-blue-700" data-testid="store-pickup-date">
+                <CalendarDays className="h-4 w-4 flex-shrink-0" />
+                <span><strong>Pickup / Delivery:</strong> {store.pickup_delivery_date}</span>
+              </div>
+            )}
+            {store.pickup_delivery_instructions && (
+              <div className="flex items-start gap-1.5 text-muted-foreground w-full" data-testid="store-pickup-instructions">
+                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span>{store.pickup_delivery_instructions}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Products Grid */}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {products.length === 0 ? (
@@ -643,15 +701,33 @@ export default function Storefront() {
             <p className="text-muted-foreground">Check back soon for new products!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((item) => (
-              <ProductCard 
-                key={item.product_id} 
-                item={item} 
-                onAddToCart={addToCart}
-                primaryColor={primaryColor}
-              />
-            ))}
+          <div className="space-y-10">
+            {categoryGroups.map(([cat, items]) => {
+              const catInfo = CATEGORY_DISPLAY[cat] || { label: cat.charAt(0).toUpperCase() + cat.slice(1), Icon: Tag };
+              const CatIcon = catInfo.Icon;
+              return (
+                <section key={cat} data-testid={`product-category-${cat}`}>
+                  {showCategoryHeaders && (
+                    <div className="flex items-center gap-2 mb-5">
+                      <CatIcon className="h-5 w-5" style={{ color: primaryColor }} />
+                      <h2 className="text-lg font-semibold tracking-tight">{catInfo.label}</h2>
+                      <span className="text-xs text-muted-foreground">({items.length})</span>
+                      <div className="flex-1 h-px bg-border ml-2" />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {items.map((item) => (
+                      <ProductCard 
+                        key={item.product_id} 
+                        item={item} 
+                        onAddToCart={addToCart}
+                        primaryColor={primaryColor}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         )}
       </main>
@@ -941,6 +1017,106 @@ export default function Storefront() {
   );
 }
 
+// Status-specific page — shown for non-active stores (pending, closed, completed, disabled)
+function StorageStatusPage({ store, primaryColor }) {
+  const status = store?.status;
+  const logoUrl = store.branding?.logo_url;
+  const bannerUrl = store.branding?.banner_url;
+
+  const config = {
+    pending: {
+      icon: <Clock className="h-12 w-12" style={{ color: primaryColor }} />,
+      title: 'Coming Soon',
+      subtitle: 'This store is being set up and will open soon.',
+      badge: { label: 'Coming Soon', bg: 'bg-yellow-100 text-yellow-800' },
+      testId: 'store-status-pending',
+    },
+    disabled: {
+      icon: <AlertCircle className="h-12 w-12 text-muted-foreground" />,
+      title: 'Store Unavailable',
+      subtitle: 'This store is currently not accepting orders.',
+      badge: { label: 'Unavailable', bg: 'bg-gray-100 text-gray-700' },
+      testId: 'store-status-disabled',
+    },
+    completed: {
+      icon: <CheckCircle className="h-12 w-12 text-green-500" />,
+      title: 'Store Closed',
+      subtitle: 'This store has fulfilled all orders and is now closed. Thank you for your support!',
+      badge: { label: 'Closed', bg: 'bg-green-100 text-green-800' },
+      testId: 'store-status-completed',
+    },
+    closed: {
+      icon: <Store className="h-12 w-12 text-muted-foreground" />,
+      title: 'Store Closed',
+      subtitle: 'This store is no longer accepting orders.',
+      badge: { label: 'Closed', bg: 'bg-red-100 text-red-800' },
+      testId: 'store-status-closed',
+    },
+  };
+
+  const { icon, title, subtitle, badge, testId } = config[status] || config.disabled;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {bannerUrl && (
+        <div className="w-full h-32 sm:h-48 overflow-hidden">
+          <img src={bannerUrl} alt={store.name} className="w-full h-full object-cover opacity-60" />
+        </div>
+      )}
+      <div className="max-w-lg mx-auto px-4 py-16 text-center" data-testid={testId}>
+        {logoUrl ? (
+          <img src={logoUrl} alt={store.name} className="h-16 w-auto mx-auto mb-6 rounded" />
+        ) : (
+          <div
+            className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
+            style={{ backgroundColor: primaryColor + '20' }}
+          >
+            <Store className="h-8 w-8" style={{ color: primaryColor }} />
+          </div>
+        )}
+        <h1 className="text-2xl font-bold mb-1">{store.name}</h1>
+        <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full mb-4 ${badge.bg}`}>
+          {badge.label}
+        </span>
+        <div className="mb-4">{icon}</div>
+        <h2 className="text-xl font-semibold mb-2">{title}</h2>
+        <p className="text-muted-foreground mb-6">{subtitle}</p>
+
+        {/* Order deadline / pickup info for closed stores */}
+        {(store.order_deadline || store.pickup_delivery_date || store.pickup_delivery_instructions) && (
+          <div className="bg-card border rounded-lg p-4 text-sm text-left space-y-2 mt-4" data-testid="status-page-info">
+            {store.order_deadline && (
+              <div className="flex items-center gap-2 text-amber-700">
+                <Clock className="h-4 w-4" />
+                <span><strong>Order deadline:</strong> {store.order_deadline}</span>
+              </div>
+            )}
+            {store.pickup_delivery_date && (
+              <div className="flex items-center gap-2 text-blue-700">
+                <CalendarDays className="h-4 w-4" />
+                <span><strong>Pickup / Delivery:</strong> {store.pickup_delivery_date}</span>
+              </div>
+            )}
+            {store.pickup_delivery_instructions && (
+              <div className="flex items-start gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{store.pickup_delivery_instructions}</span>
+              </div>
+            )}
+          </div>
+        )}
+        {store.description && (
+          <p className="mt-4 text-sm text-muted-foreground italic">{store.description}</p>
+        )}
+      </div>
+      <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground">
+        Powered by SignGuy AI
+      </footer>
+    </div>
+  );
+}
+
+
 // Product Card Component
 function ProductCard({ item, onAddToCart, primaryColor }) {
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -980,7 +1156,20 @@ function ProductCard({ item, onAddToCart, primaryColor }) {
             )}
           </>
         ) : (
-          <Package className="h-16 w-16 text-muted-foreground/50" />
+          // Styled placeholder — gradient + category icon
+          <div
+            className="w-full h-full flex flex-col items-center justify-center gap-2"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}15 0%, ${primaryColor}30 100%)`,
+            }}
+          >
+            <Package className="h-12 w-12 opacity-30" style={{ color: primaryColor }} />
+            {product.category && (
+              <span className="text-xs font-medium uppercase tracking-widest opacity-40" style={{ color: primaryColor }}>
+                {product.category}
+              </span>
+            )}
+          </div>
         )}
       </div>
       

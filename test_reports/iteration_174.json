@@ -1,0 +1,63 @@
+{
+  "summary": "Iteration 174 — Webstore Owner Stripe Connect Buttons: Full backend + frontend testing. Fixed bug: getWebstoreOwnerStatus and sendWebstoreOwnerInvite were missing from AppContext (caused TypeError). Both are now present in AppContext.js and properly exported. All 10 acceptance criteria verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/webstore-owners/{id}/invite/quick",
+        "issue": "SendGrid returns 401 Unauthorized in test env (bad API key), causing 502. Error toast shows raw 'HTTP Error 401: Unauthorized' — not user-friendly, but NOT silent. Functional behavior is correct."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Owner Stripe Connection card — invite error toast",
+        "issues": [
+          "Error toast shows raw SendGrid 401 message 'HTTP Error 401: Unauthorized' instead of a user-friendly message like 'Email delivery failed. Check your SendGrid configuration.' Minor UX issue — not a functional bug."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration174_owner_stripe_connect_buttons.py",
+    "/app/test_reports/pytest/pytest_iteration174.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AppContext.js lines 709-721: getWebstoreOwnerStatus and sendWebstoreOwnerInvite correctly defined and exported in context value (line 824). Fix is complete.",
+    "WebstoreOwnerConnectCard.js line 26: Destructures { getWebstoreOwnerStatus, sendWebstoreOwnerInvite } from useApp() — now matches AppContext exactly. No more TypeError at runtime.",
+    "Backend invite/quick endpoint (line 276): When SendGrid fails, throws HTTPException(502) instead of returning {success: false}. The frontend's else branch (result.success === false) is dead code — error always goes through catch block. Functionally correct (toast appears), but the success=false fallback code in WebstoreOwnerConnectCard.js (lines 85-97) will never be reached. Not a bug, but worth noting.",
+    "owner-status endpoint correctly maps owner_stripe_charges_enabled → charges_enabled, owner_stripe_payouts_enabled → payouts_enabled. Frontend field names match backend response exactly."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration174_owner_stripe_connect_buttons.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all 10 acceptance criteria verified)"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123",
+  "seed_data_creation": "None. Used existing test store fc0bad7e-9040-477e-93b9-a3f0b1a2df90 (Preview Storefront QA, business type, has owner_email=p4inv-1779644151@example.com, no Stripe account).",
+  "retest_needed": false,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Owner Stripe Connect card is in /webstores → click Settings icon (data-testid=view-store-{id}) → store-detail-dialog opens → Dashboard tab (default) → scroll down to see 'Owner Stripe Connection' card. The store-row clicking does NOT open the dialog; only the Settings gear icon (view-store-{id}) does. Test store fc0bad7e-9040-477e-93b9-a3f0b1a2df90 has no Stripe account (Not Connected state). Connected/Pending badges could not be UI-tested (no Stripe accounts in test env). SendGrid returns 401 in test env — invite always fails with error toast showing 'HTTP Error 401: Unauthorized'.",
+  "acceptance_criteria_results": {
+    "1_no_runtime_error_on_dialog_open": "PASS — No TypeError, no pageerror events. Dialog opened cleanly.",
+    "2_check_status_btn_calls_owner_status_api": "PASS — check-stripe-status-btn clicked, owner-status API called (200 response), no errors",
+    "3_badge_not_connected_after_check": "PASS — Badge shows 'Not Connected' (gray) after Check Status on test store with no Stripe account",
+    "4_check_status_btn_disappears_after_load": "PASS — check-stripe-status-btn correctly hidden once status!=null",
+    "5_refresh_btn_triggers_status_refresh": "PASS — refresh-owner-stripe-status-btn found and clickable, badge remains 'Not Connected'",
+    "6_send_invite_calls_invite_quick": "PASS — send-stripe-invite-btn clicked, POST /api/webstore-owners/{id}/invite/quick called",
+    "7_error_toast_on_sendgrid_failure": "PASS — Error toast appeared: 'HTTP Error 401: Unauthorized' (backend 502 from SendGrid). NOT silent.",
+    "8_email_input_prefilled_with_owner_email": "PASS — owner-invite-email-input pre-filled with 'p4inv-1779644151@example.com' (store.owner_email)",
+    "9_pending_badge_amber": "CODE VERIFIED (not UI-tested) — isPending = Boolean(owner_stripe_account_id && !charges_enabled) → renders amber badge. No store in env with partial Stripe state.",
+    "10_connected_badge_green": "CODE VERIFIED (not UI-tested) — isConnected = Boolean(charges_enabled) → renders green badge. No connected Stripe account in test env."
+  },
+  "mocked_apis_in_use": {
+    "Stripe Connect": "MOCKED — Stripe Connect not used during invite flow (only needed when owner clicks onboarding link). Invite endpoint creates a magic link token and emails it.",
+    "SendGrid": "BROKEN IN TEST ENV — API key returns 401 Unauthorized. Invite endpoint returns 502. Frontend shows error toast with raw error message."
+  }
+}

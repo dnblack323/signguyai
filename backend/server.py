@@ -4560,6 +4560,7 @@ from routes.credits import router as credits_router
 from routes.dev import router as dev_router
 from routes.pricing_setup import router as pricing_setup_router
 from routes.profit_analytics import router as profit_analytics_router, financials_router
+from routes.admin_analytics import router as admin_analytics_router
 from routes.onboarding import router as onboarding_router
 from routes.orders import router as shop_orders_router
 from routes.job_tickets import router as job_tickets_router
@@ -4645,6 +4646,7 @@ else:
     api_router.include_router(_stub)
 api_router.include_router(pricing_setup_router)  # Historical invoice import + pricing setup
 api_router.include_router(profit_analytics_router)  # Profit & margin analytics dashboard
+api_router.include_router(admin_analytics_router)   # Platform-admin analytics
 api_router.include_router(financials_router)  # Financial entries (sales + expenses)
 api_router.include_router(onboarding_router)  # Tiered onboarding walkthrough
 api_router.include_router(admin_portal_router)  # Admin Portal Communications Hub
@@ -4728,14 +4730,24 @@ async def maintenance_mode_middleware(request, call_next):
     return await call_next(request)
 
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+# Add CORS middleware.
+# A literal wildcard ("*") with allow_credentials=True is rejected by browsers,
+# so when no explicit origin list is configured we reflect the request origin
+# via allow_origin_regex (valid with credentials) instead of sending "*".
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "").strip()
+_cors_kwargs = dict(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if _cors_origins_raw and _cors_origins_raw != "*":
+    _cors_kwargs["allow_origins"] = [
+        o.strip() for o in _cors_origins_raw.split(",") if o.strip()
+    ]
+else:
+    _cors_kwargs["allow_origin_regex"] = ".*"
+
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 
 # ============== SHUTDOWN EVENT ==============
@@ -4797,6 +4809,21 @@ async def startup_migrations():
         asyncio.create_task(_run_password_hash_audit())
     except Exception as e:
         logger.error(f"Failed to schedule password hash audit: {e}")
+
+    # Ensure the platform creator account has the correct role.
+    # PLATFORM_CREATOR_EMAIL in .env identifies the one app developer/creator.
+    # This runs on every startup so a redeploy always self-heals the role.
+    try:
+        creator_email = os.environ.get("PLATFORM_CREATOR_EMAIL", "").strip().lower()
+        if creator_email:
+            result = await db.users.update_one(
+                {"email": creator_email},
+                {"$set": {"role": "platform_creator"}}
+            )
+            if result.modified_count:
+                logger.info(f"Platform creator role assigned to {creator_email}")
+    except Exception as e:
+        logger.warning(f"Platform creator role assignment deferred: {e}")
 
 
 @app.on_event("shutdown")

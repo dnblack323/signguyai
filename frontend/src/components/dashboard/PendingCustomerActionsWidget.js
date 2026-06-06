@@ -5,9 +5,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import { Inbox, FileText as FileTextIcon, Wand2, MessageSquare, Loader2 } from 'lucide-react';
 import { getAuthToken } from '../../lib/authStorage';
 
@@ -15,12 +14,12 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}` });
 
 const ACTION_BADGE = {
-  proof_pending: 'bg-violet-100 text-violet-800 border-violet-200',
-  revision_requested: 'bg-amber-100 text-amber-800 border-amber-200',
-  contract_pending: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  quote_pending: 'bg-sky-100 text-sky-800 border-sky-200',
-  inspection_pending: 'bg-purple-100 text-purple-800 border-purple-200',
-  aftercare_pending: 'bg-teal-100 text-teal-800 border-teal-200',
+  proof_pending:      'bg-violet-500/20 text-violet-300 border-violet-500/40',
+  revision_requested: 'bg-amber-500/20  text-amber-300  border-amber-500/40',
+  contract_pending:   'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+  quote_pending:      'bg-sky-500/20    text-sky-300    border-sky-500/40',
+  inspection_pending: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  aftercare_pending:  'bg-teal-500/20   text-teal-300   border-teal-500/40',
 };
 
 export default function PendingCustomerActionsWidget() {
@@ -40,23 +39,23 @@ export default function PendingCustomerActionsWidget() {
   }, []);
 
   return (
-    <Card data-testid="pending-customer-actions-widget" className="border-violet-200">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Inbox className="h-4 w-4 text-violet-600" />
-          Pending Customer Actions
-        </CardTitle>
-        <CardDescription>
-          Wrap tickets waiting on a customer reply or signature.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div
+      data-testid="pending-customer-actions-widget"
+      className="rounded-xl"
+      style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
+    >
+      <div className="px-5 py-3.5 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <Inbox className="h-4 w-4 text-violet-400 flex-shrink-0" />
+        <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Pending Customer Actions</h2>
+      </div>
+      <div className="p-4">
+        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Wrap tickets waiting on a customer reply or signature.</p>
         {loading ? (
-          <div className="flex items-center justify-center py-6 text-slate-500" data-testid="pending-actions-loading">
+          <div className="flex items-center justify-center py-6" style={{ color: 'var(--text-muted)' }} data-testid="pending-actions-loading">
             <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…
           </div>
         ) : items.length === 0 ? (
-          <p className="text-sm text-slate-500 italic" data-testid="pending-actions-empty">
+          <p className="text-sm italic" style={{ color: 'var(--text-muted)' }} data-testid="pending-actions-empty">
             All wrap tickets are caught up. Nothing waiting on a customer.
           </p>
         ) : (
@@ -64,15 +63,16 @@ export default function PendingCustomerActionsWidget() {
             {items.map((it) => (
               <div
                 key={it.ticket_id}
-                className="rounded-lg border border-slate-200 p-3 space-y-2"
+                className="rounded-lg p-3 space-y-2"
+                style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--border-light)' }}
                 data-testid={`pending-actions-row-${it.ticket_id}`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
                       {it.customer_name} · #{it.order_number || '—'}
                     </p>
-                    <p className="text-xs text-slate-500 truncate">
+                    <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                       {it.wrap_type} · {it.vehicle || 'Vehicle'}
                     </p>
                   </div>
@@ -81,7 +81,7 @@ export default function PendingCustomerActionsWidget() {
                   {(it.actions || []).map((a) => (
                     <Badge
                       key={a.code}
-                      className={`text-[10px] uppercase border ${ACTION_BADGE[a.code] || 'bg-slate-100 text-slate-800 border-slate-200'}`}
+                      className={`text-[10px] uppercase border ${ACTION_BADGE[a.code] || 'bg-slate-600/30 text-slate-300 border-slate-500/40'}`}
                       data-testid={`pending-actions-badge-${it.ticket_id}-${a.code}`}
                     >
                       {a.label}
@@ -112,7 +112,7 @@ export default function PendingCustomerActionsWidget() {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

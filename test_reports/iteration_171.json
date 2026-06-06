@@ -1,0 +1,61 @@
+{
+  "summary": "Phase 7 testing — Public Storefront Polish + Webstores Audit Trail. Backend: 21/21 tests PASS. Frontend: all 7 features verified after fixing a critical auth bug in Storefront.js (wrong localStorage key for admin token). One pre-existing backend 500 bug on GET /api/products (from iteration 157 test data) documented. All Phase 7 features confirmed working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/products",
+        "issue": "Returns 500 ResponseValidationError. Root cause: test product 'TEST Iter157 Product' (id: prod_iter157_e5d99651) in the products collection is missing required 'base_cost' field. Pydantic response model requires base_cost. This causes the Webstores admin 'Products' tab to fail loading products entirely. Pre-existing from iteration 157.",
+        "priority": "MEDIUM"
+      },
+      {
+        "endpoint": "PUT /api/webstores/v2/{id} — audit event to_status field",
+        "issue": "status_changed events in webstore_stage_events store 'to_status' as Python enum repr string 'WebstoreStatus.PENDING' instead of clean value 'pending'. Root cause: update_data uses model_dump() which returns WebstoreStatus enum objects, and str(enum_obj) gives enum repr. Fix: use new_status.value or str(new_status.value). The 'from_status' is stored correctly as a plain string.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Storefront.js — Admin Preview auth",
+        "issue": "FIXED in this iteration: Admin preview showed 401 because Storefront.js used localStorage.getItem('token') but the admin token is stored under key 'auth_token' (via authStorage.js). Fixed by importing and using getAuthToken() from '../lib/authStorage'.",
+        "selector": "N/A — fixed",
+        "priority": "CRITICAL (FIXED)"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Webstores admin — Products tab in store detail dialog",
+        "issues": ["GET /api/products returns 500 so product catalog fails to load in the admin Products tab. Shows loading spinner indefinitely."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration171_phase7_storefront.py",
+    "/app/test_reports/pytest/iteration171_results.xml"
+  ],
+  "action_items": [
+    "Fix GET /api/products 500: product 'TEST Iter157 Product' (id: prod_iter157_e5d99651) is missing base_cost field in MongoDB. Either (a) add base_cost: 0 to that document in the products collection, or (b) make base_cost Optional[float] in the Product model.",
+    "Fix status_changed event to_status enum repr: in update_webstore() at line 2302, change str(new_status) to str(new_status.value if hasattr(new_status, 'value') else new_status) to store clean string like 'disabled' not 'WebstoreStatus.DISABLED'."
+  ],
+  "critical_code_review_comments": [
+    "Storefront.js used hardcoded localStorage key 'token' instead of the centralized authStorage helper getAuthToken() — this is a subtle forward-compat bug. Any future token-key changes would silently break admin preview again. All localStorage token access should go through authStorage helpers.",
+    "webstore_stage_events 'to_status' stores enum repr not value — easy fix, but worth fixing for queryability of the audit collection.",
+    "GET /api/products 500 from stale test data: consider adding 'base_cost: Optional[float] = None' with a @validator or computed default so missing base_cost doesn't crash the entire list endpoint.",
+    "preview-store-btn is in 'Settings & Branding' tab (not 'Dashboard') — this is correct but note that admins must navigate to that tab to find the preview button. Consider surfacing it in the Dashboard tab as well for discoverability."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/Storefront.js (added getAuthToken import, replaced localStorage.getItem('token') with getAuthToken())"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21 pytest)",
+    "frontend": "100% — all 7 Phase 7 UI features verified: (1) StorageStatusPage for pending store, (2) status-page-info band with order deadline + pickup, (3) admin preview banner after auth fix, (4) products in admin preview, (5) gradient placeholder for imageless products, (6) category grouping headers with apparel+signs, (7) preview-store-btn in Settings & Branding tab. Status badge colors (pending=yellow, completed=blue, closed=gray) verified by CSS class inspection."
+  },
+  "seed_data_creation": "Added/removed during testing: order_deadline and pickup_delivery_instructions added to test store then removed. TEST_Phase7_Sign and TEST_Phase7_Sign2 products created for category grouping test then deleted. Store temporarily cycled through pending/disabled/completed/closed statuses and restored to pending. production_started_at and preview_ready_at stage stamps applied to test store during testing.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 7 all features working after auth fix. Test store fc0bad7e status=pending (Stripe not connected, can't set to active). GET /api/products returns 500 — fix the test product missing base_cost first. All Phase 7 backend tests in /app/backend/tests/test_iteration171_phase7_storefront.py. preview-store-btn is in Settings & Branding tab of store detail dialog (not Dashboard tab). Stage events are stored in webstore_stage_events MongoDB collection (not exposed via API). The store's production_started_at and preview_ready_at are now stamped from testing — may want to clear these via PATCH admin-progress unstamp.",
+  "rca_of_the_issue": "Admin preview 401: Storefront.js independently managed auth with localStorage.getItem('token') hardcoded. The app uses authStorage.js (AUTH_KEY='auth_token') for all auth token storage since the auth migration. When admin logs in, token is set via setAuthToken(token, persistent=true) to localStorage['auth_token']. Storefront.js reads localStorage['token'] (wrong key) → gets null → fetch has no Authorization header → backend returns 401. Fix: use getAuthToken() from authStorage.js which correctly reads auth_token key from localStorage or sessionStorage."
+}

@@ -535,8 +535,8 @@ async def send_document_via_email(
         raise HTTPException(status_code=400, detail="Customer does not have an email address")
     
     # Get tenant info for company name
-    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
-    company_name = tenant.get("company_name", "SignGuy AI") if tenant else "SignGuy AI"
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    company_name = (tenant.get("company_name") or tenant.get("name") or "SignGuy AI") if tenant else "SignGuy AI"
     
     # Prepare attachment if requested
     attachment = None
@@ -615,8 +615,8 @@ async def send_document_to_portal(
         raise HTTPException(status_code=400, detail="Customer does not have portal access enabled")
     
     # Get tenant info
-    tenant = await db.tenants.find_one({"tenant_id": current_user.tenant_id}, {"_id": 0})
-    company_name = tenant.get("company_name", "SignGuy AI") if tenant else "SignGuy AI"
+    tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0})
+    company_name = (tenant.get("company_name") or tenant.get("name") or "SignGuy AI") if tenant else "SignGuy AI"
     
     # Create a portal document entry
     portal_doc = {
@@ -786,10 +786,10 @@ async def get_template_variables(tenant_id: str, customer_id: Optional[str] = No
     }
     
     # Get tenant info
-    tenant = await db.tenants.find_one({"tenant_id": tenant_id}, {"_id": 0})
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
     if tenant:
         variables.update({
-            "company_name": tenant.get("company_name", ""),
+            "company_name": tenant.get("company_name") or tenant.get("name") or "",
             "company_address": tenant.get("address", ""),
             "company_city": tenant.get("city", ""),
             "company_state": tenant.get("state", ""),
@@ -1182,11 +1182,19 @@ async def generate_pdf_from_content(
     """Generate a PDF from text content"""
     try:
         from reportlab.lib.pagesizes import letter
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import inch
+        from reportlab.lib import colors as rl_colors
         import io
-        
+
+        # ── Tenant branding ──
+        tenant = await db.tenants.find_one(
+            {"id": current_user.tenant_id},
+            {"_id": 0, "name": 1, "logo_url": 1, "branding_settings": 1},
+        )
+        bs = (tenant or {}).get("branding_settings") or {}
+
         # Create PDF in memory
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
@@ -1211,7 +1219,36 @@ async def generate_pdf_from_content(
             leading=14,
             spaceAfter=12,
         )
-        
+
+        header_style = ParagraphStyle(
+            'BrandHeader', parent=styles['Normal'], fontSize=10, textColor=rl_colors.HexColor("#64748B"), spaceAfter=6,
+        )
+        footer_style = ParagraphStyle(
+            'BrandFooter', parent=styles['Normal'], fontSize=9, textColor=rl_colors.HexColor("#94A3B8"), spaceBefore=18,
+        )
+
+        # ── Branded header: logo + optional header text ──
+        logo_url = tenant.get("logo_url") if tenant else None
+        if bs.get("document_show_logo", True) and logo_url and isinstance(logo_url, str) and logo_url.startswith("data:"):
+            try:
+                b64 = logo_url.split(",", 1)[1]
+                img_bytes = base64.b64decode(b64)
+                img = Image(io.BytesIO(img_bytes))
+                # Scale to max 1.6in wide / 0.7in tall preserving aspect.
+                max_w, max_h = 1.6 * inch, 0.7 * inch
+                ratio = min(max_w / img.imageWidth, max_h / img.imageHeight, 1)
+                img.drawWidth = img.imageWidth * ratio
+                img.drawHeight = img.imageHeight * ratio
+                img.hAlign = 'LEFT'
+                story.append(img)
+                story.append(Spacer(1, 0.12 * inch))
+            except Exception as logo_exc:  # pragma: no cover - defensive
+                logger.warning(f"Could not embed logo in PDF: {logo_exc}")
+
+        if bs.get("document_header_text"):
+            safe_header = bs["document_header_text"].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            story.append(Paragraph(safe_header, header_style))
+
         # Add title
         story.append(Paragraph(input.title, title_style))
         story.append(Spacer(1, 0.2 * inch))
@@ -1237,6 +1274,11 @@ async def generate_pdf_from_content(
                     story.append(Paragraph(safe_line, body_style))
             else:
                 story.append(Spacer(1, 0.1 * inch))
+
+        # ── Branded footer ──
+        if bs.get("document_footer_text"):
+            safe_footer = bs["document_footer_text"].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            story.append(Paragraph(safe_footer, footer_style))
         
         # Build PDF
         doc.build(story)

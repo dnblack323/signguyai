@@ -705,6 +705,33 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Webstore Owner Stripe Connect
+  const getWebstoreOwnerStatus = async (webstoreId) => {
+    const res = await api.get(`/webstore-owners/${webstoreId}/owner-status`);
+    return res.data;
+  };
+
+  const sendWebstoreOwnerInvite = async (webstoreId, email, publicUrl, message) => {
+    const res = await api.post(`/webstore-owners/${webstoreId}/invite/quick`, {
+      email,
+      public_url: publicUrl || window.location.origin,
+      message: message || undefined,
+    });
+    return res.data;
+  };
+
+  // Questionnaire review details (dry-run preview of apply-answers mapping)
+  const getWebstoreQuestionnaireReviewDetails = async (webstoreId) => {
+    const res = await api.get(`/webstores/v2/${webstoreId}/questionnaire/review-details`);
+    return res.data;
+  };
+
+  // Admin-progress stamps (mark_preview_ready, mark_owner_approved, …)
+  const stampWebstoreAdminProgress = async (webstoreId, flagKey) => {
+    const res = await api.patch(`/webstores/v2/${webstoreId}/admin-progress`, { [flagKey]: true });
+    return res.data;
+  };
+
   // Tenant / Company Settings
   const fetchTenant = useCallback(async () => {
     try {
@@ -805,6 +832,12 @@ export const AppProvider = ({ children }) => {
     // Event Store Questionnaire
     getWebstoreQuestionnaire, sendWebstoreQuestionnaire, applyWebstoreQuestionnaireAnswers,
     getWebstoreEventChecklist,
+    // Webstore Owner Stripe Connect
+    getWebstoreOwnerStatus, sendWebstoreOwnerInvite,
+    // Questionnaire review
+    getWebstoreQuestionnaireReviewDetails,
+    // Admin-progress stamps
+    stampWebstoreAdminProgress,
     // Tenant / Company Settings
     tenant, fetchTenant, getTenant, updateTenant,
     // Stripe Connect

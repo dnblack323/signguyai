@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { Search, Users, ChevronRight, Shield, ScrollText, Mail, Megaphone, Send } from 'lucide-react';
+import { Search, Users, ChevronRight, Shield, ScrollText, Mail, Megaphone, Send, BarChart2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuthToken } from '../lib/authStorage';
 
@@ -17,10 +17,12 @@ export default function PlatformAdmin() {
   const [filteredTenants, setFilteredTenants] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // Redirect if not platform admin
   useEffect(() => {
-    if (user && user.role !== 'platform_admin') {
+    if (user && user.role !== 'platform_admin' && user.role !== 'platform_creator') {
       toast.error('Access denied: Platform Admin privileges required');
       navigate('/');
     }
@@ -28,7 +30,7 @@ export default function PlatformAdmin() {
 
   // Fetch tenants
   useEffect(() => {
-    if (user?.role === 'platform_admin') {
+    if (user?.role === 'platform_admin' || user?.role === 'platform_creator') {
       fetchTenants();
     }
   }, [user]);
@@ -78,7 +80,34 @@ export default function PlatformAdmin() {
     }
   };
 
-  if (user?.role !== 'platform_admin') {
+  const handleDeleteTenant = async (tenant) => {
+    if (confirmDeleteId !== tenant.id) {
+      setConfirmDeleteId(tenant.id);
+      return;
+    }
+    setDeletingId(tenant.id);
+    setConfirmDeleteId(null);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${BACKEND_URL}/api/platform-admin/tenants/${tenant.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Delete failed');
+      }
+      toast.success(`Tenant "${tenant.name}" deleted`);
+      setTenants(prev => prev.filter(t => t.id !== tenant.id));
+      setFilteredTenants(prev => prev.filter(t => t.id !== tenant.id));
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (user?.role !== 'platform_admin' && user?.role !== 'platform_creator') {
     return null;
   }
 
@@ -97,6 +126,14 @@ export default function PlatformAdmin() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/platform-admin/analytics')}
+              data-testid="platform-admin-analytics-btn"
+            >
+              <BarChart2 className="w-4 h-4 mr-1" />
+              Analytics
+            </Button>
             <Button
               variant="outline"
               onClick={() => navigate('/platform-admin/broadcast-email')}
@@ -212,10 +249,12 @@ export default function PlatformAdmin() {
                 {filteredTenants.map((tenant) => (
                   <div
                     key={tenant.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/platform-admin/tenants/${tenant.id}`)}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex-1">
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => navigate(`/platform-admin/tenants/${tenant.id}`)}
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-gray-900">{tenant.name}</h3>
                         {tenant.is_active === false && (
@@ -234,14 +273,47 @@ export default function PlatformAdmin() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
+                    <div className="flex items-center gap-3">
+                      <div className="text-right cursor-pointer" onClick={() => navigate(`/platform-admin/tenants/${tenant.id}`)}>
                         <p className="text-sm font-medium text-gray-700 capitalize">
                           {tenant.plan.replace(/_/g, ' ')}
                         </p>
                         <p className="text-xs text-gray-500">{tenant.user_count} users</p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      <ChevronRight
+                        className="w-5 h-5 text-gray-400 cursor-pointer"
+                        onClick={() => navigate(`/platform-admin/tenants/${tenant.id}`)}
+                      />
+                      {confirmDeleteId === tenant.id ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={deletingId === tenant.id}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteTenant(tenant); }}
+                            data-testid={`tenant-delete-confirm-${tenant.id}`}
+                          >
+                            Confirm
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteTenant(tenant); }}
+                          disabled={deletingId === tenant.id}
+                          className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete tenant"
+                          data-testid={`tenant-delete-btn-${tenant.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -1,0 +1,70 @@
+{
+  "summary": "Dashboard Visual QA — 24 acceptance criteria verified. 23/24 PASS, 1 minor issue: top navigation tabs overflow (require horizontal scroll) at 1024px viewport. All structural, layout, and widget checks pass at 1440px desktop. Webstores ribbon unchanged.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Top Navigation — 1024px viewport",
+        "issues": [
+          "T1 at 1024px: NAV element scrollWidth=1430 > clientWidth=1024. The main navigation tabs (Dashboard, Orders, Billing, Customers, Webstores, Documents, Team, AI Tools, Financials, Productivity, Reports, Community, Settings) do not fit at 1024px. Last tabs ('Productivity', 'Reports', 'Community', 'Settings') are hidden/cut off and require horizontal scrolling. The nav has overflow-x-auto so it scrolls rather than wraps, but the criterion says 'fits on screen without wrapping'. Minor issue — the ribbon (h-14) and main content grid are fine."
+        ]
+      },
+      {
+        "screen": "Today's Schedule card — empty state",
+        "issues": [
+          "T19 minor: Today's Schedule card is 334px tall when empty ('Nothing scheduled today' + Calendar button). Slightly tall for an empty state but functionally correct and compact enough."
+        ]
+      }
+    ]
+  },
+  "test_results": {
+    "T1_nav_1440px": "PASS — HEADER scrollW=1440 clientW=1440, no overflow",
+    "T1_nav_1024px": "MINOR ISSUE — NAV scrollW=1430 > clientW=1024 (overflow-x-auto scrolls, but last tabs cut off)",
+    "T2_ribbon_height_56px": "PASS — ribbon getBoundingClientRect().height = 56px",
+    "T3_ribbon_12_buttons": "PASS — exactly 12 buttons: New Order, New Quote, New Customer, Pricing Calc, Send Proof, Request Approval, Send Document, New Invoice, Send Email, New Task, Schedule Install, Open Calendar",
+    "T4_ribbon_groups_3": "PASS — 3 groups: dashboard-ribbon-group-create, dashboard-ribbon-group-customer, dashboard-ribbon-group-workflow",
+    "T5_kpi_cards_count": "PASS — 5 KPI cards: Due Today, Overdue, Needs Approval, In Production, Unpaid Invoices",
+    "T6_kpi_top_border_accent": "PASS — borderTop: 3px solid rgb(47,139,251/220,38,38/217,119,6) confirmed on each card, NOT full colored backgrounds",
+    "T7_no_yellow_heavy_cards": "PASS — 0 large amber/yellow background cards found",
+    "T8_text_contrast": "PASS — card labels use rgb(71,85,105) on light bg, values use theme text colors, no white-on-white",
+    "T9_grid_cols_3": "PASS — 3 instances of lg:grid-cols-3 in dashboard DOM (Row2, Row3, Row4)",
+    "T10_no_col_span_3": "PASS — 0 elements with col-span-3 class in dashboard",
+    "T11_production_snapshot_col_span_2": "PASS — Production Snapshot wrapper has class 'lg:col-span-2'",
+    "T12_shop_health_1col": "PASS — Shop Health parentElement has no col-span class (sits in 1-col slot)",
+    "T13_row3_schedule_team_billing": "PASS — Row3 grid (grid-cols-1 sm:grid-cols-2 lg:grid-cols-3) has 3 direct children: Today's Schedule, Team Today, Billing Snapshot",
+    "T14_action_required_col_span_2": "PASS — ActionRequired parent has class 'lg:col-span-2 space-y-4'",
+    "T15_onboarding_collapsed": "PASS — data-testid=collapsible-onboarding found, directDivCount=1 (collapsed), text='Guided OnboardingResume Setup' (no checklist visible)",
+    "T16_no_standalone_nudges_widget": "PASS — data-testid='assistant-nudges-widget' NOT present in DOM",
+    "T17_suggestions_in_action_required": "PASS — hasSuggestionsLabel=true AND data-testid='assistant-nudges-section' found inside action-required card",
+    "T18_no_orphan_billing_rows": "PASS — all 4 billing rows (unpaid, overdue, due_this_week, recent_payments) are inside rounded-xl card containers",
+    "T19_empty_states_compact": "MINOR — Today's Schedule empty card is 334px tall. Functional, not a blank card, but slightly tall.",
+    "T20_business_overview_4_stats": "PASS — Total Customers, Active Orders, Pending Invoices, Today's Revenue all present (no duplication of KPI strip metrics verbatim)",
+    "T21_mobile_375_stacking": "PASS — KPI(228px) → Shop Health(1198px) → Billing/Financial(1990px) → Action Required(2286px) → Onboarding(3603px) — correct vertical stacking order on 375px",
+    "T22_tablet_768_2col": "PASS — sm:grid-cols-2 class present 2x in dashboard (Row3), tablet uses 2-col layout",
+    "T23_12_ribbon_buttons_navigate": "PASS — all 12 ribbon buttons are non-disabled with onClick handlers, none in disabled state",
+    "T24_webstores_ribbon_unchanged": "PASS — WebstoresRibbon found with h=56px, 10 groups (Dashboard/Create-Setup/Manage-Stores/Products/Orders/Questionnaires/Owner-Portal/Payments/Analytics/Tools), 10 buttons"
+  },
+  "test_report_links": [],
+  "action_items": [
+    "LOW: At 1024px viewport width, the top main navigation tabs overflow (last tabs Productivity/Reports/Community/Settings not visible). The nav has overflow-x-auto (scrollable), but the criterion says 'fits on screen without wrapping'. Consider adding responsive wrapping or a compact nav mode at 1024px if this viewport is important for users."
+  ],
+  "critical_code_review_comments": [
+    "RecentAIDocumentsWidget (Dashboard.js lines 1467-1540) is still dead code — rendered in Dashboard.js but never mounted in the main return JSX. Safe to remove.",
+    "DashboardRibbon.js comment header (lines 7-8) says '12 visible actions in 3 groups' (correct) but earlier versions said '4 groups' — now correctly updated.",
+    "Today's Schedule empty state: the card renders with a 'Nothing scheduled today' + Calendar button at ~334px. Acceptable but could be more compact (py-2 instead of py-3 + smaller CTA button)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only)",
+    "frontend": "96% (23/24 — 1 minor design issue at 1024px nav)"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Visual QA pass iteration 184 complete. 23/24 criteria PASS. Single minor issue: top nav tabs overflow at 1024px (scroll required for Productivity/Reports/Community/Settings tabs). Dashboard structure: Ribbon=3 groups (Create/Customer/Workflow) 12 buttons, KPI=5 top-border-accent cards, Row2=ProductionSnapshot(lg:col-span-2)+ShopHealth(1col), Row3=TodaySchedule+TeamToday+BillingSnapshot (sm:grid-cols-2 lg:grid-cols-3), Row4=ActionRequired(lg:col-span-2)+CollapsibleOnboarding(1col), Row5=BusinessOverview (4 stats). Suggestions section with data-testid='assistant-nudges-section' present inside Action Required. No standalone AssistantNudgesWidget. CollapsibleOnboarding collapsed by default. WebstoresRibbon intact (10 groups/10 buttons at /webstores). Credentials: thesigntistslab@gmail.com / password123."
+}

@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { trackPageView, initErrorTracking } from "./utils/analytics";
 import { PageContextProvider } from "./context/PageContext";
 import { AppProvider } from "./context/AppContext";
 import GlobalBanner from "./components/GlobalBanner";
@@ -37,6 +39,7 @@ import Storefront from "./pages/Storefront";
 import Approvals from "./pages/Approvals";
 import Documents from "./pages/Documents/Documents";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
 import Pricing from "./pages/Pricing";
 import PricingSettings from "./pages/PricingSettings";
@@ -72,6 +75,7 @@ import PlatformAdminAuditLog from "./pages/PlatformAdminAuditLog";
 import PlatformAdminEmailLogs from "./pages/PlatformAdminEmailLogs";
 import PlatformAdminSiteSettings from "./pages/PlatformAdminSiteSettings";
 import PlatformAdminBroadcastEmail from "./pages/PlatformAdminBroadcastEmail";
+import PlatformAdminAnalytics from "./pages/PlatformAdminAnalytics";
 import AccountSuspended from "./pages/AccountSuspended";
 
 // Customer Portal Pages
@@ -176,9 +180,24 @@ function LoadingScreen() {
   );
 }
 
+// Lightweight page-view tracker (fires on every route change)
+function PageTracker() {
+  const location = useLocation();
+  const { user } = useAuth();
+  useEffect(() => {
+    trackPageView(location.pathname, user || {});
+  }, [location.pathname, user]);
+  return null;
+}
+
 // Protected Route Wrapper
 function ProtectedRoutes() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  // Init error tracking once user is known
+  useEffect(() => {
+    if (user) initErrorTracking(user);
+  }, [user?.id]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -190,6 +209,7 @@ function ProtectedRoutes() {
 
   return (
     <TrialLockout>
+      <PageTracker />
       <MainLayout>
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -254,6 +274,7 @@ function ProtectedRoutes() {
           <Route path="/platform-admin/email-logs" element={<PlatformAdminEmailLogs />} />
           <Route path="/platform-admin/site-settings" element={<PlatformAdminSiteSettings />} />
           <Route path="/platform-admin/broadcast-email" element={<PlatformAdminBroadcastEmail />} />
+          <Route path="/platform-admin/analytics" element={<PlatformAdminAnalytics />} />
           <Route path="/platform-admin/tenants/:tenantId" element={<PlatformAdminTenantDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -309,6 +330,7 @@ function App() {
                 
                 {/* Auth Routes - Public */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/account-suspended" element={<AccountSuspended />} />
                 <Route path="/register" element={<Navigate to="/login?register=true" replace />} />
                 

@@ -162,8 +162,9 @@ DEFAULT_CHECKLIST_ITEMS = [
 # ============== HELPER FUNCTIONS ==============
 
 def require_platform_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
-    """Dependency to ensure user is a platform admin"""
-    if current_user.role != UserRole.PLATFORM_ADMIN:
+    """Only platform_creator (app developer) and platform_admin accounts may access these routes."""
+    allowed_roles = {UserRole.PLATFORM_ADMIN, "platform_admin", UserRole.PLATFORM_CREATOR, "platform_creator"}
+    if current_user.role not in allowed_roles:
         raise HTTPException(
             status_code=403,
             detail="Access denied: Platform Admin privileges required"
@@ -225,7 +226,7 @@ async def list_tenants(
         user_count = await db.users.count_documents({"tenant_id": tenant["id"]})
         result.append(TenantListItem(
             id=tenant["id"],
-            name=tenant["name"],
+            name=tenant.get("name", "Unnamed Tenant"),
             owner_email=tenant.get("owner_email", ""),
             plan=tenant.get("plan", "starter"),
             created_at=tenant.get("created_at", ""),
@@ -463,6 +464,62 @@ async def reactivate_tenant(
         "tenant": TenantDetail(**updated),
         "email_status": email_status,
     }
+
+
+@router.delete("/tenants/{tenant_id}")
+async def delete_tenant(
+    tenant_id: str,
+    http_request: Request,
+    current_user: UserInDB = Depends(require_platform_admin)
+):
+    """Permanently delete a tenant and all associated data. Platform Creator only."""
+    if current_user.role not in ("platform_creator", "platform_admin"):
+        raise HTTPException(status_code=403, detail="Only platform creator can delete tenants")
+
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    # Safety: prevent deleting the creator's own tenant
+    if current_user.tenant_id == tenant_id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own tenant")
+
+    tenant_name = tenant.get("name", "Unknown")
+
+    # Delete all data for this tenant across every collection
+    collections = [
+        "users", "orders", "invoices", "customers", "jobs", "quotes",
+        "conversations", "documents", "appointments", "timeclock_entries",
+        "payroll_worksheets", "products", "webstores", "webstore_orders_v2",
+        "questionnaires", "questionnaire_responses", "onboarding_checklist",
+        "wrap_tickets", "wrap_files", "notifications", "ai_audit_log",
+        "workflow_templates", "pricing_configuration", "analytics_events",
+    ]
+    for col in collections:
+        try:
+            await db[col].delete_many({"tenant_id": tenant_id})
+        except Exception:
+            pass
+
+    await db.tenants.delete_one({"id": tenant_id})
+
+    await log_admin_action(
+        db,
+        request=http_request,
+        actor=current_user,
+        action="tenant.delete",
+        action_category="tenant",
+        target_type="tenant",
+        target_id=tenant_id,
+        target_label=tenant_name,
+        tenant_id=tenant_id,
+        tenant_name=tenant_name,
+        summary=f"Permanently deleted tenant {tenant_name}",
+        metadata={"tenant_name": tenant_name, "owner_email": tenant.get("owner_email")},
+    )
+
+    logger.info(f"Tenant {tenant_id} ({tenant_name}) permanently deleted by {current_user.email}")
+    return {"message": f"Tenant '{tenant_name}' and all associated data deleted"}
 
 
 @router.post("/tenants/{tenant_id}/mark-paid")
@@ -780,21 +837,27 @@ async def get_tenant_checklist(
 ):
     """Get onboarding checklist for a tenant - Platform Admin only"""
     
-    # Verify tenant exists
     tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    # Ensure checklist exists
     await ensure_checklist_exists(tenant_id)
     
-    # Get checklist items
     items = await db.onboarding_checklist.find(
         {"tenant_id": tenant_id},
         {"_id": 0}
     ).sort("order", 1).to_list(100)
-    
-    return [OnboardingChecklistItem(**item) for item in items]
+
+    # Deduplicate by item_key — keep the most recently updated doc per key
+    seen_keys = {}
+    for item in items:
+        key = item.get("item_key", item["id"])
+        existing = seen_keys.get(key)
+        if existing is None or (item.get("updated_at") or "") > (existing.get("updated_at") or ""):
+            seen_keys[key] = item
+    unique_items = sorted(seen_keys.values(), key=lambda x: x.get("order", 0))
+
+    return [OnboardingChecklistItem(**item) for item in unique_items]
 
 
 @router.patch("/tenants/{tenant_id}/checklist/{item_id}")

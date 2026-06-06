@@ -81,17 +81,69 @@ class EmailService:
     
     async def get_tenant_branding(self, tenant_id: str) -> dict:
         """Get tenant branding info for emails"""
-        tenant = await db.tenants.find_one({"tenant_id": tenant_id}, {"_id": 0})
-        
+        tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+        bs = (tenant or {}).get("branding_settings") or {}
+        primary = bs.get("primary_color") or (tenant.get("primary_color") if tenant else None) or "#0D9488"
+
         return {
-            "company_name": tenant.get("company_name", "SignGuy AI") if tenant else "SignGuy AI",
+            "company_name": (tenant.get("company_name") or tenant.get("name") or "SignGuy AI") if tenant else "SignGuy AI",
             "logo_url": tenant.get("logo_url", "") if tenant else "",
-            "primary_color": tenant.get("primary_color", "#0D9488") if tenant else "#0D9488",
-            "secondary_color": tenant.get("secondary_color", "#14B8A6") if tenant else "#14B8A6",
+            "primary_color": primary,
+            "secondary_color": bs.get("secondary_color") or (tenant.get("secondary_color") if tenant else None) or "#14B8A6",
             "portal_url": tenant.get("portal_url", "") if tenant else "",
-            "current_year": str(datetime.now().year)
+            "current_year": str(datetime.now().year),
+            "branding_settings": bs,
         }
-    
+
+    async def _apply_email_branding(self, html_content: str, tenant_id: Optional[str]) -> tuple:
+        """Wrap email HTML in the tenant's branded shell when email branding is
+        configured. Returns (wrapped_html, from_name_override).
+
+        For tenants that have NOT configured branding_settings, returns the
+        original HTML unchanged and no from-name override (zero regression).
+        """
+        if not tenant_id:
+            return html_content, None
+        tenant = await db.tenants.find_one(
+            {"id": tenant_id},
+            {"_id": 0, "name": 1, "logo_url": 1, "branding_settings": 1},
+        )
+        if not tenant:
+            return html_content, None
+        bs = tenant.get("branding_settings")
+        if not bs:
+            return html_content, None  # branding not configured → leave as-is
+
+        company_name = tenant.get("name") or "SignGuy AI"
+        from_name = bs.get("email_from_name") or company_name
+        header_color = bs.get("email_header_color") or bs.get("primary_color") or "#0D9488"
+        show_logo = bs.get("email_show_logo", True)
+        logo_url = tenant.get("logo_url") if show_logo else None
+        signature = bs.get("email_signature")
+
+        logo_block = (
+            f'<img src="{logo_url}" alt="{company_name}" '
+            f'style="max-height:48px;max-width:200px;margin-bottom:8px;" />'
+            if logo_url else
+            f'<div style="font-size:18px;font-weight:700;color:#ffffff;">{company_name}</div>'
+        )
+        signature_block = (
+            f'<div style="margin-top:24px;padding-top:16px;border-top:1px solid #E2E8F0;'
+            f'color:#475569;font-size:13px;white-space:pre-wrap;">{signature}</div>'
+            if signature else ""
+        )
+
+        wrapped = f"""
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;">
+          <div style="background:{header_color};padding:20px 24px;">{logo_block}</div>
+          <div style="padding:8px 24px 24px 24px;">
+            {html_content}
+            {signature_block}
+          </div>
+        </div>
+        """
+        return wrapped, from_name
+
     async def send_email(
         self,
         to_email: str,
@@ -111,8 +163,13 @@ class EmailService:
             return {"success": False, "error": "Email service not configured"}
         
         try:
+            # Apply tenant branding wrapper + from-name override (no-op when
+            # the tenant has not configured branding_settings).
+            html_content, from_name_override = await self._apply_email_branding(html_content, tenant_id)
+            from_name = from_name_override or self.from_name
+
             message = Mail(
-                from_email=(self.from_email, self.from_name),
+                from_email=(self.from_email, from_name),
                 to_emails=to_email,
                 subject=subject,
                 html_content=html_content,
@@ -317,6 +374,52 @@ class EmailService:
             tenant_id=tenant_id
         )
     
+    async def send_password_reset_email(
+        self,
+        to_email: str,
+        reset_link: str,
+        user_name: Optional[str] = None,
+        expires_minutes: int = 60,
+    ) -> dict:
+        """Send a single-use password reset link to a user."""
+        greeting = f"Hi {user_name}," if user_name else "Hi,"
+        subject = "Reset your SignGuy AI password"
+        html_content = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;
+                    padding:24px;color:#111827;">
+          <h2 style="color:#0D9488;margin-top:0;">Reset your password</h2>
+          <p>{greeting}</p>
+          <p>We received a request to reset the password for your SignGuy AI account.
+          Click the button below to choose a new password. This link is valid for
+          {expires_minutes} minutes and can only be used once.</p>
+          <p style="margin:28px 0;">
+            <a href="{reset_link}"
+               style="background:#0D9488;color:#fff;padding:12px 24px;
+                      text-decoration:none;border-radius:6px;font-weight:600;">
+              Reset Password
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:13px;">If the button doesn't work, copy and
+          paste this link into your browser:</p>
+          <p style="word-break:break-all;font-size:13px;color:#0D9488;">{reset_link}</p>
+          <p style="color:#6b7280;font-size:13px;margin-top:32px;">
+            If you didn't request a password reset, you can safely ignore this email —
+            your password will not be changed.
+          </p>
+        </div>
+        """
+        plain_content = (
+            f"{greeting}\n\nReset your SignGuy AI password using this link "
+            f"(valid {expires_minutes} minutes, single use):\n{reset_link}\n\n"
+            "If you didn't request this, ignore this email."
+        )
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            plain_content=plain_content,
+        )
+
     async def send_welcome_email(
         self,
         customer_email: str,

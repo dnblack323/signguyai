@@ -9,7 +9,7 @@ import {
   CheckCircle, Calendar, UserCheck, Coffee, Sun, Sunset, Moon,
   ChevronRight, Eye, Sparkles, Download, Send, ExternalLink,
   BarChart2, DollarSign, TrendingDown, Package, Layers,
-  RefreshCw, XCircle, Zap
+  RefreshCw, XCircle, Zap, Inbox, Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
@@ -53,6 +53,15 @@ const getFreshness = (isoStr) => {
 // Kept for backward-compat with plain text usages
 const formatLastUpdated = (isoStr) => getFreshness(isoStr).text;
 
+// Convert raw hours (from backend) into a human-readable age string
+// < 24h → "18h"   |   1–9.9 days → "3.5d"   |   ≥ 10 days → "15d"
+const formatAge = (hours) => {
+  if (hours == null || hours === undefined) return null;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  const days = hours / 24;
+  return days < 10 ? `${days.toFixed(1)}d` : `${Math.round(days)}d`;
+};
+
 // ─── Sorting helpers ─────────────────────────────────────────────────────────
 
 // At-risk priority: blocked first, then overdue, then due_24h_not_started
@@ -74,9 +83,9 @@ const sortByUrgency = (items, tsField = 'requested_at') =>
   });
 
 const getSeverityStyles = (severity) => {
-  if (severity === 'red') return { badge: 'bg-red-500/15 text-red-400', dot: '#EF4444' };
-  if (severity === 'amber') return { badge: 'bg-amber-500/15 text-amber-400', dot: '#F59E0B' };
-  return { badge: 'bg-gray-500/10 text-gray-400', dot: '#6B7280' };
+  if (severity === 'red')   return { badge: 'bg-red-100 text-red-800 border border-red-200',   dot: '#EF4444' };
+  if (severity === 'amber') return { badge: 'bg-amber-100 text-amber-800 border border-amber-200', dot: '#F59E0B' };
+  return { badge: 'bg-slate-100 text-slate-600 border border-slate-200', dot: '#9CA3AF' };
 };
 
 // ─────────────────────────────────────────────
@@ -84,23 +93,23 @@ const getSeverityStyles = (severity) => {
 // ─────────────────────────────────────────────
 const StatCard = ({ title, value, icon: Icon, subtitle, href, accentColor = 'var(--accent)' }) => (
   <div
-    className="rounded-xl p-4 sm:p-6 transition-all duration-200 hover:shadow-md group"
+    className="rounded-xl p-3 sm:p-4 transition-all duration-200 hover:shadow-md group"
     style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
   >
     <div className="flex items-start justify-between">
-      <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
-        <p className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-muted)' }}>{title}</p>
-        <p className="text-2xl sm:text-3xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
-        {subtitle && <p className="text-xs hidden sm:block" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
+      <div className="space-y-1 flex-1 min-w-0">
+        <p className="text-xs font-medium truncate" style={{ color: 'var(--text-muted)' }}>{title}</p>
+        <p className="text-xl sm:text-2xl font-bold font-heading tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
+        {subtitle && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
       </div>
-      <div className="p-2 sm:p-3 rounded-lg transition-transform group-hover:scale-110 flex-shrink-0 ml-2" style={{ backgroundColor: `${accentColor}15` }}>
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: accentColor }} />
+      <div className="p-1.5 sm:p-2 rounded-lg transition-transform group-hover:scale-110 flex-shrink-0 ml-2" style={{ backgroundColor: `${accentColor}18` }}>
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: accentColor }} />
       </div>
     </div>
     {href && (
       <Link to={href}>
-        <button className="mt-3 sm:mt-4 flex items-center text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: accentColor }}>
-          View all <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
+        <button className="mt-2 flex items-center text-xs font-medium hover:opacity-80 transition-opacity" style={{ color: accentColor }}>
+          View all <ArrowRight className="ml-1 h-3 w-3" />
         </button>
       </Link>
     )}
@@ -135,26 +144,25 @@ const getStatusBadgeStyles = (status) => {
 // ─────────────────────────────────────────────
 const CardShell = ({ icon: Icon, iconColor = 'text-blue-500', title, badge, lastUpdatedAt, children, headerRight }) => {
   const freshness = lastUpdatedAt !== undefined ? getFreshness(lastUpdatedAt) : null;
-  const showStale = freshness?.isStale;
+  const showStale   = freshness?.isStale;
   const showMissing = freshness?.isMissing;
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <Icon className={`h-4 w-4 flex-shrink-0 ${iconColor}`} />
-          <h2 className="font-heading text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{title}</h2>
-          {badge}
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>{title}</h2>
+          {badge && <span className="flex-shrink-0">{badge}</span>}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-          {freshness && (
+          {freshness && (showStale || showMissing) && (
             <span
-              className={`text-xs hidden sm:inline ${showStale || showMissing ? 'text-amber-400' : ''}`}
-              style={showStale || showMissing ? {} : { color: 'var(--text-muted)' }}
+              className="text-xs text-amber-400"
               title={showStale ? 'Data may be stale — loaded more than 10 minutes ago.' : undefined}
               data-testid={showStale ? 'stale-indicator' : showMissing ? 'missing-ts-indicator' : undefined}
             >
-              {showStale ? '⚠ Data may be stale.' : showMissing ? 'Last updated unavailable.' : freshness.text}
+              {showStale ? '⚠ Stale' : 'No timestamp'}
             </span>
           )}
           {headerRight}
@@ -175,7 +183,7 @@ const ErrorState = ({ onRetry }) => (
     <div className="flex items-start gap-3">
       <XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>Couldn't load this section.</p>
+        <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>Couldn&apos;t load this section.</p>
         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Please retry.</p>
         {onRetry && (
           <button
@@ -202,19 +210,29 @@ const LoadingSpinner = () => (
 // Row 1 — Severity Strip (summary-v2)
 // ─────────────────────────────────────────────
 const STRIP_METRICS = [
-  { key: 'due_today',          label: 'Due Today',         icon: Clock,          href: '/orders' },
-  { key: 'overdue',            label: 'Overdue',           icon: AlertTriangle,  href: '/orders' },
-  { key: 'awaiting_approval',  label: 'Awaiting Approval', icon: Eye,            href: '/approvals' },
-  { key: 'unread_messages',    label: 'Unread Messages',   icon: MessageSquare,  href: '/admin-portal?tab=messages' },
-  { key: 'in_production',      label: 'In Production',     icon: Package,        href: '/orders' },
-  { key: 'unpaid_invoices',    label: 'Unpaid Invoices',   icon: Receipt,        href: '/invoices' },
+  { key: 'due_today',         label: 'Due Today',       icon: Clock,         href: '/orders'                       },
+  { key: 'overdue',           label: 'Overdue',          icon: AlertTriangle, href: '/orders'                       },
+  { key: 'awaiting_approval', label: 'Needs Approval',   icon: Eye,           href: '/approvals'                    },
+  { key: 'in_production',     label: 'In Production',    icon: Package,       href: '/orders'                       },
+  { key: 'unpaid_invoices',   label: 'Unpaid Invoices',  icon: Receipt,       href: '/invoices'                     },
 ];
+
+// ─────────────────────────────────────────────
+// KPI accent colors per metric key
+// ─────────────────────────────────────────────
+const KPI_ACCENT = {
+  due_today:         { normal: '#2F8BFB', alert: '#2F8BFB', label: 'Due Today'      },
+  overdue:           { normal: '#9CA3AF', alert: '#DC2626', label: 'Overdue'         },
+  awaiting_approval: { normal: '#9CA3AF', alert: '#D97706', label: 'Needs Approval'  },
+  in_production:     { normal: '#2F8BFB', alert: '#2F8BFB', label: 'In Production'   },
+  unpaid_invoices:   { normal: '#9CA3AF', alert: '#DC2626', label: 'Unpaid Invoices' },
+};
 
 const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
   if (loading) return (
-    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
       {STRIP_METRICS.map(m => (
-        <div key={m.key} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
+        <div key={m.key} className="h-24 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
       ))}
     </div>
   );
@@ -226,23 +244,34 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
   );
 
   return (
-    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3" data-testid="severity-strip">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3" data-testid="severity-strip">
       {STRIP_METRICS.map(({ key, label, icon: Icon, href }) => {
-        const metric = data?.metrics?.[key] || { count: 0, severity: 'neutral' };
-        const { badge } = getSeverityStyles(metric.severity);
+        const metric  = data?.metrics?.[key] || { count: 0, severity: 'neutral' };
+        const kpi     = KPI_ACCENT[key] || { normal: '#6B7280', alert: '#6B7280', label: key };
+        const hasData = metric.count > 0;
+        const isAlert = hasData && (metric.severity === 'red' || metric.severity === 'amber' || key === 'overdue');
+        const accent  = isAlert ? kpi.alert : kpi.normal;
+
         return (
           <Link key={key} to={href} data-testid={`severity-${key}`}>
             <div
-              className="rounded-xl px-3 py-3 flex flex-col gap-1 transition-all hover:shadow-md"
-              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
+              className="rounded-xl px-4 py-3 flex flex-col gap-1.5 transition-all hover:shadow-md hover:-translate-y-px"
+              style={{
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border-light)',
+                borderTop: `3px solid ${accent}`,
+              }}
             >
               <div className="flex items-center justify-between">
-                <Icon className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${badge}`}>
-                  {metric.count}
-                </span>
+                <Icon className="h-3.5 w-3.5" style={{ color: accent }} />
+                {hasData && isAlert && (
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+                )}
               </div>
-              <p className="text-xs leading-tight" style={{ color: 'var(--text-muted)' }}>{label}</p>
+              <span className="text-2xl font-bold font-heading leading-none" style={{ color: hasData && isAlert ? accent : 'var(--text)' }}>
+                {metric.count}
+              </span>
+              <p className="text-xs font-medium leading-tight" style={{ color: 'var(--text-muted)' }}>{kpi.label}</p>
             </div>
           </Link>
         );
@@ -258,7 +287,7 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
 // Due Order Items Today
 const ScheduleWidget = ({ items = [], lastUpdatedAt, loading, error, onRetry }) => {
   const badge = items.length > 0 && (
-    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium ml-1">{items.length}</span>
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#F5F3FF', color: '#5B21B6', border: '1px solid #DDD6FE' }}>{items.length}</span>
   );
   return (
     <CardShell
@@ -274,8 +303,8 @@ const ScheduleWidget = ({ items = [], lastUpdatedAt, loading, error, onRetry }) 
       }
     >
       {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : items.length === 0 ? (
-        <div className="text-center py-3">
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No order items due today.</p>
+        <div className="flex items-center gap-3 py-1">
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No order items due today.</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -322,11 +351,11 @@ const AppointmentsWidget = ({ items = [], lastUpdatedAt, loading, error, onRetry
       }
     >
       {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : items.length === 0 ? (
-        <div className="text-center py-3">
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No appointments scheduled today.</p>
+        <div className="flex items-center justify-between py-1">
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Nothing scheduled today.</p>
           <Link to="/productivity?view=calendar">
-            <Button size="sm" variant="outline" className="mt-2 text-xs">
-              <Calendar className="h-3 w-3 mr-1" /> Open Calendar
+            <Button size="sm" variant="outline" className="text-xs h-6 px-2">
+              <Calendar className="h-3 w-3 mr-1" /> Calendar
             </Button>
           </Link>
         </div>
@@ -377,10 +406,10 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
 
   const badge = (
     <div className="flex items-center gap-1.5 ml-1">
-      <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-medium" data-testid="team-clocked-in-count">
+      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' }} data-testid="team-clocked-in-count">
         {teamStatus?.clocked_in_count || 0} in
       </span>
-      <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium" data-testid="team-scheduled-count">
+      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }} data-testid="team-scheduled-count">
         {teamStatus?.scheduled_count || 0} sched
       </span>
     </div>
@@ -390,7 +419,7 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
     <CardShell
       icon={Users}
       iconColor="text-emerald-500"
-      title="Team Status"
+      title="Team Today"
       badge={badge}
       lastUpdatedAt={lastUpdatedAt}
     >
@@ -466,35 +495,198 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
 };
 
 // ─────────────────────────────────────────────
-// Row 3 — Production Snapshot
+// Today's Schedule — merged due-items + appointments card
+// ─────────────────────────────────────────────
+
+const TodayScheduleCard = ({ dueItems = [], appointments = [], loading, error, onRetry, lastUpdatedAt }) => {
+  const totalItems = dueItems.length + appointments.length;
+  const badge = totalItems > 0 && (
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }}>{totalItems}</span>
+  );
+  return (
+    <CardShell
+      icon={Calendar} iconColor="text-blue-400" title="Today's Schedule"
+      badge={badge} lastUpdatedAt={lastUpdatedAt}
+      headerRight={<Link to="/productivity?view=calendar"><span className="text-xs text-blue-400 hover:underline">Calendar →</span></Link>}
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : totalItems === 0 ? (
+        <div className="text-center py-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing scheduled today.</p>
+          <Link to="/productivity?view=calendar">
+            <Button size="sm" variant="outline" className="mt-2 text-xs"><Calendar className="h-3 w-3 mr-1" /> Open Calendar</Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {dueItems.length > 0 && (
+            <>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Due Today</p>
+              {dueItems.slice(0, 3).map(item => (
+                <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`schedule-item-${item.order_item_id}`}>
+                  <div
+                    className="flex items-center justify-between p-2 rounded-lg"
+                    style={{
+                      backgroundColor: item.priority === 'urgent' || item.priority === 'rush' ? '#FEF2F2' : 'var(--surface-2)',
+                      border: item.priority === 'urgent' || item.priority === 'rush' ? '1px solid #FECACA' : '1px solid transparent',
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0 mr-2">
+                      {(item.priority === 'urgent' || item.priority === 'rush') && <AlertTriangle className="h-3 w-3 text-red-500 flex-shrink-0" />}
+                      <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{item.item_name}</p>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded-full text-xs flex-shrink-0 font-medium" style={getStatusBadgeStyles(item.stage)}>{item.stage}</span>
+                  </div>
+                </Link>
+              ))}
+            </>
+          )}
+          {appointments.length > 0 && (
+            <>
+              {dueItems.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider pt-1.5 mb-1" style={{ color: 'var(--text-muted)' }}>Appointments</p>}
+              {appointments.slice(0, 3).map(appt => (
+                <div key={appt.appointment_id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`appt-${appt.appointment_id}`}>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{appt.title}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      {appt.customer_name}{appt.start_at && ` · ${new Date(appt.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                    </p>
+                  </div>
+                  <span className="px-1.5 py-0.5 rounded-full text-xs flex-shrink-0 font-medium" style={getStatusBadgeStyles(appt.status)}>{appt.type?.replace('_', ' ') || 'appt'}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </CardShell>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Shop Health — compact, color-coded shop status
+// Derives from: summaryV2, productionSnapshot, customerAttention,
+//               financialAttention, commandCenter
+// ─────────────────────────────────────────────
+
+const ShopHealthCard = ({ summaryData, productionData, customerData, financialData, commandCenterData, loadingProduction, loadingCustomer, loadingFinancial, loadingCommand }) => {
+  const anyLoading = loadingProduction || loadingCustomer || loadingFinancial || loadingCommand;
+
+  // 1. Production Load — based on in_production count
+  const inProd = summaryData?.metrics?.in_production?.count || 0;
+  const loadLevel = inProd === 0 ? 'Light' : inProd <= 8 ? 'Normal' : 'Heavy';
+  const loadStyle = {
+    Light:  { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: `${inProd} active` },
+    Normal: { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: `${inProd} active` },
+    Heavy:  { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: `${inProd} active` },
+  }[loadLevel];
+
+  // 2. Oldest Job — max oldest_item_age_hours across bottlenecks
+  const bottlenecks = productionData?.bottlenecks || [];
+  const maxAge = bottlenecks.reduce((m, b) => Math.max(m, b.oldest_item_age_hours || 0), 0);
+  const oldestDisplay = maxAge > 0 ? formatAge(maxAge) : 'None';
+  const oldestStyle = maxAge > 96
+    ? { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: 'Needs attention' }
+    : maxAge > 24
+      ? { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: 'Monitor' }
+      : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: maxAge > 0 ? 'In pipeline' : 'All fresh' };
+
+  // 3. Approval Bottleneck
+  const approvalsWaiting = (customerData?.approvals_signatures_pending || []).length;
+  const approvalStyle = approvalsWaiting > 2
+    ? { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: 'Customers waiting' }
+    : approvalsWaiting > 0
+      ? { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: 'Follow up' }
+      : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: 'Clear' };
+
+  // 4. Invoice Risk
+  const overdueCount  = summaryData?.metrics?.overdue?.count || 0;
+  const overdueAmount = financialData?.overdue?.total_amount  || 0;
+  const invoiceStyle  = overdueCount > 0
+    ? { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: formatCurrency(overdueAmount) }
+    : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: 'No risk' };
+
+  // 5. Team Coverage
+  const scheduledCount  = commandCenterData?.team_status_today?.scheduled_count  || 0;
+  const clockedIn       = commandCenterData?.team_status_today?.clocked_in_count || 0;
+  const teamStyle = scheduledCount === 0
+    ? { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: 'No schedule set' }
+    : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: `${clockedIn} clocked in` };
+
+  const rows = [
+    { id: 'load',      icon: Layers,  label: 'Production Load',   value: loadLevel,                                           style: loadStyle    },
+    { id: 'oldest',    icon: Clock,   label: 'Oldest Job',         value: oldestDisplay,                                       style: oldestStyle  },
+    { id: 'approvals', icon: Eye,     label: 'Awaiting Approval',  value: approvalsWaiting === 0 ? 'Clear' : `${approvalsWaiting} pending`, style: approvalStyle },
+    { id: 'invoices',  icon: Receipt, label: 'Invoice Risk',       value: overdueCount === 0 ? 'Clear' : `${overdueCount} overdue`,         style: invoiceStyle  },
+    { id: 'team',      icon: Users,   label: 'Team Today',         value: scheduledCount === 0 ? 'No schedule' : `${scheduledCount} sched`, style: teamStyle     },
+  ];
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="shop-health-card">
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <Activity className="h-4 w-4 text-indigo-500" />
+        <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Shop Health</h2>
+      </div>
+      {anyLoading ? (
+        <div className="p-4"><LoadingSpinner /></div>
+      ) : (
+        <div className="p-3 space-y-1.5">
+          {rows.map(({ id, icon: Icon, label, value, style: s }) => (
+            <div
+              key={id}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
+              style={{ backgroundColor: 'var(--surface-2)' }}
+              data-testid={`shop-health-${id}`}
+            >
+              <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: s.text }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
+                <p className="text-xs font-bold leading-none" style={{ color: 'var(--text)' }}>{value}</p>
+              </div>
+              <span
+                className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: s.bg, border: `1px solid ${s.border}`, color: s.text }}
+              >{s.sub}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Row 3 — Production Pipeline
 // ─────────────────────────────────────────────
 const STAGE_COLORS = {
-  queued:   { bg: 'bg-gray-500/15',   text: 'text-gray-400',   label: 'Queued' },
-  printing: { bg: 'bg-amber-500/15',  text: 'text-amber-400',  label: 'Printing' },
-  finishing:{ bg: 'bg-purple-500/15', text: 'text-purple-400', label: 'Finishing' },
-  install:  { bg: 'bg-blue-500/15',   text: 'text-blue-400',   label: 'Install' },
-  complete: { bg: 'bg-emerald-500/15',text: 'text-emerald-400',label: 'Complete' },
+  queued:    { bg: '#F8FAFC', text: '#334155', border: '#E2E8F0', topBar: '#94A3B8', label: 'Queued'    },
+  printing:  { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A', topBar: '#F59E0B', label: 'Printing'  },
+  finishing: { bg: '#F5F3FF', text: '#5B21B6', border: '#DDD6FE', topBar: '#8B5CF6', label: 'Finishing' },
+  install:   { bg: '#EFF6FF', text: '#1E40AF', border: '#BFDBFE', topBar: '#3B82F6', label: 'Install'   },
+  complete:  { bg: '#F0FDF4', text: '#15803D', border: '#BBF7D0', topBar: '#22C55E', label: 'Completed' },
 };
 
 const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
-  const stages = data?.order_items_by_stage || {};
-  // Frontend-sort at-risk: blocked(0) > overdue(1) > due_within_24h(2), then earliest due_at
-  const atRisk = sortAtRisk(data?.at_risk || []);
+  const stages      = data?.order_items_by_stage || {};
+  const atRisk      = sortAtRisk(data?.at_risk || []);
   const bottlenecks = data?.bottlenecks || [];
 
-  // Freshness for standalone header
+  // Build oldest-age lookup from bottlenecks: stage → hours
+  const ageByStage = {};
+  bottlenecks.forEach(b => { if (b.stage) ageByStage[b.stage] = b.oldest_item_age_hours; });
+
   const freshness = data?.last_updated_at !== undefined ? getFreshness(data?.last_updated_at) : null;
 
   const _reasonLabel = (r) => ({
-    overdue: 'Overdue',
+    overdue:                    'Overdue',
     due_within_24h_not_started: 'Due Soon',
-    blocked: 'Blocked',
+    blocked:                    'Blocked',
   }[r] || r);
-  const _reasonColor = (r) => ({
-    overdue: { backgroundColor: '#EF4444', color: '#FFFFFF' },
-    due_within_24h_not_started: { backgroundColor: '#F59E0B', color: '#000000' },
-    blocked: { backgroundColor: '#6B7280', color: '#FFFFFF' },
-  }[r] || { backgroundColor: '#6B7280', color: '#FFFFFF' });
+
+  const _reasonBadge = (r) => ({
+    overdue:                    { bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5'  },
+    due_within_24h_not_started: { bg: '#FEF3C7', color: '#92400E', border: '#FDE68A' },
+    blocked:                    { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1'  },
+  }[r] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1' });
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
@@ -504,13 +696,12 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Production Snapshot</h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {freshness && (
+          {freshness && (freshness.isStale || freshness.isMissing) && (
             <span
-              className={`text-xs hidden sm:inline ${freshness.isStale || freshness.isMissing ? 'text-amber-400' : ''}`}
-              style={freshness.isStale || freshness.isMissing ? {} : { color: 'var(--text-muted)' }}
+              className="text-xs text-amber-400"
               data-testid={freshness.isStale ? 'stale-indicator' : freshness.isMissing ? 'missing-ts-indicator' : undefined}
             >
-              {freshness.isStale ? '⚠ Data may be stale.' : freshness.isMissing ? 'Last updated unavailable.' : freshness.text}
+              {freshness.isStale ? '⚠ Stale' : 'No timestamp'}
             </span>
           )}
           <Link to="/production-board" data-testid="production-board-link">
@@ -519,57 +710,95 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
         </div>
       </div>
       {loading ? <div className="p-4"><LoadingSpinner /></div> : error ? <div className="p-4"><ErrorState onRetry={onRetry} /></div> : (
-        <div className="p-4 space-y-4">
-          {/* Stage counts */}
+        <div className="p-4 space-y-5">
+          {/* Stage strip */}
           <div className="grid grid-cols-5 gap-2" data-testid="production-stages">
-            {Object.entries(STAGE_COLORS).map(([key, style]) => (
-              <div key={key} className="flex flex-col items-center gap-1 p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
-                <span className={`text-xl font-bold font-heading ${style.text}`}>{stages[key] ?? 0}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${style.bg} ${style.text}`}>{style.label}</span>
-              </div>
-            ))}
+            {Object.entries(STAGE_COLORS).map(([key, style]) => {
+              const ageStr = ageByStage[key] != null ? formatAge(ageByStage[key]) : null;
+              return (
+                <div
+                  key={key}
+                  className="flex flex-col items-center gap-1 p-3 rounded-lg"
+                  style={{
+                    backgroundColor: style.bg,
+                    border: `1px solid ${style.border}`,
+                    borderTop: `3px solid ${style.topBar}`,
+                  }}
+                >
+                  <span className="text-2xl font-bold font-heading" style={{ color: style.text }}>{stages[key] ?? 0}</span>
+                  <span className="text-xs font-semibold" style={{ color: style.text }}>{style.label}</span>
+                  {ageStr && (
+                    <span className="text-[10px]" style={{ color: style.text, opacity: 0.7 }}>{ageStr} oldest</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          {/* At-risk + bottlenecks */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* At risk */}
+          {/* At risk + Bottlenecks */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* At Risk */}
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>At Risk</p>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>At Risk</p>
               {atRisk.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No production bottlenecks right now.</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No items at risk right now.</p>
               ) : (
                 <div className="space-y-1.5">
-                  {atRisk.slice(0, 4).map(item => (
-                    <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`at-risk-${item.order_item_id}`}>
-                      <div className="flex items-center justify-between p-2 rounded-lg hover:shadow-sm" style={{ backgroundColor: 'var(--surface-2)' }}>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{item.item_name || item.order_number}</p>
-                          {item.order_number && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.order_number}</p>}
+                  {atRisk.slice(0, 5).map(item => {
+                    const bdg       = _reasonBadge(item.reason);
+                    const isOverdue = item.reason === 'overdue';
+                    return (
+                      <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`at-risk-${item.order_item_id}`}>
+                        <div
+                          className="flex items-center justify-between px-3 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                          style={{
+                            backgroundColor: isOverdue ? 'rgba(239,68,68,0.10)' : 'var(--surface-2)',
+                            borderLeft:      isOverdue ? '3px solid rgba(239,68,68,0.65)' : '3px solid transparent',
+                          }}
+                        >
+                          <div className="flex-1 min-w-0 mr-2">
+                            <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>
+                              {item.item_name || item.order_number || 'Unnamed item'}
+                            </p>
+                            {item.order_number && item.item_name && (
+                              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.order_number}</p>
+                            )}
+                          </div>
+                          <span
+                            className="flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold border"
+                            style={{ backgroundColor: bdg.bg, color: bdg.color, borderColor: bdg.border }}
+                          >
+                            {_reasonLabel(item.reason)}
+                          </span>
                         </div>
-                        <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={_reasonColor(item.reason)}>
-                          {_reasonLabel(item.reason)}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>
             {/* Bottlenecks */}
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Bottlenecks</p>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>Bottlenecks</p>
               {bottlenecks.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No production bottlenecks right now.</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No bottlenecks right now.</p>
               ) : (
                 <div className="space-y-1.5">
-                  {bottlenecks.slice(0, 3).map(b => (
-                    <div key={b.stage} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
-                      <div>
-                        <p className="text-xs font-medium capitalize" style={{ color: 'var(--text)' }}>{b.stage}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{b.oldest_item_age_hours}h oldest</p>
+                  {bottlenecks.slice(0, 4).map(b => {
+                    const ageStr    = formatAge(b.oldest_item_age_hours);
+                    const stageLabel = STAGE_COLORS[b.stage]?.label || b.stage;
+                    return (
+                      <div key={b.stage} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{stageLabel}</p>
+                          {ageStr && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{ageStr} oldest</p>}
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <span className="text-lg font-bold" style={{ color: 'var(--text)' }}>{b.backlog_count}</span>
+                          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>items</p>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{b.backlog_count}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -591,7 +820,7 @@ const MessagesWidget = ({ data, loading, error, onRetry }) => {
   const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
 
   const badge = messages.length > 0 && (
-    <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium ml-1">{totalUnread} unread</span>
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }}>{totalUnread} unread</span>
   );
 
   return (
@@ -599,7 +828,7 @@ const MessagesWidget = ({ data, loading, error, onRetry }) => {
       icon={MessageSquare}
       iconColor="text-blue-500"
       title="Messages"
-      badge={messages.length === 0 ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 ml-1">Inbox zero</span> : badge}
+      badge={messages.length === 0 ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' }}>Inbox zero</span> : badge}
       lastUpdatedAt={data?.last_updated_at}
       headerRight={
         <Link to="/admin-portal?tab=messages">
@@ -640,8 +869,8 @@ const PendingApprovalsWidget = ({ data, loading, error, onRetry }) => {
   // Frontend-sort: urgency_score desc, then requested_at desc
   const approvals = sortByUrgency(data?.approvals_signatures_pending || [], 'requested_at');
   const badge = approvals.length > 0
-    ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium ml-1">{approvals.length} pending</span>
-    : <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 ml-1">All clear</span>;
+    ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{approvals.length} pending</span>
+    : <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' }}>All clear</span>;
 
   return (
     <CardShell
@@ -691,7 +920,7 @@ const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
   // Frontend-sort: urgency_score desc, then last_sent_at desc
   const quotes = sortByUrgency(data?.quote_followups || [], 'last_sent_at');
   const badge = quotes.length > 0 && (
-    <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium ml-1">{quotes.length}</span>
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#F5F3FF', color: '#5B21B6', border: '1px solid #DDD6FE' }}>{quotes.length}</span>
   );
 
   return (
@@ -721,7 +950,7 @@ const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
                   {formatCurrency(q.quote_total)} · {Math.round(q.age_days)}d old
                 </p>
               </div>
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium flex-shrink-0 ml-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 font-medium border border-amber-500/40 flex-shrink-0 ml-2">
                 {Math.round(q.age_days)}d
               </span>
             </div>
@@ -729,6 +958,213 @@ const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
         </div>
       )}
     </CardShell>
+  );
+};
+
+// ─────────────────────────────────────────────
+// ACTION REQUIRED — shared sub-components
+// ─────────────────────────────────────────────
+const SectionLabel = ({ icon: Icon, iconColor, label, badge, right }) => (
+  <div className="flex items-center justify-between mb-2">
+    <div className="flex items-center gap-2">
+      <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+      <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      {badge}
+    </div>
+    {right}
+  </div>
+);
+
+const ActionEmptyRow = ({ text }) => (
+  <div className="flex items-center gap-2 py-1 pl-1">
+    <CheckCircle className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{text}</p>
+  </div>
+);
+
+const SectionDivider = () => <div style={{ borderTop: '1px solid var(--border-light)' }} />;
+
+// ─────────────────────────────────────────────
+// ACTION REQUIRED — consolidated vertical-list card
+// Sections: Customer Approvals · Messages · Quote Follow-Ups ·
+//           Invoices & Payments · Customer Actions
+// ─────────────────────────────────────────────
+
+const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
+  const messages    = sortByUrgency(data?.unread_conversations || [], 'last_message_at');
+  const approvals   = sortByUrgency(data?.approvals_signatures_pending || [], 'requested_at');
+  const quotes      = sortByUrgency(data?.quote_followups || [], 'last_sent_at');
+  const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
+  const overdueCount = summaryData?.metrics?.overdue?.count || 0;
+  const unpaidCount  = summaryData?.metrics?.unpaid_invoices?.count || 0;
+  const totalActions = approvals.length + totalUnread + quotes.length + overdueCount;
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="action-required">
+      {/* Card header */}
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-amber-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Action Required</h2>
+          {!loading && !error && totalActions > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }} data-testid="action-required-total">
+              {totalActions}
+            </span>
+          )}
+        </div>
+        {loading && <div className="h-3 w-3 rounded-full border-2 border-t-transparent border-blue-400 animate-spin" />}
+      </div>
+
+      {loading ? (
+        <div className="p-4"><LoadingSpinner /></div>
+      ) : error ? (
+        <div className="p-4"><ErrorState onRetry={onRetry} /></div>
+      ) : (
+        <>
+          {/* ── 1. Customer Approvals ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Eye} iconColor="text-amber-400" label="Customer Approvals"
+              badge={approvals.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{approvals.length}</span>
+              )}
+              right={<Link to="/approvals"><span className="text-[10px] text-blue-400 hover:underline">All approvals →</span></Link>}
+            />
+            {approvals.length === 0 ? (
+              <ActionEmptyRow text="No approvals pending." />
+            ) : (
+              <div className="space-y-1">
+                {approvals.slice(0, 4).map(item => (
+                  <Link key={item.record_id} to="/approvals" data-testid={`approval-${item.record_id}`}>
+                    <div className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--surface-2)' }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs" style={{ color: 'var(--text)' }}>{item.order_number || item.customer_name}</p>
+                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                          {item.customer_name} · {item.type} · {item.age_hours < 1 ? '<1h' : `${Math.round(item.age_hours)}h`} ago
+                        </p>
+                      </div>
+                      <ChevronRight className="h-3 w-3 ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 2. Messages ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={MessageSquare} iconColor="text-blue-400" label="Messages"
+              badge={totalUnread > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }}>{totalUnread} unread</span>
+              )}
+              right={<Link to="/admin-portal?tab=messages"><span className="text-[10px] text-blue-400 hover:underline">All messages →</span></Link>}
+            />
+            {messages.length === 0 ? (
+              <ActionEmptyRow text="Inbox zero — no unread messages." />
+            ) : (
+              <div className="space-y-1">
+                {messages.slice(0, 3).map(msg => (
+                  <Link key={msg.conversation_id} to="/admin-portal?tab=messages" data-testid={`message-row-${msg.conversation_id}`}>
+                    <div className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--surface-2)' }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-xs truncate" style={{ color: 'var(--text)' }}>{msg.customer_name}</p>
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] flex items-center justify-center">{msg.unread_count}</span>
+                        </div>
+                        <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{msg.last_message_preview}</p>
+                      </div>
+                      <ChevronRight className="h-3 w-3 ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 3. Quote Follow-Ups ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Send} iconColor="text-purple-400" label="Quote Follow-Ups"
+              badge={quotes.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#F5F3FF', color: '#5B21B6', border: '1px solid #DDD6FE' }}>{quotes.length}</span>
+              )}
+              right={<Link to="/orders?filter=quote_sent"><span className="text-[10px] text-blue-400 hover:underline">All quotes →</span></Link>}
+            />
+            {quotes.length === 0 ? (
+              <ActionEmptyRow text="No pending quote follow-ups." />
+            ) : (
+              <div className="space-y-1">
+                {quotes.slice(0, 3).map(q => (
+                  <div key={q.quote_id} className="flex items-center justify-between px-2.5 py-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`quote-followup-${q.quote_id}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-xs truncate" style={{ color: 'var(--text)' }}>{q.customer_name}</p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatCurrency(q.quote_total)} · {Math.round(q.age_days)}d old</p>
+                    </div>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ml-2" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{Math.round(q.age_days)}d</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 4. Invoices & Payments ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Receipt} iconColor="text-amber-400" label="Invoices & Payments"
+              badge={unpaidCount > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{unpaidCount} unpaid</span>
+              )}
+              right={<Link to="/invoices"><span className="text-[10px] text-blue-400 hover:underline">All invoices →</span></Link>}
+            />
+            {overdueCount > 0 ? (
+              <Link to="/invoices?status=overdue">
+                <div className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                    <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+                      {overdueCount} overdue invoice{overdueCount !== 1 ? 's' : ''} — needs attention
+                    </span>
+                  </div>
+                  <ChevronRight className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                </div>
+              </Link>
+            ) : (
+              <ActionEmptyRow text={unpaidCount > 0 ? `${unpaidCount} unpaid — none overdue yet.` : 'No outstanding invoices.'} />
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 5. Customer Actions ── */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Inbox className="h-3.5 w-3.5 text-violet-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Customer Actions</span>
+            </div>
+            <PendingCustomerActionsWidget />
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 6. Assistant Suggestions (inline — no outer card) ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Sparkles} iconColor="text-purple-400" label="Suggestions"
+              right={null}
+            />
+            <AssistantNudgesWidget sectionMode />
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 
@@ -788,13 +1224,12 @@ const FinancialAttentionRow = ({ data, loading, error, onRetry }) => {
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Financial Attention</h2>
         </div>
         <div className="flex items-center gap-2">
-          {freshness && (
+          {freshness && (freshness.isStale || freshness.isMissing) && (
             <span
-              className={`text-xs hidden sm:inline ${freshness.isStale || freshness.isMissing ? 'text-amber-400' : ''}`}
-              style={freshness.isStale || freshness.isMissing ? {} : { color: 'var(--text-muted)' }}
+              className="text-xs text-amber-400"
               data-testid={freshness.isStale ? 'stale-indicator' : freshness.isMissing ? 'missing-ts-indicator' : undefined}
             >
-              {freshness.isStale ? '⚠ Data may be stale.' : freshness.isMissing ? 'Last updated unavailable.' : freshness.text}
+              {freshness.isStale ? '⚠ Stale' : 'No timestamp'}
             </span>
           )}
           <Link to="/invoices"><span className="text-xs text-blue-400 hover:underline">All invoices</span></Link>
@@ -811,114 +1246,261 @@ const FinancialAttentionRow = ({ data, loading, error, onRetry }) => {
 };
 
 // ─────────────────────────────────────────────
-// Row 6 — Quick Actions (enhanced)
+// BILLING SNAPSHOT — replaces Financial Attention row
 // ─────────────────────────────────────────────
-const QuickActionBtn = ({ to, onClick, icon: Icon, iconColor, label, testId, disabled }) => {
-  const inner = (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm disabled:opacity-50"
-      style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
-      data-testid={testId}
-    >
-      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: iconColor || 'var(--accent)' }} />
-      <span className="truncate">{label}</span>
-    </button>
-  );
-  return to ? <Link to={to}>{inner}</Link> : inner;
-};
+const BILLING_ROWS = [
+  { key: 'unpaid',          icon: Receipt,       label: 'Unpaid',         href: '/invoices?status=sent',    colorSet: { icon: 'text-amber-400',   badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/35'   } },
+  { key: 'overdue',         icon: AlertTriangle, label: 'Overdue',        href: '/invoices?status=overdue', colorSet: { icon: 'text-red-400',     badge: 'bg-red-500/20 text-red-300 border border-red-500/35'         } },
+  { key: 'due_this_week',   icon: Clock,         label: 'Due This Week',  href: '/invoices',                colorSet: { icon: 'text-blue-400',    badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/35'      } },
+  { key: 'recent_payments', icon: TrendingUp,    label: 'Paid This Week', href: '/invoices?status=paid',    colorSet: { icon: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35' } },
+];
 
-const QuickActions = ({ onSendDigest, sendingDigest }) => (
-  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-    <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-light)' }}>
-      <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Quick Actions</h2>
-    </div>
-    <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <QuickActionBtn to="/orders/new"             icon={Plus}        iconColor="var(--accent)"  label="New Order"            testId="quick-add-quote" />
-      <QuickActionBtn to="/customers"              icon={Plus}        iconColor="var(--accent)"  label="New Customer"         testId="quick-add-customer" />
-      <QuickActionBtn to="/production-board"       icon={Briefcase}   iconColor="#2F8BFB"        label="Production Board"     testId="quick-production-board" />
-      <QuickActionBtn to="/productivity?view=calendar" icon={Calendar} iconColor="#8B5CF6"      label="Open Calendar"        testId="quick-open-calendar" />
-      <QuickActionBtn to="/approvals"              icon={Send}        iconColor="#F59E0B"        label="Send Approval"        testId="quick-send-approval" />
-      <QuickActionBtn to="/invoices"               icon={FileText}    iconColor="#10B981"        label="Create Invoice"       testId="quick-create-invoice" />
-      <QuickActionBtn to="/ai-assistant"           icon={Sparkles}    iconColor="#8B5CF6"        label="AI Assistant"         testId="quick-ai-assistant" />
-      <QuickActionBtn
-        onClick={onSendDigest}
-        disabled={sendingDigest}
-        icon={Send} iconColor="#8B5CF6"
-        label={sendingDigest ? 'Sending…' : 'Send Digest'}
-        testId="quick-send-digest"
-      />
-      <QuickActionBtn to="/timeclock"              icon={Clock}       iconColor="var(--accent)"  label="Time Clock"           testId="quick-clock-in" />
-    </div>
-  </div>
-);
-
-// RecentAIDocumentsWidget — unchanged
-const RecentAIDocumentsWidget = ({ documents }) => {
-  const handleDownload = async (doc) => {
-    try {
-      const token = getAuthToken();
-      const res = await axios.get(`${API}/documents/${doc.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
-      const { file_data, file_type, original_filename } = res.data;
-      const bytes = atob(file_data);
-      const arr = new Uint8Array(bytes.length).map((_, i) => bytes.charCodeAt(i));
-      const url = URL.createObjectURL(new Blob([arr], { type: file_type }));
-      const a = Object.assign(document.createElement('a'), { href: url, download: original_filename });
-      document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); document.body.removeChild(a);
-      toast.success('Document downloaded');
-    } catch { toast.error('Failed to download'); }
-  };
-
-  const handleView = async (doc) => {
-    try {
-      const token = getAuthToken();
-      const res = await axios.get(`${API}/documents/${doc.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
-      const { file_data, file_type } = res.data;
-      const bytes = atob(file_data);
-      const arr = new Uint8Array(bytes.length).map((_, i) => bytes.charCodeAt(i));
-      window.open(URL.createObjectURL(new Blob([arr], { type: file_type })), '_blank');
-    } catch { toast.error('Failed to open document'); }
-  };
-
-  const getToolName = (tags) => {
-    const toolTag = tags?.find(t => t !== 'ai-generated');
-    return ({ document_composer: 'Composer', business_copywriter: 'Copywriter', blog_creator: 'Blog', email_template: 'Email', job_post_creator: 'Order Post', social_media_creator: 'Social' }[toolTag]) || 'AI Tool';
-  };
+const BillingSnapshotCard = ({ data, loading, error, onRetry }) => {
+  // Pick top items from overdue first, then unpaid
+  const topItems = (
+    (data?.overdue?.top_records?.length > 0 ? data.overdue.top_records : data?.unpaid?.top_records) || []
+  ).slice(0, 2);
+  const topLabel = data?.overdue?.top_records?.length > 0 ? 'Most Overdue' : 'Largest Unpaid';
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
       <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-purple-500" />
-          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Recent AI Documents</h2>
+          <DollarSign className="h-4 w-4 text-emerald-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Billing Snapshot</h2>
         </div>
-        <Link to="/ai-tools"><span className="text-xs text-purple-400 hover:underline flex items-center gap-1">Create new <ArrowRight className="h-3 w-3" /></span></Link>
+        <Link to="/invoices"><span className="text-xs text-blue-400 hover:underline">All invoices</span></Link>
       </div>
-      <div className="p-4">
-        {!documents?.length ? (
-          <div className="text-center py-4">
-            <Sparkles className="h-7 w-7 mx-auto mb-2 text-purple-500/30" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No AI documents yet</p>
-            <Link to="/ai-tools"><Button size="sm" variant="outline" className="mt-2 text-xs text-purple-500 border-purple-500/30"><Plus className="h-3 w-3 mr-1" /> Create</Button></Link>
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {documents.map(doc => (
-              <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)', border: '1px solid transparent' }}>
-                <div className="flex-1 min-w-0 mr-2">
-                  <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{doc.name}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{getToolName(doc.tags)} · {formatDate(doc.created_at)}</p>
+      {loading ? (
+        <div className="p-4"><LoadingSpinner /></div>
+      ) : error ? (
+        <div className="p-4"><ErrorState onRetry={onRetry} /></div>
+      ) : (
+        <div className="p-3" data-testid="financial-attention-row">
+          {BILLING_ROWS.map(({ key, icon: Icon, label, href, colorSet }) => {
+            const section = data?.[key];
+            const hasData = section?.count > 0;
+            return (
+              <Link key={key} to={href}>
+                <div
+                  className="flex items-center justify-between px-2 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'transparent' }}
+                  data-testid={`billing-row-${key}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${colorSet.icon}`} />
+                    <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>{label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasData ? (
+                      <>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                          {formatCurrency(section.total_amount)}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colorSet.badge}`}>
+                          {section.count}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Clear</span>
+                    )}
+                    <ChevronRight className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => handleView(doc)} className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors" title="View"><Eye className="h-3.5 w-3.5 text-purple-500" /></button>
-                  <button onClick={() => handleDownload(doc)} className="p-1.5 rounded-md hover:bg-purple-500/10 transition-colors" title="Download"><Download className="h-3.5 w-3.5 text-purple-500" /></button>
-                </div>
+              </Link>
+            );
+          })}
+          {/* Top 2 items */}
+          {topItems.length > 0 && (
+            <div className="mt-1 pt-3 mx-2" style={{ borderTop: '1px solid var(--border-light)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>{topLabel}</p>
+              <div className="space-y-0.5">
+                {topItems.map((rec, i) => (
+                  <Link key={rec.invoice_id || i} to="/invoices">
+                    <div className="flex items-center justify-between py-1.5 hover:opacity-80">
+                      <span className="text-xs truncate flex-1" style={{ color: 'var(--text-muted)' }}>{rec.customer_name}</span>
+                      <span className="text-xs font-semibold ml-2 flex-shrink-0" style={{ color: 'var(--text)' }}>{formatCurrency(rec.amount)}</span>
+                    </div>
+                  </Link>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Quick Actions — compact horizontal strip
+// ─────────────────────────────────────────────
+const QUICK_PRIMARY = [
+  { to: '/orders/new',                 icon: Plus,      label: 'New Order',        testId: 'quick-new-order',        color: '#2F8BFB' },
+  { to: '/orders/new?type=quote',      icon: FileText,  label: 'New Quote',        testId: 'quick-new-quote',        color: '#8B5CF6' },
+  { to: '/customers',                  icon: Users,     label: 'New Customer',     testId: 'quick-add-customer',     color: '#10B981' },
+  { to: '/invoices',                   icon: Receipt,   label: 'New Invoice',      testId: 'quick-create-invoice',   color: '#10B981' },
+  { to: '/production-board',           icon: Briefcase, label: 'Production Board', testId: 'quick-production-board', color: '#2F8BFB' },
+  { to: '/productivity?view=calendar', icon: Calendar,  label: 'Open Calendar',    testId: 'quick-open-calendar',    color: '#8B5CF6' },
+];
+const QUICK_MORE = [
+  { to: '/approvals',    icon: Send,     label: 'Send Approval', testId: 'quick-send-approval', color: '#F59E0B' },
+  { to: '/invoices',     icon: Send,     label: 'Send Invoice',  testId: 'quick-send-invoice',  color: '#10B981' },
+  { to: '/timeclock',    icon: Clock,    label: 'Time Clock',    testId: 'quick-clock-in',      color: '#2F8BFB' },
+  { to: '/ai-assistant', icon: Sparkles, label: 'AI Assistant',  testId: 'quick-ai-assistant',  color: '#8B5CF6' },
+];
+
+const QuickActionsStrip = () => {
+  const [showMore, setShowMore] = useState(false);
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="quick-actions-strip">
+      <div className="px-4 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5 text-amber-500" />
+          <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Quick Actions</span>
+        </div>
+        <button
+          onClick={() => setShowMore(v => !v)}
+          className="text-[11px] font-medium px-2 py-0.5 rounded transition hover:opacity-80"
+          style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface-2)' }}
+          data-testid="quick-actions-more-toggle"
+        >
+          {showMore ? '▲ Less' : '▼ More'}
+        </button>
+      </div>
+      <div className="px-3 py-2">
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_PRIMARY.map(({ to, icon: Icon, label, testId, color }) => (
+            <Link key={testId} to={to}>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-sm hover:opacity-90 whitespace-nowrap"
+                style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+                data-testid={testId}
+              >
+                <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
+                {label}
+              </button>
+            </Link>
+          ))}
+          {showMore && QUICK_MORE.map(({ to, icon: Icon, label, testId, color }) => (
+            <Link key={testId} to={to}>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-sm hover:opacity-90 whitespace-nowrap"
+                style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+                data-testid={testId}
+              >
+                <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
+                {label}
+              </button>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+const QuickActionBtn = ({ to, onClick, icon: Icon, iconColor, label, testId, disabled }) => {
+  const inner = (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-center justify-start gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 hover:shadow-sm disabled:opacity-50"
+      style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+      data-testid={testId}
+    >
+      <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: iconColor || 'var(--accent)' }} />
+      <span className="leading-snug text-left">{label}</span>
+    </button>
+  );
+  return to ? <Link to={to}>{inner}</Link> : inner;
+};
+
+const QuickActions = ({ onSendDigest, sendingDigest }) => {
+  const [showMore, setShowMore] = useState(false);
+
+  const PRIMARY = [
+    { to: '/orders/new',                    icon: Plus,      iconColor: 'var(--accent)', label: 'New Order',        testId: 'quick-new-order'        },
+    { to: '/orders/new?type=quote',         icon: FileText,  iconColor: '#8B5CF6',       label: 'New Quote',        testId: 'quick-new-quote'        },
+    { to: '/customers',                     icon: Plus,      iconColor: 'var(--accent)', label: 'New Customer',     testId: 'quick-add-customer'     },
+    { to: '/invoices',                      icon: Receipt,   iconColor: '#10B981',       label: 'New Invoice',      testId: 'quick-create-invoice'   },
+    { to: '/production-board',              icon: Briefcase, iconColor: '#2F8BFB',       label: 'Production Board', testId: 'quick-production-board' },
+    { to: '/productivity?view=calendar',    icon: Calendar,  iconColor: '#8B5CF6',       label: 'Open Calendar',    testId: 'quick-open-calendar'    },
+  ];
+
+  const MORE = [
+    { to: '/approvals',   icon: Send,     iconColor: '#F59E0B',       label: 'Send Approval', testId: 'quick-send-approval' },
+    { to: '/invoices',    icon: Send,     iconColor: '#10B981',       label: 'Send Invoice',  testId: 'quick-send-invoice'  },
+    { to: '/timeclock',   icon: Clock,    iconColor: 'var(--accent)', label: 'Time Clock',    testId: 'quick-clock-in'      },
+    { to: '/ai-assistant',icon: Sparkles, iconColor: '#8B5CF6',       label: 'AI Assistant',  testId: 'quick-ai-assistant'  },
+  ];
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Quick Actions</h2>
+      </div>
+      <div className="p-3 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          {PRIMARY.map(a => <QuickActionBtn key={a.testId} {...a} />)}
+        </div>
+        {showMore && (
+          <div className="grid grid-cols-2 gap-2 pt-1" style={{ borderTop: '1px solid var(--border-light)' }}>
+            {MORE.map(a => <QuickActionBtn key={a.testId} {...a} />)}
           </div>
         )}
+        <button
+          onClick={() => setShowMore(v => !v)}
+          className="w-full text-xs py-1.5 rounded-lg transition-all hover:opacity-80 flex items-center justify-center gap-1 font-medium"
+          style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border-light)' }}
+          data-testid="quick-actions-more-toggle"
+        >
+          {showMore ? '▲ Show less' : '▼ More actions'}
+        </button>
       </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Collapsible Onboarding wrapper
+// ─────────────────────────────────────────────
+const CollapsibleOnboarding = () => {
+  const [expanded, setExpanded] = useState(false);
+  const { user } = useAuth();
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="collapsible-onboarding">
+      {/* Collapsed header — always visible */}
+      <div
+        className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+          <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Guided Onboarding</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {!expanded && (
+            <Link to="/settings" onClick={e => e.stopPropagation()}>
+              <Button size="sm" variant="outline" className="text-xs h-6 px-2">
+                Resume Setup
+              </Button>
+            </Link>
+          )}
+          <ChevronRight
+            className="h-4 w-4 transition-transform"
+            style={{ color: 'var(--text-muted)', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          />
+        </div>
+      </div>
+      {/* Expanded — full checklist */}
+      {expanded && (
+        <div style={{ borderTop: '1px solid var(--border-light)' }}>
+          <OnboardingChecklist />
+        </div>
+      )}
     </div>
   );
 };
@@ -952,6 +1534,7 @@ export default function Dashboard() {
   const [errorFinancial,  setErrorFinancial]  = useState(false);
 
   const [loading,        setLoading]        = useState(true);
+  const [globalUpdatedAt, setGlobalUpdatedAt] = useState(null);
   const [sendingDigest,  setSendingDigest]  = useState(false);
   const [previewInvoiceId,   setPreviewInvoiceId]   = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -1022,6 +1605,7 @@ export default function Dashboard() {
           .catch(err => console.warn('[Dashboard] recent-ai-documents failed', err)),
       ]);
       setLoading(false);
+      setGlobalUpdatedAt(new Date());
     };
     loadAll();
   }, []);
@@ -1051,131 +1635,93 @@ export default function Dashboard() {
   const cmdLastUpdated = commandCenter?.last_updated_at;
 
   return (
-    <div className="space-y-5 sm:space-y-6 animate-fade-in" data-testid="dashboard">
+    <div className="p-4 sm:p-5 space-y-4 animate-fade-in" data-testid="dashboard">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 sm:gap-3 mb-1">
-            <GreetingIcon className={`h-6 w-6 sm:h-7 sm:w-7 ${greeting.color}`} />
-            <h1 className="text-2xl sm:text-3xl font-bold font-heading tracking-tight text-white">
-              {greeting.text}, {user?.full_name?.split(' ')[0] || 'there'}!
-            </h1>
-            <FoundersBadge size="small" />
-          </div>
-          <p className="ml-8 sm:ml-10 text-sm sm:text-base" style={{ color: 'var(--text-muted)' }}>
-            Here's what's happening at {user?.company_name || 'your shop'} today
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <GreetingIcon className={`h-5 w-5 ${greeting.color}`} />
+          <h1 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-white">
+            {greeting.text}, {user?.full_name?.split(' ')[0] || 'there'}
+          </h1>
+          <FoundersBadge size="small" />
         </div>
-        <div className="text-left sm:text-right ml-8 sm:ml-0">
-          <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        <div className="text-right hidden sm:block">
+          <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
           </p>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            {globalUpdatedAt
+              ? `Updated ${globalUpdatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+              : loading ? 'Loading…' : 'Ready'}
           </p>
         </div>
       </div>
 
-      {/* ── Stat Cards (legacy stats endpoint, kept for compat) ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard title="Total Customers"   value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
-        <StatCard title="Active Orders"     value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
-        <StatCard title="Pending Invoices"  value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
-        <StatCard title="Today's Revenue"   value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
-      </div>
-
-      {/* ── Overdue Alert ────────────────────── */}
-      {dashboardStats?.overdue_count > 0 && (
-        <div className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-          style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}>
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
-            <div>
-              <p className="font-medium text-sm sm:text-base" style={{ color: 'var(--text)' }}>
-                {dashboardStats.overdue_count} Overdue Invoice{dashboardStats.overdue_count > 1 ? 's' : ''}
-              </p>
-              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-                Total: {formatCurrency(dashboardStats.overdue_total)}
-              </p>
-            </div>
-          </div>
-          <Link to="/invoices?status=overdue">
-            <Button size="sm" data-testid="view-overdue" className="text-white w-full sm:w-auto" style={{ backgroundColor: 'var(--danger)' }}>
-              View Overdue
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {/* ── Row 1: Severity Strip ──────────────── */}
+      {/* ── Row 1: KPI Strip — 5 compact cards ── */}
       <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
 
-      {/* ── Row 2: Today Command Center ─────────── */}
+      {/* ── Row 2: Production Snapshot (2-col) + Shop Health (1-col) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
+        </div>
+        <div>
+          <ShopHealthCard
+            summaryData={summaryV2}
+            productionData={productionSnapshot}
+            customerData={customerAttention}
+            financialData={financialAttention}
+            commandCenterData={commandCenter}
+            loadingProduction={loadingProduction}
+            loadingCustomer={loadingCustomer}
+            loadingFinancial={loadingFinancial}
+            loadingCommand={loadingCommand}
+          />
+        </div>
+      </div>
+
+      {/* ── Row 3: Today's Schedule (1) + Team Today (1) + Billing Snapshot (1) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <TodayScheduleCard
+          dueItems={dueItems}
+          appointments={appts}
+          lastUpdatedAt={cmdLastUpdated}
+          loading={loadingCommand}
+          error={errorCommand}
+          onRetry={fetchCommandCenter}
+        />
+        <TeamStatusWidget teamStatus={teamStatus} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
+        <BillingSnapshotCard data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
+      </div>
+
+      {/* ── Row 4: Action Required (2-col) + Guided Onboarding (1-col) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
+          <ActionRequiredCard
+            data={customerAttention}
+            loading={loadingCustomer}
+            error={errorCustomer}
+            onRetry={fetchCustomerAttention}
+            summaryData={summaryV2}
+          />
+        </div>
+        <div>
+          <CollapsibleOnboarding />
+        </div>
+      </div>
+
+      {/* ── Row 5: Business Overview (compact 4-col stat row) ── */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Clock className="h-4 w-4 text-blue-400" />
-          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Today's Command Center</h2>
-          {commandCenter && (() => {
-            const f = getFreshness(cmdLastUpdated);
-            return (
-              <span
-                className={`text-xs ${f.isStale || f.isMissing ? 'text-amber-400' : ''}`}
-                style={f.isStale || f.isMissing ? {} : { color: 'var(--text-muted)' }}
-                data-testid={f.isStale ? 'stale-indicator' : undefined}
-              >
-                {f.isStale ? '⚠ Data may be stale.' : f.isMissing ? 'Last updated unavailable.' : f.text}
-              </span>
-            );
-          })()}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-          <ScheduleWidget   items={dueItems} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
-          <AppointmentsWidget items={appts} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
-          <TeamStatusWidget teamStatus={teamStatus} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', borderLeft: '2px solid var(--accent)', paddingLeft: '8px' }}>
+          Business Overview
+        </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard title="Total Customers"  value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
+          <StatCard title="Active Orders"    value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
+          <StatCard title="Pending Invoices" value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
+          <StatCard title="Today's Revenue"  value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
         </div>
       </div>
-
-      {/* ── Row 3: Production Snapshot ──────────── */}
-      <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
-
-      {/* ── Row 4: Customer Attention ───────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="h-4 w-4 text-blue-400" />
-          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Customer Attention</h2>
-          {customerAttention?.last_updated_at && (() => {
-            const f = getFreshness(customerAttention.last_updated_at);
-            return (
-              <span
-                className={`text-xs ${f.isStale || f.isMissing ? 'text-amber-400' : ''}`}
-                style={f.isStale || f.isMissing ? {} : { color: 'var(--text-muted)' }}
-                data-testid={f.isStale ? 'stale-indicator' : undefined}
-              >
-                {f.isStale ? '⚠ Data may be stale.' : f.isMissing ? 'Last updated unavailable.' : f.text}
-              </span>
-            );
-          })()}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-          <MessagesWidget        data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
-          <PendingApprovalsWidget data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
-          <QuoteFollowupsWidget  data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
-        </div>
-      </div>
-
-      {/* ── Row 5: Financial Attention ───────────── */}
-      <FinancialAttentionRow data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
-
-      {/* ── Row 6: Quick Actions + Supporting Widgets ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-        <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
-        <PendingCustomerActionsWidget />
-        <RecentAIDocumentsWidget documents={recentAIDocs} />
-      </div>
-
-      {/* ── Onboarding + AI Nudges ───────────────── */}
-      <OnboardingChecklist />
-      <AssistantNudgesWidget />
 
       {/* ── Invoice Preview Modal ────────────────── */}
       <InvoicePreviewModal

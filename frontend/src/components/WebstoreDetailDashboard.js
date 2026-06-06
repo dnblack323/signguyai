@@ -1,27 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { formatCurrency, formatDate } from '../lib/utils';
-import { 
-  TrendingUp, ShoppingCart, DollarSign, Package, Clock, 
-  ArrowUpRight, ArrowDownRight, Target, Calendar, Wallet,
-  BarChart3, Users
-} from 'lucide-react';
-import { toast } from 'sonner';
-import WebstoreOwnerConnectCard from './WebstoreOwnerConnectCard';
-import AdminStoreProgressCard from './AdminStoreProgressCard';
+import { formatCurrency } from '../lib/utils';
+import { TrendingUp, ShoppingCart, DollarSign, Package, BarChart3, Camera } from 'lucide-react';
+import StoreSnapshotModal from './StoreSnapshotModal';
 
 // Simple bar chart component
 const SimpleBarChart = ({ data, maxValue }) => {
@@ -54,17 +38,12 @@ const SimpleBarChart = ({ data, maxValue }) => {
 };
 
 export default function WebstoreDetailDashboard({ store, onClose }) {
-  const { getWebstoreAnalytics, getWebstoreOrdersV2, recordPayout, getWebstorePayouts } = useApp();
+  const { getWebstoreAnalytics } = useApp();
   
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
-  const [storeOrders, setStoreOrders] = useState([]);
-  const [payouts, setPayouts] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [payoutAmount, setPayoutAmount] = useState('');
-  const [payoutNotes, setPayoutNotes] = useState('');
-  const [submittingPayout, setSubmittingPayout] = useState(false);
+  const [showSnapshot, setShowSnapshot] = useState(false);
 
   useEffect(() => {
     if (store?.id) {
@@ -75,30 +54,17 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
   const loadAnalytics = async () => {
     setLoading(true);
     setLoadError(null);
-    // Use allSettled so a single failed call (e.g. payouts) does not blank
-    // out the entire dashboard. Each section degrades independently.
-    const [analyticsRes, ordersRes, payoutsRes] = await Promise.allSettled([
-      getWebstoreAnalytics(store.id),
-      getWebstoreOrdersV2({ webstore_id: store.id }),
-      getWebstorePayouts(store.id),
-    ]);
-    if (analyticsRes.status === 'fulfilled') {
-      setAnalytics(analyticsRes.value || null);
-    } else {
-      console.error('Error loading analytics:', analyticsRes.reason);
+    try {
+      const data = await getWebstoreAnalytics(store.id);
+      setAnalytics(data || null);
+    } catch (err) {
+      console.error('Error loading analytics:', err);
       setAnalytics(null);
-      const detail = analyticsRes.reason?.response?.data?.detail;
+      const detail = err?.response?.data?.detail;
       setLoadError(typeof detail === 'string' ? detail : 'Failed to load store analytics');
+    } finally {
+      setLoading(false);
     }
-    setStoreOrders(ordersRes.status === 'fulfilled' ? (ordersRes.value || []) : []);
-    setPayouts(payoutsRes.status === 'fulfilled' ? (payoutsRes.value || []) : []);
-    if (ordersRes.status === 'rejected') {
-      console.error('Error loading store orders:', ordersRes.reason);
-    }
-    if (payoutsRes.status === 'rejected') {
-      console.error('Error loading store payouts:', payoutsRes.reason);
-    }
-    setLoading(false);
   };
 
   const handleRecordPayout = async () => {
@@ -193,417 +159,167 @@ export default function WebstoreDetailDashboard({ store, onClose }) {
 
   return (
     <div className="space-y-6" data-testid="webstore-dashboard">
-      {/* Phase 6 — lifecycle progress first; analytics demoted below.
-          Reuses the same backend payload owners see so admin and owner
-          stay in sync on numbers. */}
-      <AdminStoreProgressCard storeId={store.id} />
+      {/* Snapshot Modal */}
+      <StoreSnapshotModal
+        store={store}
+        analytics={analytics}
+        open={showSnapshot}
+        onClose={() => setShowSnapshot(false)}
+      />
 
-      {/* Owner Stripe Connect — gate for activating the store */}
-      <WebstoreOwnerConnectCard webstore={store} />
+      {/* Store Snapshot CTA */}
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowSnapshot(true)}
+          className="gap-1.5"
+          data-testid="store-snapshot-btn"
+        >
+          <Camera className="h-4 w-4" />
+          Store Snapshot
+        </Button>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm" style={{ color: '#5A5A5A' }}>Total Revenue</p>
-                <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>
-                  {formatCurrency(summary.total_revenue)}
-                </p>
+                <p className="text-sm text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold">{formatCurrency(summary.total_revenue)}</p>
               </div>
-              <DollarSign className="h-8 w-8" style={{ color: '#10b981' }} />
+              <DollarSign className="h-8 w-8 text-emerald-500" />
             </div>
           </CardContent>
         </Card>
-        
-        <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm" style={{ color: '#5A5A5A' }}>Total Orders</p>
-                <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>
-                  {summary.total_orders}
-                </p>
-                <p className="text-xs" style={{ color: '#5A5A5A' }}>
-                  {summary.pending_orders} pending
-                </p>
+                <p className="text-sm text-muted-foreground">Total Orders</p>
+                <p className="text-2xl font-bold">{summary.total_orders}</p>
+                <p className="text-xs text-muted-foreground">{summary.pending_orders} pending</p>
               </div>
-              <ShoppingCart className="h-8 w-8" style={{ color: '#2F8BFB' }} />
+              <ShoppingCart className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
-        
-        <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm" style={{ color: '#5A5A5A' }}>Shop Profit</p>
-                <p className="text-2xl font-bold" style={{ color: '#10b981' }}>
-                  {formatCurrency(summary.shop_profit)}
-                </p>
+                <p className="text-sm text-muted-foreground">Avg. Order Value</p>
+                <p className="text-2xl font-bold">{formatCurrency(summary.average_order_value)}</p>
               </div>
-              <TrendingUp className="h-8 w-8" style={{ color: '#10b981' }} />
+              <TrendingUp className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
-        
-        <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm" style={{ color: '#5A5A5A' }}>Avg Order Value</p>
-                <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>
-                  {formatCurrency(summary.avg_order_value)}
-                </p>
+                <p className="text-sm text-muted-foreground">Products Sold</p>
+                <p className="text-2xl font-bold">{summary.total_items_sold}</p>
               </div>
-              <BarChart3 className="h-8 w-8" style={{ color: '#2F8BFB' }} />
+              <Package className="h-8 w-8 text-orange-400" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Fundraiser Progress (if applicable) */}
-      {fundraiser_metrics && (
-        <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
+      {/* Sales Chart + Top Products */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#1A1A1A' }}>
-              <Target className="h-5 w-5" style={{ color: '#2F8BFB' }} />
-              Fundraiser Progress
-            </CardTitle>
+            <CardTitle className="text-base">Sales Trend (Last 14 Days)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-3xl font-bold" style={{ color: '#2F8BFB' }}>
-                    {formatCurrency(fundraiser_metrics.raised)}
-                  </p>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>
-                    raised of {formatCurrency(fundraiser_metrics.goal)} goal
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>
-                    {(Number(fundraiser_metrics.progress_percent) || 0).toFixed(1)}%
-                  </p>
-                  {fundraiser_metrics.days_remaining !== null && (
-                    <p className="text-sm" style={{ color: '#5A5A5A' }}>
-                      <Calendar className="h-3 w-3 inline mr-1" />
-                      {fundraiser_metrics.days_remaining} days left
-                    </p>
-                  )}
-                </div>
+            <SimpleBarChart
+              data={sales_by_day}
+              maxValue={Math.max(...(sales_by_day?.map(d => d.amount) || [0]))}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Top Products</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {top_products?.length > 0 ? (
+              <div className="space-y-3">
+                {top_products.slice(0, 5).map((product, idx) => (
+                  <div key={product.product_id} className="flex items-center justify-between p-2 rounded bg-muted/40">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-blue-500 text-white' : 'bg-muted text-foreground'}`}>
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="text-xs text-muted-foreground">{product.quantity} sold</p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-emerald-600">{formatCurrency(product.revenue)}</p>
+                  </div>
+                ))}
               </div>
-              <Progress 
-                value={fundraiser_metrics.progress_percent} 
-                className="h-4"
-              />
-              <div className="flex justify-between text-sm" style={{ color: '#5A5A5A' }}>
-                <span>Fundraiser gets {fundraiser_metrics.profit_percent}% of profit</span>
-                <span>Shop keeps {100 - fundraiser_metrics.profit_percent}%</span>
-              </div>
+            ) : (
+              <p className="text-center py-4 text-muted-foreground text-sm">No products sold yet</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Order Status Breakdown */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-blue-500" />
+            Order Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-3 rounded-lg text-center bg-amber-50">
+              <p className="text-2xl font-bold text-amber-600">{summary.pending_orders}</p>
+              <p className="text-xs text-amber-800">Pending</p>
             </div>
+            <div className="p-3 rounded-lg text-center bg-blue-50">
+              <p className="text-2xl font-bold text-blue-600">{summary.processing_orders}</p>
+              <p className="text-xs text-blue-800">Processing</p>
+            </div>
+            <div className="p-3 rounded-lg text-center bg-emerald-50">
+              <p className="text-2xl font-bold text-emerald-600">{summary.completed_orders}</p>
+              <p className="text-xs text-emerald-800">Completed</p>
+            </div>
+            <div className="p-3 rounded-lg text-center bg-muted/40">
+              <p className="text-2xl font-bold">{summary.total_orders}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fundraiser Metrics */}
+      {fundraiser_metrics && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Fundraiser Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-3xl font-bold text-blue-600">{formatCurrency(fundraiser_metrics.raised)}</p>
+                <p className="text-sm text-muted-foreground">raised of {formatCurrency(fundraiser_metrics.goal)} goal</p>
+              </div>
+              <p className="text-2xl font-bold">{(Number(fundraiser_metrics.progress_percent) || 0).toFixed(1)}%</p>
+            </div>
+            <Progress value={fundraiser_metrics.progress_percent} className="h-3" />
           </CardContent>
         </Card>
       )}
-
-      {/* Tabs for different views */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview" data-testid="tab-analytics-overview">
-            <BarChart3 className="h-4 w-4 mr-2" /> Analytics
-          </TabsTrigger>
-          <TabsTrigger value="orders" data-testid="tab-analytics-orders">
-            <ShoppingCart className="h-4 w-4 mr-2" /> Orders ({storeOrders.length})
-          </TabsTrigger>
-          <TabsTrigger value="payouts" data-testid="tab-analytics-payouts">
-            <Wallet className="h-4 w-4 mr-2" /> Payouts
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Analytics Overview Tab */}
-        <TabsContent value="overview" className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sales Chart */}
-            <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg" style={{ color: '#1A1A1A' }}>
-                  Sales Trend (Last 14 Days)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SimpleBarChart 
-                  data={sales_by_day} 
-                  maxValue={Math.max(...(sales_by_day?.map(d => d.amount) || [0]))}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Top Products */}
-            <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg" style={{ color: '#1A1A1A' }}>
-                  Top Products
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {top_products?.length > 0 ? (
-                  <div className="space-y-3">
-                    {top_products.slice(0, 5).map((product, idx) => (
-                      <div 
-                        key={product.product_id} 
-                        className="flex items-center justify-between p-2 rounded"
-                        style={{ background: '#F5F7FA' }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span 
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                            style={{ 
-                              background: idx === 0 ? '#2F8BFB' : '#D7DCE2',
-                              color: idx === 0 ? '#fff' : '#1A1A1A'
-                            }}
-                          >
-                            {idx + 1}
-                          </span>
-                          <div>
-                            <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>
-                              {product.name}
-                            </p>
-                            <p className="text-xs" style={{ color: '#5A5A5A' }}>
-                              {product.quantity} sold
-                            </p>
-                          </div>
-                        </div>
-                        <p className="font-bold" style={{ color: '#10b981' }}>
-                          {formatCurrency(product.revenue)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center py-4" style={{ color: '#5A5A5A' }}>No products sold yet</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Order Status Breakdown */}
-          <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg" style={{ color: '#1A1A1A' }}>
-                Order Status Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 rounded-lg text-center" style={{ background: '#fef3c7' }}>
-                  <Clock className="h-6 w-6 mx-auto mb-2" style={{ color: '#d97706' }} />
-                  <p className="text-2xl font-bold" style={{ color: '#d97706' }}>{summary.pending_orders}</p>
-                  <p className="text-sm" style={{ color: '#92400e' }}>Pending</p>
-                </div>
-                <div className="p-4 rounded-lg text-center" style={{ background: '#dbeafe' }}>
-                  <Package className="h-6 w-6 mx-auto mb-2" style={{ color: '#2563eb' }} />
-                  <p className="text-2xl font-bold" style={{ color: '#2563eb' }}>{summary.processing_orders}</p>
-                  <p className="text-sm" style={{ color: '#1e40af' }}>Processing</p>
-                </div>
-                <div className="p-4 rounded-lg text-center" style={{ background: '#d1fae5' }}>
-                  <TrendingUp className="h-6 w-6 mx-auto mb-2" style={{ color: '#059669' }} />
-                  <p className="text-2xl font-bold" style={{ color: '#059669' }}>{summary.completed_orders}</p>
-                  <p className="text-sm" style={{ color: '#047857' }}>Completed</p>
-                </div>
-                <div className="p-4 rounded-lg text-center" style={{ background: '#F5F7FA' }}>
-                  <ShoppingCart className="h-6 w-6 mx-auto mb-2" style={{ color: '#1A1A1A' }} />
-                  <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>{summary.total_orders}</p>
-                  <p className="text-sm" style={{ color: '#5A5A5A' }}>Total</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Orders Tab */}
-        <TabsContent value="orders" className="mt-4">
-          <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-            <CardContent className="p-0">
-              {storeOrders.length === 0 ? (
-                <div className="text-center py-12" style={{ color: '#5A5A5A' }}>
-                  <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No orders yet for this store</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Order #</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {storeOrders.map((order, idx) => (
-                      <TableRow 
-                        key={order.id} 
-                        style={{ background: idx % 2 === 0 ? '#FFFFFF' : '#F5F7FA' }}
-                      >
-                        <TableCell className="font-mono text-sm">
-                          #{order.id.slice(0, 8)}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium" style={{ color: '#1A1A1A' }}>{order.customer_name}</p>
-                            <p className="text-xs" style={{ color: '#5A5A5A' }}>{order.customer_email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{order.items?.length || 0} items</TableCell>
-                        <TableCell className="text-right font-bold" style={{ color: '#1A1A1A' }}>
-                          {formatCurrency(order.total)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(order.status)}>
-                            {order.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell style={{ color: '#5A5A5A' }}>
-                          {formatDate(order.created_at)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Payouts Tab */}
-        <TabsContent value="payouts" className="mt-4 space-y-6">
-          {/* Payout Summary */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-              <CardContent className="p-4 text-center">
-                <p className="text-sm" style={{ color: '#5A5A5A' }}>Total Earned</p>
-                <p className="text-2xl font-bold" style={{ color: '#1A1A1A' }} data-testid="payout-total-earned">
-                  {formatCurrency(payout_total_earned)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-              <CardContent className="p-4 text-center">
-                <p className="text-sm" style={{ color: '#5A5A5A' }}>Total Paid Out</p>
-                <p className="text-2xl font-bold" style={{ color: '#10b981' }} data-testid="payout-total-paid">
-                  {formatCurrency(payout_total_paid)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card style={{ background: payout_balance_owed > 0 ? '#fef3c7' : '#d1fae5', borderColor: payout_balance_owed > 0 ? '#d97706' : '#059669' }}>
-              <CardContent className="p-4 text-center">
-                <p className="text-sm" style={{ color: payout_balance_owed > 0 ? '#92400e' : '#047857' }}>
-                  Balance Owed
-                </p>
-                <p className="text-2xl font-bold" style={{ color: payout_balance_owed > 0 ? '#d97706' : '#059669' }} data-testid="payout-balance-owed">
-                  {formatCurrency(payout_balance_owed)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Record Payout Form */}
-          {payout_balance_owed > 0 && (
-            <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg" style={{ color: '#1A1A1A' }}>
-                  Record Payout
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1">
-                    <label className="text-sm mb-1 block" style={{ color: '#5A5A5A' }}>Amount</label>
-                    <input
-                      type="number"
-                      value={payoutAmount}
-                      onChange={(e) => setPayoutAmount(e.target.value)}
-                      placeholder={`Max: ${formatCurrency(payout_balance_owed)}`}
-                      className="w-full px-3 py-2 rounded border"
-                      style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}
-                      data-testid="payout-amount-input"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-sm mb-1 block" style={{ color: '#5A5A5A' }}>Notes (optional)</label>
-                    <input
-                      type="text"
-                      value={payoutNotes}
-                      onChange={(e) => setPayoutNotes(e.target.value)}
-                      placeholder="e.g., Check #1234"
-                      className="w-full px-3 py-2 rounded border"
-                      style={{ borderColor: '#D7DCE2', background: '#FFFFFF' }}
-                    />
-                  </div>
-                  <Button 
-                    onClick={handleRecordPayout}
-                    disabled={submittingPayout}
-                    style={{ background: '#2F8BFB' }}
-                    className="text-white"
-                    data-testid="record-payout-btn"
-                  >
-                    {submittingPayout ? 'Recording...' : 'Record Payout'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Payout History */}
-          <Card style={{ background: '#FFFFFF', borderColor: '#D7DCE2' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg" style={{ color: '#1A1A1A' }}>
-                Payout History
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {payouts.length === 0 ? (
-                <div className="text-center py-8" style={{ color: '#5A5A5A' }}>
-                  <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No payouts recorded yet</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {payouts.map((payout, idx) => (
-                      <TableRow 
-                        key={payout.id || idx}
-                        style={{ background: idx % 2 === 0 ? '#FFFFFF' : '#F5F7FA' }}
-                      >
-                        <TableCell style={{ color: '#5A5A5A' }}>
-                          {formatDate(payout.created_at)}
-                        </TableCell>
-                        <TableCell className="text-right font-bold" style={{ color: '#10b981' }}>
-                          {formatCurrency(payout.amount)}
-                        </TableCell>
-                        <TableCell style={{ color: '#5A5A5A' }}>
-                          {payout.notes || '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

@@ -139,7 +139,7 @@ export const TopAppBar = ({ onMobileMenuClick }) => {
                   <Settings className="h-4 w-4" />
                   Settings
                 </button>
-                {user?.role === 'platform_admin' && (
+                {(user?.role === 'platform_admin' || user?.role === 'platform_creator') && (
                   <>
                     <div className="h-px bg-gray-100 my-1" />
                     <button

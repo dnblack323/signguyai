@@ -22,6 +22,114 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-06 — **Admin Analytics Page — COMPLETE & LIVE**
+  - New route: `/platform-admin/analytics` (platform_admin only, uses existing `require_platform_admin` guard)
+  - New backend: `/app/backend/routes/admin_analytics.py` — 8 endpoints (overview, activity-chart, users, routes, sessions, referrers, errors, suspicious)
+  - New frontend: `/app/frontend/src/pages/PlatformAdminAnalytics.js` — 8-tab dashboard
+  - New tracker: `/app/frontend/src/utils/analytics.js` — lightweight event tracker (visitor_id/session_id via localStorage/sessionStorage, auto page views, global error capture)
+  - New collection: `analytics_events` (auto-created on first event ingest; indexed on timestamp, event_type, session_id, user_id, route, ip_address)
+  - Added "Analytics" button to `/platform-admin` nav (first button in the row)
+  - Added `PageTracker` component + error init in `App.js` for automatic page view and error tracking
+
+- 2026-06-06 — **Store Snapshot Feature — COMPLETE & TESTED**
+  - New `StoreSnapshotModal.js` component renders a branded, printable snapshot of any webstore.
+  - Accessed via "Store Snapshot" button (`data-testid="store-snapshot-btn"`) in the Analytics tab.
+  - Snapshot includes: branded header (accent color, logo, store name, type/status badges), QR code, store URL, 4 KPI tiles (Revenue/Orders/Avg Order/Items Sold), fundraiser progress bar (if applicable), order deadline (if applicable), top products list, and footer.
+  - "Print / Save as PDF" button (`data-testid="snapshot-print-btn"`) opens new window with inline-styled print-ready HTML (QR code via `QRCodeCanvas` → data URL). No new dependencies.
+
+- 2026-06-06 — **Branding Tab Cleanup + Launch Gate Verification — COMPLETE & TESTED (100%)**
+  - **Branding tab de-duplicated**: Removed "Store Link / QR Code" section from top of Branding tab. Section had "Open Store" and "Admin Preview" buttons which duplicated Setup flow Step 9 (Preview) and Step 11 (Launch). Branding tab now opens directly on the Store Branding card (Logo/Banner/Accent Color).
+  - **Launch gate verified**: Backend (`PUT /api/webstores/v2/{id}` with status=active) correctly blocks with "Store cannot be activated yet. Assign at least one product before going live." Frontend `launchReady()` gate shows "Complete Required Steps First" disabled button when `storeProducts.length === 0`. Both layers confirmed via API test.
+
+- 2026-06-06 — **Consolidated Webstore Setup Flow + Tab Restructure — COMPLETE & TESTED (95%)**
+  - **WebstoreSetupFlow.js**: Completely rewritten from 8 to 11 sequential steps. New steps: (1) Store Created, (2) Send Setup Questionnaire, (3) Questionnaire Submitted, (4) Staff Review Answers, (5) Branding/Artwork, (6) Products & Pricing, (7) Fulfillment, (8) Owner Stripe Onboarding, (9) Store Preview, (10) Owner Approval, (11) Open Store. Each step shows one clear status badge (Complete/Action Needed/Waiting on Owner/Ready for Review/Not Started/Blocked).
+  - **Webstores.js**: Tab structure changed from 4 tabs (Setup/Dashboard/Products/Settings) to 6 tabs (Store Setup/Products/Branding/Payments/Orders/Analytics). Store Setup is now the default tab. Old Settings content distributed: Event/Fundraiser/Shipping settings → bottom of Store Setup; Branding → Branding tab; Stripe/payouts → Payments tab; orders → Orders tab.
+  - **AdminStoreProgressCard.js**: Removed all 3 stage-stamp buttons (Mark production started, Mark ready for pickup, Mark completed). These were store-level buttons that conflated order fulfillment with store setup.
+  - **WebstoreDetailDashboard.js**: Simplified to analytics-only (removed AdminStoreProgressCard, WebstoreOwnerConnectCard, internal orders/payouts tabs). Shows KPI cards, sales trend chart, top products, order status breakdown.
+  - **AppContext.js**: Added `stampWebstoreAdminProgress(webstoreId, flagKey)` function for admin-progress PATCH calls.
+  - **Webstores.py (backend)**: Added `preview_ready_at` and `owner_approved_at` to `Webstore` Pydantic model so they're returned from GET endpoints.
+  - **Tests**: 95% pass rate (iteration_177). All 14 requirements verified. Only unverified: launch gate for 0-products stores (no readily available test store).
+
+
+  - **P0 Fix**: `webstores.py` had an `IndentationError` at line 3700 (orphaned dict entries after `SAFE_MAP = QUESTIONNAIRE_SAFE_MAP`) — backend was completely DOWN. Fixed by removing the 42-line orphaned block.
+  - **P1 Fix**: `AppContext.js` `getWebstoreQuestionnaireReviewDetails` called `/webstores/` instead of `/webstores/v2/` — 404 on every review-details load. Fixed URL path.
+  - **P1 Fix**: `review-details` endpoint processed `response.answers` as a list of dicts but answers are stored as `{question_id: value}` dict. Fixed to build `q_id_to_label` map and convert correctly.
+  - **P1 Fix**: `review-details` endpoint only walked `sections` for `q_label_to_id` map; questionnaires created from templates use flat `questions`. Fixed to walk both.
+  - **P1 Fix**: `Webstore` Pydantic model was missing `questionnaire_reviewed`, `questionnaire_submitted_at`, `questionnaire_reviewed_at` fields — `ConfigDict(extra='ignore')` silently stripped them from GET responses. Frontend `launchReady()` gate always read `undefined`. Added all three as `Optional` fields.
+  - **What the workflow does**: (1) Staff sends questionnaire → owner fills it out → `questionnaire_submitted_at` stamped + `questionnaire_reviewed=false` on webstore → Setup tab shows "Ready for Review" badge + `StaffReviewPanel` → staff clicks "Apply Safe Answers" → safe fields applied to store, `questionnaire_reviewed=true` stamped → launch button unblocked. Backend PUT gate also enforces this server-side.
+  - **Tests**: 3/3 backend pytest pass (`tests/test_staff_review_workflow.py`). Frontend StaffReviewPanel renders with all testids verified.
+
+ — COMPLETE & TESTED**
+  - `WebstoreSetupFlow.js` (new): Sequential 8-step setup checklist (Store Created → Questionnaire → Branding → Products → Fulfillment → Stripe → Preview → Launch). Each step shows status badge (Complete/Action Needed/Waiting/Ready for Review/Not Started/Blocked). Inline questionnaire send with email-fail link fallback. Products/Branding/Fulfillment steps link to the correct secondary tab. Stripe step embeds `WebstoreOwnerConnectCard`. Launch gate prevents activation until ≥1 product assigned.
+  - `Webstores.js`: Added "Setup" tab (4th tab alongside Dashboard, Products, Settings). Pending/disabled/closed stores default to Setup tab; active/completed stores default to Dashboard. `TabsList` changed from `grid-cols-3` to `flex overflow-x-auto` — no overflow at any viewport. `overflow-x-hidden` added to both create and detail `DialogContent`.
+  - Tests: 16/16 acceptance criteria verified (14 browser-tested; 2 code-verified for edge cases not testable in current test env). (iteration_175.json)
+
+- 2026-06-05 — **Webstore Owner Stripe Connect Buttons Fixed — COMPLETE & TESTED**
+  - `AppContext.js`: Added `getWebstoreOwnerStatus` (`GET /api/webstore-owners/{id}/owner-status`) and `sendWebstoreOwnerInvite` (`POST /api/webstore-owners/{id}/invite/quick`). Both exported in `useApp()`.
+  - `WebstoreOwnerConnectCard.js`: Renamed destructured functions to match new AppContext names. Fixed response field mapping: `charges_enabled` (was `stripe_onboarding_complete`), `owner_stripe_account_id` (was `stripe_account_id`), `success` (was `sent`). 502-from-SendGrid now shows "Email delivery failed. Check your SendGrid API key in settings." instead of raw error.
+  - Tests: 10/10 PASS, 11/11 backend pytest PASS (iteration_174.json).
+
+- 2026-06-05 — **Questionnaire Support for All Store Types — COMPLETE & TESTED**
+  - `Webstores.js`: Removed `store_type === 'event'` gate on questionnaire loading and questionnaire card. All 4 store types (event, fundraiser, creator/team, business) now show a questionnaire card.
+  - Added `getQuestionnaireLabel` helper returning store-type-specific labels: Event Store Setup Questionnaire, Fundraiser Store Setup Questionnaire, Team / School Store Setup Questionnaire, Business Store Setup Questionnaire.
+  - Added `getQStatusPhase` + `Q_PHASE_CONFIG` for 5 visible states: Not Sent (gray), Sent (blue), Awaiting Review (amber), Applied (green), Draft (gray).
+  - Questionnaire card uses `data-testid="questionnaire-card"` and shows dynamic label, phase badge, send/resend/view/apply buttons based on state.
+  - Send dialog title updated dynamically per store type. Apply answers toast updated from "event store" to generic.
+  - Event-store-specific setup checklist loading remains event-only.
+  - Tests: 12/12 PASS (iteration_173.json).
+
+- 2026-06-05 — **Webstore Setup Flow Simplification — COMPLETE & TESTED**
+  - `StoreSetupWizard.js` rewritten: 9-step wizard → 3-step minimal flow (Store Type → Basics → Owner Info). Dates, Fulfillment, Questionnaire detail, Payments, and Review steps removed from initial creation.
+  - After creation: wizard transitions to `CreationResult` screen (data-testid `wizard-creation-result`) instead of closing. Shows success badge + "Send Setup Questionnaire" card with email input pre-filled from owner email.
+  - If email fails: amber warning + copyable questionnaire link (data-testid `questionnaire-link-fallback`). Staff can copy-paste manually.
+  - `Webstores.js`: Added `createdStore` state, `handleCloseCreateDialog`, `handleSendQuestionnaireAfterCreate`. `handleCreateStore` now sets `createdStore` instead of closing on success. Dialog description is context-aware.
+  - Acceptance: all 4 store types (business, fundraiser, creator, event) create pending stores in 3 steps. No event/fundraiser/fulfillment fields required upfront. Existing stores unaffected.
+  - Tests: 12/12 acceptance criteria PASS (iteration_172.json).
+
+- 2026-06-05 — **Phase 7: Public Storefront Polish + Webstores Duplicate Cleanup Hardening — COMPLETE & TESTED**
+  - **Status-aware storefront screens** (`backend/routes/webstores.py` + `frontend/src/pages/Storefront.js`): public endpoint now returns a limited branded status-page payload instead of 404 for non-active stores; frontend renders distinct Coming Soon (pending), Store Closed (completed/closed), and Unavailable (disabled) screens with branding, deadline info, and pickup instructions.
+  - **Pickup/delivery info band**: `order_deadline`, `pickup_delivery_date`, `pickup_delivery_instructions` displayed in a visible info strip on active storefronts (already in public fields, now rendered).
+  - **Admin preview mode**: new `GET /api/storefront/{id}/preview` endpoint (admin JWT required); `?admin_preview=1` URL param on `/store/:id` uses `getAuthToken()` to send the admin token and shows a yellow "Admin Preview" banner. "Admin Preview" button added to Webstores detail dialog Settings & Branding tab.
+  - **Product category grouping**: products grid groups by category (Apparel, Signs, Decals, Promotional, Events, Other) with section headers and counts when multiple categories are present.
+  - **Better image fallbacks**: product cards without images show a styled gradient placeholder (category color + icon + label) instead of a bare Package icon.
+  - **webstore_stage_events audit trail** (additive): new `webstore_stage_events` MongoDB collection. Auto-logs: `status_changed` (with from/to values), `stage_stamped` (with list of applied stamps), `admin_preview_accessed`. Non-blocking (swallows failures). Clean string status values (not enum reprs).
+  - **Status badge cleanup** (`Webstores.js`): `completed` (blue) and `closed` (gray) status badge colors added to `getStatusBadge`.
+  - **Pre-existing fix**: `Product` model `base_cost` and `retail_price` changed to `Optional[float]` so legacy products without these fields no longer cause 500 on `GET /api/products`.
+  - **Tests**: `/app/backend/tests/test_iteration171_phase7_storefront.py` — 21/21 backend PASS; all 7 frontend Phase 7 UI features verified.
+
+- 2026-06-02 — **Branding & Templates Settings (invoice / email / document) — COMPLETE & TESTED**
+  - **Data model** (`backend/models/auth.py`): new `BrandingSettings` (shared `primary_color`/`secondary_color`; invoice accent/logo-position/show-logo/show-company-info/footer/payment-terms; email from-name/show-logo/header-color/signature; document show-logo/header-text/footer-text). Added `branding_settings` to `TenantBase` + `TenantUpdate`; persisted via existing owner-only `PUT /api/tenant`.
+  - **Settings UI** (`frontend/src/pages/CompanySettings.js`): new "Branding & Templates" card with Brand Colors + Invoice / Email / Document sub-sections, loads from `tenant.branding_settings`, saves via `updateTenant({branding_settings})`. data-testids on all controls.
+  - **Wiring (settings actually apply)**:
+    - **Invoice** (`frontend/src/components/InvoicePreviewModal.js`): replaced hardcoded "SignGuy AI" From block + footer with real tenant name/address/phone/website (gated by `invoice_show_company_info`), branded logo (position-aware, `invoice_show_logo`), accent color on INVOICE heading + Balance Due, payment terms, and custom footer text.
+    - **Email** (`services/email_service.py`): `send_email` now wraps outgoing HTML in a branded shell (logo header + header color + signature) and overrides the SendGrid from-name when the tenant has configured branding — **no-op for unconfigured tenants (zero regression)**.
+    - **Document** (`routes/documents.py` generate-pdf): embeds tenant logo (`document_show_logo`), header text, and footer text into generated PDFs.
+  - **Testing**: owner-account E2E — settings persist via `PUT/GET /api/tenant`; UI save shows success toast and reloads correctly; invoice preview renders full branding; document PDF generates valid `%PDF` with branding; email wrapper unit-verified (wraps + from-name override when configured, unchanged otherwise). All throwaway test data cleaned up. Note: editing requires the **owner** role (PUT /tenant is owner-only); platform_admin is 403.
+- 2026-06-02 — **Branding Live Preview (enhancement)**: new `frontend/src/components/BrandingPreview.js` renders side-by-side Invoice / Email / Document mini-previews at the top of the Branding settings card, updating in real time from the in-progress `branding_settings` + company `formData` (accent color, logo position, company info, payment terms, footer, email header color/signature, document header/footer). Verified live: editing the invoice footer instantly reflected in the preview.
+
+- 2026-06-02 — **Security Code-Review Remediation (Part 2 report — COMPLETE)**
+  - Promo-code findings (#2, #3) intentionally SKIPPED per owner instruction (only the owner uses promo codes). Fixed the other 4:
+  - **#1 Workflow template tenant scoping** (`backend/routes/workflow_templates.py`): `update_template` now scopes both the `update_one` and the read-back `find_one` by `tenant_id` (previously keyed by `id` only). Verified: scoped update returns the doc; unknown id → 404.
+  - **#5 Tenant lookup key standardized** — the `tenants` collection is keyed by `id`, but multiple call sites queried `{"tenant_id": ...}` (always `None` → fell back to default "SignGuy AI" branding). Fixed across `webstores.py`, `webstore_owners.py` (x2), `documents.py` (x3), `questionnaires.py`, and `services/email_service.py` to `{"id": ...}`, plus added a `name` fallback so company branding actually resolves. Verified at query level (`{"id": tid}` resolves, `{"tenant_id": tid}` did not).
+  - **#6 Backup owner-role check** (`backend/routes/backup.py`): replaced brittle `current_user.role != "owner"` (x3: export/preview/restore) with an enum-safe `_is_owner()` helper that normalizes `UserRole` enum or plain string. Unit-tested; E2E verified owner allowed, platform_admin denied (403).
+  - **#4 Backup restore atomicity** (`backend/routes/backup.py`): restore was destructive delete-then-insert per collection with no rollback (partial failure = data loss). Added (a) upfront payload-shape validation (non-list/non-dict → clean 400 before any mutation) and (b) snapshot-and-rollback: snapshots each target collection's tenant docs before mutating and restores them all if any delete/insert throws. E2E verified: corrupt backup → 400 with data intact; valid backup → 200; mid-failure rolls back.
+  - **Tests**: `backend/tests/test_backup_security.py` (3 tests, `_is_owner`). All passing. Note: changes are in PREVIEW — production (signguy-ai.com) requires a redeploy to receive them.
+
+- 2026-06-02 — **Security Code-Review Remediation (Part 1 report — COMPLETE)**
+  - Audited 6 findings from `Part1_Code_Review_Report.pdf`. Findings #4 (hardcoded JWT fallback) and #6 (unconditional dev routes) were already fixed in prior work (Issues 1 & 2). Fixed the remaining 4:
+  - **#3 Credentials in query params** — removed `recover_owner_password(email, new_password)` query-param endpoint entirely.
+  - **#2 Insecure direct password reset → secure token flow** (`backend/routes/auth.py`): new `POST /auth/forgot-password` (body `{email, origin?}`; always returns a generic response to prevent email enumeration; generates a `secrets.token_urlsafe(32)` token, stores only its SHA-256 hash in new `password_reset_tokens` collection with 60-min expiry + single-use; emails the reset link via SendGrid `EmailService.send_password_reset_email`). New `POST /auth/reset-password` (body `{token, new_password>=6}`; verifies hash match + not-expired + not-used, sets fresh bcrypt hash, burns token). Prior outstanding tokens for a user are invalidated when a new one is issued.
+  - **#1 Unauthenticated `setup-admin`** — endpoint now gated behind `ENABLE_SETUP_ADMIN=true` env flag (default OFF → returns 404), and the setup_key comparison now uses `secrets.compare_digest`. Kept OFF in preview.
+  - **#5 CORS wildcard + credentials** (`backend/server.py`): when `CORS_ORIGINS` is unset/`*`, now uses `allow_origin_regex=".*"` (reflects request origin — valid with `allow_credentials=True`) instead of the browser-rejected literal `"*"`; explicit comma-separated `CORS_ORIGINS` still honored as an allow-list.
+  - **Frontend**: `Login.js` forgot-password view now collects email only and calls `/auth/forgot-password` (generic success). New `frontend/src/pages/ResetPassword.js` at route `/reset-password?token=…` (new-password + confirm, validation, single-use error handling). Route + import added in `App.js`.
+  - **Env flag**: `ENABLE_SETUP_ADMIN` (default off) controls the bootstrap endpoint. Reset link origin resolves from request `origin` → `APP_URL` → `META_PUBLIC_URL`.
+  - **Testing**: backend curl-verified (forgot-password generic 200, reset-password valid→200 then login→200 then replay→400, short-pw→422, setup-admin→404, old recover-password→404); frontend screenshot-verified (reset page renders, forgot-password shows generic success). Test data cleaned up.
+
+- 2026-06-02 — **Questionnaire Submit Validation Hardening (P1 backend gap — COMPLETE)**
+  - **Problem**: `POST /api/questionnaires/public/{id}/submit` only walked top-level `questions`, did NOT skip `locked_answer_ids` (provider-set fields), and ignored `conditional` visibility — risking false-positive 400s on valid submits and weak data integrity for section-based templates.
+  - **Backend** (`backend/routes/questionnaires.py`): added module helpers `iter_questionnaire_questions()` (walks top-level `questions` AND nested `sections[*].questions`), `_answer_is_empty()` (None/blank/empty-list aware; numeric 0 counts as answered), and `_question_is_visible()` (mirrors storefront conditional logic: equals/not_equals/contains/greater_than/less_than; unknown operator fails open). Rewrote the submit validator to skip non-input (heading/paragraph), skip locked fields, skip hidden-by-condition questions, then enforce required + email/phone format on visible fields only. `get_single_response` label map + projection now also include `sections`.
+  - **Tests**: new `backend/tests/test_questionnaire_nested_validation.py` (9/9 unit tests pass). E2E curl verified against live active questionnaire (18 required + 2 locked fields): empty submit → 400, valid submit omitting locked fields → 200 (previously would wrongly 400), bad email → 422. Test response cleaned up post-verification.
+
 - 2026-06-01 — **Phase 6: Selected-Store Admin Workflow Polish + Orders/Customers Webstore Filters UI (COMPLETE)**
   - **Backend NEW**: `GET /api/webstores/v2/{id}/admin-progress` + `PATCH /api/webstores/v2/{id}/admin-progress` in `backend/routes/webstores.py`. Tenant-scoped; reuses Phase 5 `_build_store_progress_payload`. PATCH accepts `AdminStageStampRequest` with `mark_preview_ready / mark_owner_approved / mark_production_started / mark_ready_for_pickup / mark_completed` flags (true → stamp now, false → clear timestamp). `mark_completed=true` also flips `store.status='completed'`.
   - **Backend FIX**: added `COMPLETED` + `CLOSED` to `WebstoreStatus` enum so GET /api/webstores/v2/{id} no longer 500s after a `mark_completed` stamp (iteration_170 HIGH finding).
@@ -557,7 +665,22 @@ Addressed all 4 missing endpoints and 1 security bug discovered in iteration_132
 - Team / Workforce Ribbon rebuild (on hold).
 - Optional: UI banner before Connect click reminding tenants to close old Stripe tabs.
 
-## Key Files
+## Dashboard UI Changelog — 2026-02 (Continued)
+
+### 2026-02 — Shop Health Card + Dashboard Layout Reorder — COMPLETE
+- **Shop Health Card** (new): Compact 5-row status card: Production Load (Light/Normal/Heavy), Oldest Job (from pipeline bottleneck ages), Awaiting Approval, Invoice Risk (overdue count+amount), Team Today (scheduled count). Color-coded green/amber/red. Pure frontend derivation — no new backend endpoints.
+- **TodayScheduleCard** (new): Merged ScheduleWidget + AppointmentsWidget into one "Today's Schedule" card with Due Today + Appointments sub-sections.
+- **Layout Reorder**: Production Pipeline → Operations 3-col (Schedule|TeamStatus|ShopHealth) → Action Required → Business Overview → Billing Snapshot → Recent Docs + Quick Actions → Onboarding+Nudges. Business Overview and Quick Actions moved from position 3 to positions 5 and 8 respectively.
+- Files changed: `Dashboard.js`
+
+
+- **Action Required Card**: Replaced 5 scattered widgets (MessagesWidget, PendingApprovalsWidget, QuoteFollowupsWidget, PendingCustomerActionsWidget, AssistantNudgesWidget tabs) with ONE unified vertical-list "Action Required" card. 5 sections: Customer Approvals · Messages · Quote Follow-Ups · Invoices & Payments · Customer Actions. Compact empty states (green checkmark + text). All links/actions preserved.
+- **Billing Snapshot**: Replaced `FinancialAttentionRow` (4 separate cards: Unpaid / Overdue / Due This Week / Recent Payments) with single `BillingSnapshotCard` showing summary rows + top 2 urgent items + "All invoices" link.
+- **Quick Actions**: Removed duplicate instance from Row 6. Single placement remains next to Business Overview (correct position). 6 primary + "More actions" toggle (4 secondary). Labels not truncated.
+- **AssistantNudgesWidget**: Updated from light purple gradient to neutral `var(--surface)` background with light-mode-compatible colored item rows. Standalone below BillingSnapshot.
+- Files changed: `Dashboard.js`, `AssistantNudgesWidget.js`
+
+
 - `backend/routes/stripe_connect.py` — Connect onboarding, webhooks, checkout.
 - `backend/routes/webstores.py` — webstore CRUD, unified order creation.
 - `backend/routes/employees.py` — payroll transactions, snapshots.

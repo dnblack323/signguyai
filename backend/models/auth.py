@@ -27,6 +27,31 @@ class PayrollSettings(BaseModel):
     show_payroll_adjustments: bool = False
 
 
+class BrandingSettings(BaseModel):
+    """Tenant branding & template preferences applied to invoices, emails,
+    and generated documents. All fields are optional so unconfigured tenants
+    keep the existing default appearance (no regression)."""
+    # ── Shared brand identity ──
+    primary_color: str = "#0D9488"
+    secondary_color: str = "#14B8A6"
+    # ── Invoice layout & branding ──
+    invoice_accent_color: Optional[str] = None        # falls back to primary_color
+    invoice_show_logo: bool = True
+    invoice_logo_position: str = "left"               # left | center | right
+    invoice_show_company_info: bool = True
+    invoice_footer_text: Optional[str] = None
+    invoice_payment_terms: Optional[str] = None
+    # ── Email branding ──
+    email_from_name: Optional[str] = None             # overrides SendGrid from-name
+    email_show_logo: bool = True
+    email_header_color: Optional[str] = None          # falls back to primary_color
+    email_signature: Optional[str] = None
+    # ── Document branding ──
+    document_show_logo: bool = True
+    document_header_text: Optional[str] = None
+    document_footer_text: Optional[str] = None
+
+
 class TenantBase(BaseModel):
     name: str
     slug: str
@@ -49,6 +74,7 @@ class TenantBase(BaseModel):
     payroll_settings: Optional[PayrollSettings] = None
     employee_portal_settings: Optional[Dict[str, bool]] = None
     signature_settings: Optional[Dict[str, Any]] = None
+    branding_settings: Optional[BrandingSettings] = None
     default_tax_rate: Optional[float] = 0.0
 
 class TenantCreate(BaseModel):
@@ -73,6 +99,7 @@ class TenantUpdate(BaseModel):
     customer_portal_settings: Optional[Dict[str, bool]] = None
     signature_settings: Optional[Dict[str, Any]] = None
     default_tax_rate: Optional[float] = None
+    branding_settings: Optional[BrandingSettings] = None
     # AI Assistant personality — one of "ops_partner", "wise_mentor",
     # "cheerful_helper", "no_bs_direct". Defaults to ops_partner when unset.
     assistant_personality: Optional[str] = None

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { TopAppBar, PrimaryNav, ActionToolbar, MobileNav } from './ribbon';
 import { WebstoresRibbon } from './ribbon/WebstoresRibbon';
+import { DashboardRibbon } from './ribbon/DashboardRibbon';
 import { TrialCountdown } from './TrialLockout';
 import { SupportModeBanner } from './SupportModeBanner';
 import DevPanel from './DevPanel';
@@ -123,10 +124,14 @@ export const MainLayout = ({ children }) => {
           {/* Primary Navigation */}
           <PrimaryNav activeTab={activeTab} onTabChange={setActiveTab} />
           
-          {/* Module command bar — Webstores gets its own Office-style ribbon;
-              every other module keeps the lightweight ActionToolbar. */}
+          {/* Module command bar:
+              - Webstores  → full Office-style WebstoresRibbon
+              - Dashboard  → 12-action DashboardRibbon
+              - Everything else → lightweight ActionToolbar */}
           {activeTab === 'webstores' ? (
             <WebstoresRibbon />
+          ) : activeTab === 'dashboard' ? (
+            <DashboardRibbon />
           ) : (
             <ActionToolbar activeTab={activeTab} />
           )}
