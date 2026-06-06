@@ -322,7 +322,7 @@ export default function PlatformAdminAnalytics() {
                 <StatCard icon={Globe}     label="Sessions"         value={ov.total_sessions}      color="text-indigo-600"  isNew />
                 <StatCard icon={Globe}     label="Unique Visitors"  value={ov.total_visitors}      color="text-cyan-600"    isNew />
                 <StatCard icon={UserCheck} label="Logged-in Visits" value={ov.logged_in_visits}    color="text-emerald-600" isNew />
-                <StatCard icon={UserX}     label="Anonymous Visits" value={ov.anonymous_visits}    color="text-gray-500"    isNew />
+                <StatCard icon={UserX}     label="Anon. Visitors" value={ov.anonymous_visits}    color="text-gray-500"    isNew />
                 <StatCard icon={Bot}       label="Bot Events"       value={ov.bot_events}          color="text-red-500"     isNew />
                 <StatCard icon={AlertTriangle} label="Errors"       value={ov.error_events}        color="text-orange-500"  isNew />
                 <StatCard icon={TrendingUp} label="Avg Req/Session" value={ov.avg_req_per_session} color="text-purple-600"  isNew />

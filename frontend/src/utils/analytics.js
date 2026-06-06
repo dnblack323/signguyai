@@ -70,7 +70,13 @@ export function trackPageView(route, userContext = {}) {
 }
 
 // ── Global error capture ──────────────────────────────────────────────────────
+let _errorTrackingInitialized = false;
+
 export function initErrorTracking(userContext = {}) {
+  // Guard: only attach listeners once to avoid stacking duplicates
+  if (_errorTrackingInitialized) return;
+  _errorTrackingInitialized = true;
+
   // JS runtime errors
   window.addEventListener('error', (ev) => {
     trackEvent('frontend_error', {
