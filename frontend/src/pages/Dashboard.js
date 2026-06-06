@@ -9,7 +9,7 @@ import {
   CheckCircle, Calendar, UserCheck, Coffee, Sun, Sunset, Moon,
   ChevronRight, Eye, Sparkles, Download, Send, ExternalLink,
   BarChart2, DollarSign, TrendingDown, Package, Layers,
-  RefreshCw, XCircle, Zap, Inbox
+  RefreshCw, XCircle, Zap, Inbox, Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
@@ -493,6 +493,166 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
         </>
       )}
     </CardShell>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Today's Schedule — merged due-items + appointments card
+// ─────────────────────────────────────────────
+
+const TodayScheduleCard = ({ dueItems = [], appointments = [], loading, error, onRetry, lastUpdatedAt }) => {
+  const totalItems = dueItems.length + appointments.length;
+  const badge = totalItems > 0 && (
+    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium border border-blue-500/40">{totalItems}</span>
+  );
+  return (
+    <CardShell
+      icon={Calendar} iconColor="text-blue-400" title="Today's Schedule"
+      badge={badge} lastUpdatedAt={lastUpdatedAt}
+      headerRight={<Link to="/productivity?view=calendar"><span className="text-xs text-blue-400 hover:underline">Calendar →</span></Link>}
+    >
+      {loading ? <LoadingSpinner /> : error ? <ErrorState onRetry={onRetry} /> : totalItems === 0 ? (
+        <div className="text-center py-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing scheduled today.</p>
+          <Link to="/productivity?view=calendar">
+            <Button size="sm" variant="outline" className="mt-2 text-xs"><Calendar className="h-3 w-3 mr-1" /> Open Calendar</Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {dueItems.length > 0 && (
+            <>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Due Today</p>
+              {dueItems.slice(0, 3).map(item => (
+                <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`schedule-item-${item.order_item_id}`}>
+                  <div
+                    className="flex items-center justify-between p-2 rounded-lg"
+                    style={{
+                      backgroundColor: item.priority === 'urgent' || item.priority === 'rush' ? '#FEF2F2' : 'var(--surface-2)',
+                      border: item.priority === 'urgent' || item.priority === 'rush' ? '1px solid #FECACA' : '1px solid transparent',
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0 mr-2">
+                      {(item.priority === 'urgent' || item.priority === 'rush') && <AlertTriangle className="h-3 w-3 text-red-500 flex-shrink-0" />}
+                      <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{item.item_name}</p>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded-full text-xs flex-shrink-0 font-medium" style={getStatusBadgeStyles(item.stage)}>{item.stage}</span>
+                  </div>
+                </Link>
+              ))}
+            </>
+          )}
+          {appointments.length > 0 && (
+            <>
+              {dueItems.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider pt-1.5 mb-1" style={{ color: 'var(--text-muted)' }}>Appointments</p>}
+              {appointments.slice(0, 3).map(appt => (
+                <div key={appt.appointment_id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`appt-${appt.appointment_id}`}>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{appt.title}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      {appt.customer_name}{appt.start_at && ` · ${new Date(appt.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                    </p>
+                  </div>
+                  <span className="px-1.5 py-0.5 rounded-full text-xs flex-shrink-0 font-medium" style={getStatusBadgeStyles(appt.status)}>{appt.type?.replace('_', ' ') || 'appt'}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </CardShell>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Shop Health — compact, color-coded shop status
+// Derives from: summaryV2, productionSnapshot, customerAttention,
+//               financialAttention, commandCenter
+// ─────────────────────────────────────────────
+
+const ShopHealthCard = ({ summaryData, productionData, customerData, financialData, commandCenterData, loadingProduction, loadingCustomer, loadingFinancial, loadingCommand }) => {
+  const anyLoading = loadingProduction || loadingCustomer || loadingFinancial || loadingCommand;
+
+  // 1. Production Load — based on in_production count
+  const inProd = summaryData?.metrics?.in_production?.count || 0;
+  const loadLevel = inProd === 0 ? 'Light' : inProd <= 8 ? 'Normal' : 'Heavy';
+  const loadStyle = {
+    Light:  { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: `${inProd} active` },
+    Normal: { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: `${inProd} active` },
+    Heavy:  { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: `${inProd} active` },
+  }[loadLevel];
+
+  // 2. Oldest Job — max oldest_item_age_hours across bottlenecks
+  const bottlenecks = productionData?.bottlenecks || [];
+  const maxAge = bottlenecks.reduce((m, b) => Math.max(m, b.oldest_item_age_hours || 0), 0);
+  const oldestDisplay = maxAge > 0 ? formatAge(maxAge) : 'None';
+  const oldestStyle = maxAge > 96
+    ? { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: 'Needs attention' }
+    : maxAge > 24
+      ? { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: 'Monitor' }
+      : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: maxAge > 0 ? 'In pipeline' : 'All fresh' };
+
+  // 3. Approval Bottleneck
+  const approvalsWaiting = (customerData?.approvals_signatures_pending || []).length;
+  const approvalStyle = approvalsWaiting > 2
+    ? { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: 'Customers waiting' }
+    : approvalsWaiting > 0
+      ? { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: 'Follow up' }
+      : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: 'Clear' };
+
+  // 4. Invoice Risk
+  const overdueCount  = summaryData?.metrics?.overdue?.count || 0;
+  const overdueAmount = financialData?.overdue?.total_amount  || 0;
+  const invoiceStyle  = overdueCount > 0
+    ? { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', sub: formatCurrency(overdueAmount) }
+    : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: 'No risk' };
+
+  // 5. Team Coverage
+  const scheduledCount  = commandCenterData?.team_status_today?.scheduled_count  || 0;
+  const clockedIn       = commandCenterData?.team_status_today?.clocked_in_count || 0;
+  const teamStyle = scheduledCount === 0
+    ? { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', sub: 'No schedule set' }
+    : { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', sub: `${clockedIn} clocked in` };
+
+  const rows = [
+    { id: 'load',      icon: Layers,  label: 'Production Load',   value: loadLevel,                                           style: loadStyle    },
+    { id: 'oldest',    icon: Clock,   label: 'Oldest Job',         value: oldestDisplay,                                       style: oldestStyle  },
+    { id: 'approvals', icon: Eye,     label: 'Awaiting Approval',  value: approvalsWaiting === 0 ? 'Clear' : `${approvalsWaiting} pending`, style: approvalStyle },
+    { id: 'invoices',  icon: Receipt, label: 'Invoice Risk',       value: overdueCount === 0 ? 'Clear' : `${overdueCount} overdue`,         style: invoiceStyle  },
+    { id: 'team',      icon: Users,   label: 'Team Today',         value: scheduledCount === 0 ? 'No schedule' : `${scheduledCount} sched`, style: teamStyle     },
+  ];
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="shop-health-card">
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <Activity className="h-4 w-4 text-indigo-500" />
+        <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Shop Health</h2>
+      </div>
+      {anyLoading ? (
+        <div className="p-4"><LoadingSpinner /></div>
+      ) : (
+        <div className="p-3 space-y-1.5">
+          {rows.map(({ id, icon: Icon, label, value, style: s }) => (
+            <div
+              key={id}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
+              style={{ backgroundColor: 'var(--surface-2)' }}
+              data-testid={`shop-health-${id}`}
+            >
+              <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: s.text }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
+                <p className="text-xs font-bold leading-none" style={{ color: 'var(--text)' }}>{value}</p>
+              </div>
+              <span
+                className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: s.bg, border: `1px solid ${s.border}`, color: s.text }}
+              >{s.sub}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -1449,45 +1609,32 @@ export default function Dashboard() {
       {/* ── Priority Action Strip (urgent ops first) ── */}
       <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
 
-      {/* ── Business Overview + Quick Actions (side by side) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)', borderLeft: '2px solid var(--accent)', paddingLeft: '8px' }}>
-            Business Overview
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard title="Total Customers"  value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
-            <StatCard title="Active Orders"    value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
-            <StatCard title="Pending Invoices" value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
-            <StatCard title="Today's Revenue"  value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
-          </div>
-        </div>
-        <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
-      </div>
-
-      {/* ── Today Command Center ─────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Clock className="h-4 w-4 text-blue-400" />
-          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Today&apos;s Command Center</h2>
-          {commandCenter && (() => {
-            const f = getFreshness(cmdLastUpdated);
-            return (f.isStale || f.isMissing) ? (
-              <span className="text-xs text-amber-400" data-testid={f.isStale ? 'stale-indicator' : undefined}>
-                {f.isStale ? '⚠ Stale' : 'No timestamp'}
-              </span>
-            ) : null;
-          })()}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-          <ScheduleWidget   items={dueItems} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
-          <AppointmentsWidget items={appts} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
-          <TeamStatusWidget teamStatus={teamStatus} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
-        </div>
-      </div>
-
-      {/* ── Production Pipeline ──────────── */}
+      {/* ── 3. Production Pipeline (wide) ───────── */}
       <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
+
+      {/* ── 3. Operations Row: Schedule · Team · Shop Health ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <TodayScheduleCard
+          dueItems={dueItems}
+          appointments={appts}
+          lastUpdatedAt={cmdLastUpdated}
+          loading={loadingCommand}
+          error={errorCommand}
+          onRetry={fetchCommandCenter}
+        />
+        <TeamStatusWidget teamStatus={teamStatus} lastUpdatedAt={cmdLastUpdated} loading={loadingCommand} error={errorCommand} onRetry={fetchCommandCenter} />
+        <ShopHealthCard
+          summaryData={summaryV2}
+          productionData={productionSnapshot}
+          customerData={customerAttention}
+          financialData={financialAttention}
+          commandCenterData={commandCenter}
+          loadingProduction={loadingProduction}
+          loadingCustomer={loadingCustomer}
+          loadingFinancial={loadingFinancial}
+          loadingCommand={loadingCommand}
+        />
+      </div>
 
       {/* ── Action Required (consolidated) ─────────── */}
       <ActionRequiredCard
@@ -1498,11 +1645,29 @@ export default function Dashboard() {
         summaryData={summaryV2}
       />
 
-      {/* ── Billing Snapshot ─────────────────────── */}
+      {/* ── 5. Business Overview ─────────────────── */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)', borderLeft: '2px solid var(--accent)', paddingLeft: '8px' }}>
+          Business Overview
+        </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard title="Total Customers"  value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
+          <StatCard title="Active Orders"    value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
+          <StatCard title="Pending Invoices" value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
+          <StatCard title="Today's Revenue"  value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
+        </div>
+      </div>
+
+      {/* ── 6. Billing Snapshot ─────────────────── */}
       <BillingSnapshotCard data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
 
-      {/* ── Recent AI Documents ──────────────────── */}
-      <RecentAIDocumentsWidget documents={recentAIDocs} />
+      {/* ── 7 + 8. Recent Documents + Quick Actions ─ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="lg:col-span-2">
+          <RecentAIDocumentsWidget documents={recentAIDocs} />
+        </div>
+        <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
+      </div>
 
       {/* ── Onboarding + AI Nudges ───────────────── */}
       <OnboardingChecklist />
