@@ -53,6 +53,15 @@ const getFreshness = (isoStr) => {
 // Kept for backward-compat with plain text usages
 const formatLastUpdated = (isoStr) => getFreshness(isoStr).text;
 
+// Convert raw hours (from backend) into a human-readable age string
+// < 24h → "18h"   |   1–9.9 days → "3.5d"   |   ≥ 10 days → "15d"
+const formatAge = (hours) => {
+  if (hours == null || hours === undefined) return null;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  const days = hours / 24;
+  return days < 10 ? `${days.toFixed(1)}d` : `${Math.round(days)}d`;
+};
+
 // ─── Sorting helpers ─────────────────────────────────────────────────────────
 
 // At-risk priority: blocked first, then overdue, then due_24h_not_started
@@ -201,19 +210,18 @@ const LoadingSpinner = () => (
 // Row 1 — Severity Strip (summary-v2)
 // ─────────────────────────────────────────────
 const STRIP_METRICS = [
-  { key: 'due_today',          label: 'Due Today',         icon: Clock,          href: '/orders' },
-  { key: 'overdue',            label: 'Overdue',           icon: AlertTriangle,  href: '/orders' },
-  { key: 'awaiting_approval',  label: 'Awaiting Approval', icon: Eye,            href: '/approvals' },
-  { key: 'unread_messages',    label: 'Unread Messages',   icon: MessageSquare,  href: '/admin-portal?tab=messages' },
-  { key: 'in_production',      label: 'In Production',     icon: Package,        href: '/orders' },
-  { key: 'unpaid_invoices',    label: 'Unpaid Invoices',   icon: Receipt,        href: '/invoices' },
+  { key: 'due_today',         label: 'Due Today',       icon: Clock,         href: '/orders'                       },
+  { key: 'overdue',           label: 'Overdue',          icon: AlertTriangle, href: '/orders'                       },
+  { key: 'awaiting_approval', label: 'Needs Approval',   icon: Eye,           href: '/approvals'                    },
+  { key: 'in_production',     label: 'In Production',    icon: Package,       href: '/orders'                       },
+  { key: 'unpaid_invoices',   label: 'Unpaid Invoices',  icon: Receipt,       href: '/invoices'                     },
 ];
 
 const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
   if (loading) return (
-    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
       {STRIP_METRICS.map(m => (
-        <div key={m.key} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
+        <div key={m.key} className="h-28 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
       ))}
     </div>
   );
@@ -225,22 +233,46 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
   );
 
   return (
-    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3" data-testid="severity-strip">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3" data-testid="severity-strip">
       {STRIP_METRICS.map(({ key, label, icon: Icon, href }) => {
         const metric = data?.metrics?.[key] || { count: 0, severity: 'neutral' };
-        const { badge } = getSeverityStyles(metric.severity);
+        const isOverdue   = key === 'overdue'   && metric.count > 0;
+        const isRedUrgent = metric.severity === 'red'   && metric.count > 0;
+        const isAmber     = metric.severity === 'amber' && metric.count > 0;
+
+        let cardBg, cardBorder, countColor, iconColor;
+        if (isOverdue) {
+          cardBg     = 'rgba(239,68,68,0.14)';
+          cardBorder = 'rgba(239,68,68,0.55)';
+          countColor = '#FCA5A5';
+          iconColor  = '#EF4444';
+        } else if (isRedUrgent) {
+          cardBg     = 'rgba(239,68,68,0.08)';
+          cardBorder = 'rgba(239,68,68,0.35)';
+          countColor = '#FCA5A5';
+          iconColor  = '#EF4444';
+        } else if (isAmber) {
+          cardBg     = 'rgba(245,158,11,0.10)';
+          cardBorder = 'rgba(245,158,11,0.40)';
+          countColor = '#FCD34D';
+          iconColor  = '#F59E0B';
+        } else {
+          cardBg     = 'var(--surface)';
+          cardBorder = 'var(--border-light)';
+          countColor = 'var(--text)';
+          iconColor  = 'var(--text-muted)';
+        }
+
         return (
           <Link key={key} to={href} data-testid={`severity-${key}`}>
             <div
-              className="rounded-xl px-3 py-3 flex flex-col gap-1 transition-all hover:shadow-md"
-              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
+              className="rounded-xl px-4 py-4 flex flex-col gap-2 transition-all hover:shadow-md hover:translate-y-[-1px]"
+              style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}
             >
-              <div className="flex items-center justify-between">
-                <Icon className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
-                <span className={`text-sm font-bold px-2 py-0.5 rounded-md ${badge}`}>
-                  {metric.count}
-                </span>
-              </div>
+              <Icon className="h-4 w-4 flex-shrink-0" style={{ color: iconColor }} />
+              <span className="text-3xl font-bold font-heading leading-none" style={{ color: countColor }}>
+                {metric.count}
+              </span>
               <p className="text-xs font-medium leading-tight" style={{ color: 'var(--text)' }}>{label}</p>
             </div>
           </Link>
@@ -465,42 +497,45 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
 };
 
 // ─────────────────────────────────────────────
-// Row 3 — Production Snapshot
+// Row 3 — Production Pipeline
 // ─────────────────────────────────────────────
 const STAGE_COLORS = {
   queued:    { bg: 'bg-slate-600/40',   text: 'text-slate-200',   border: 'border-slate-500/50',   label: 'Queued'    },
   printing:  { bg: 'bg-amber-500/30',   text: 'text-amber-200',   border: 'border-amber-500/50',   label: 'Printing'  },
   finishing: { bg: 'bg-purple-500/30',  text: 'text-purple-200',  border: 'border-purple-500/50',  label: 'Finishing' },
   install:   { bg: 'bg-blue-500/30',    text: 'text-blue-200',    border: 'border-blue-500/50',    label: 'Install'   },
-  complete:  { bg: 'bg-emerald-500/30', text: 'text-emerald-200', border: 'border-emerald-500/50', label: 'Complete'  },
+  complete:  { bg: 'bg-emerald-500/30', text: 'text-emerald-200', border: 'border-emerald-500/50', label: 'Completed' },
 };
 
 const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
-  const stages = data?.order_items_by_stage || {};
-  // Frontend-sort at-risk: blocked(0) > overdue(1) > due_within_24h(2), then earliest due_at
-  const atRisk = sortAtRisk(data?.at_risk || []);
+  const stages      = data?.order_items_by_stage || {};
+  const atRisk      = sortAtRisk(data?.at_risk || []);
   const bottlenecks = data?.bottlenecks || [];
 
-  // Freshness for standalone header
+  // Build oldest-age lookup from bottlenecks: stage → hours
+  const ageByStage = {};
+  bottlenecks.forEach(b => { if (b.stage) ageByStage[b.stage] = b.oldest_item_age_hours; });
+
   const freshness = data?.last_updated_at !== undefined ? getFreshness(data?.last_updated_at) : null;
 
   const _reasonLabel = (r) => ({
-    overdue: 'Overdue',
+    overdue:                    'Overdue',
     due_within_24h_not_started: 'Due Soon',
-    blocked: 'Blocked',
+    blocked:                    'Blocked',
   }[r] || r);
-  const _reasonColor = (r) => ({
-    overdue: { backgroundColor: '#EF4444', color: '#FFFFFF' },
-    due_within_24h_not_started: { backgroundColor: '#F59E0B', color: '#000000' },
-    blocked: { backgroundColor: '#6B7280', color: '#FFFFFF' },
-  }[r] || { backgroundColor: '#6B7280', color: '#FFFFFF' });
+
+  const _reasonBadge = (r) => ({
+    overdue:                    { bg: 'rgba(239,68,68,0.20)',   color: '#FCA5A5', border: 'rgba(239,68,68,0.40)'    },
+    due_within_24h_not_started: { bg: 'rgba(245,158,11,0.20)', color: '#FCD34D', border: 'rgba(245,158,11,0.40)'  },
+    blocked:                    { bg: 'rgba(107,114,128,0.25)', color: '#D1D5DB', border: 'rgba(107,114,128,0.40)' },
+  }[r] || { bg: 'rgba(107,114,128,0.25)', color: '#D1D5DB', border: 'rgba(107,114,128,0.40)' });
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
       <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
         <div className="flex items-center gap-2">
           <BarChart2 className="h-4 w-4 text-blue-400" />
-          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Production Snapshot</h2>
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Production Pipeline</h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {freshness && (freshness.isStale || freshness.isMissing) && (
@@ -517,57 +552,87 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
         </div>
       </div>
       {loading ? <div className="p-4"><LoadingSpinner /></div> : error ? <div className="p-4"><ErrorState onRetry={onRetry} /></div> : (
-        <div className="p-4 space-y-4">
-          {/* Stage counts */}
+        <div className="p-4 space-y-5">
+          {/* Stage strip */}
           <div className="grid grid-cols-5 gap-2" data-testid="production-stages">
-            {Object.entries(STAGE_COLORS).map(([key, style]) => (
-              <div key={key} className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border ${style.bg} ${style.border}`}>
-                <span className={`text-2xl font-bold font-heading ${style.text}`}>{stages[key] ?? 0}</span>
-                <span className={`text-xs font-semibold ${style.text}`}>{style.label}</span>
-              </div>
-            ))}
+            {Object.entries(STAGE_COLORS).map(([key, style]) => {
+              const ageStr = ageByStage[key] != null ? formatAge(ageByStage[key]) : null;
+              return (
+                <div key={key} className={`flex flex-col items-center gap-1 p-3 rounded-lg border ${style.bg} ${style.border}`}>
+                  <span className={`text-2xl font-bold font-heading ${style.text}`}>{stages[key] ?? 0}</span>
+                  <span className={`text-xs font-semibold ${style.text}`}>{style.label}</span>
+                  {ageStr && (
+                    <span className={`text-[10px] opacity-75 ${style.text}`}>{ageStr} oldest</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          {/* At-risk + bottlenecks */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* At risk */}
+          {/* At risk + Bottlenecks */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* At Risk */}
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>At Risk</p>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>At Risk</p>
               {atRisk.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No production bottlenecks right now.</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No items at risk right now.</p>
               ) : (
                 <div className="space-y-1.5">
-                  {atRisk.slice(0, 4).map(item => (
-                    <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`at-risk-${item.order_item_id}`}>
-                      <div className="flex items-center justify-between p-2 rounded-lg hover:shadow-sm" style={{ backgroundColor: 'var(--surface-2)' }}>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{item.item_name || item.order_number}</p>
-                          {item.order_number && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.order_number}</p>}
+                  {atRisk.slice(0, 5).map(item => {
+                    const bdg       = _reasonBadge(item.reason);
+                    const isOverdue = item.reason === 'overdue';
+                    return (
+                      <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`at-risk-${item.order_item_id}`}>
+                        <div
+                          className="flex items-center justify-between px-3 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                          style={{
+                            backgroundColor: isOverdue ? 'rgba(239,68,68,0.10)' : 'var(--surface-2)',
+                            borderLeft:      isOverdue ? '3px solid rgba(239,68,68,0.65)' : '3px solid transparent',
+                          }}
+                        >
+                          <div className="flex-1 min-w-0 mr-2">
+                            <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>
+                              {item.item_name || item.order_number || 'Unnamed item'}
+                            </p>
+                            {item.order_number && item.item_name && (
+                              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.order_number}</p>
+                            )}
+                          </div>
+                          <span
+                            className="flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold border"
+                            style={{ backgroundColor: bdg.bg, color: bdg.color, borderColor: bdg.border }}
+                          >
+                            {_reasonLabel(item.reason)}
+                          </span>
                         </div>
-                        <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={_reasonColor(item.reason)}>
-                          {_reasonLabel(item.reason)}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>
             {/* Bottlenecks */}
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Bottlenecks</p>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>Bottlenecks</p>
               {bottlenecks.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No production bottlenecks right now.</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No bottlenecks right now.</p>
               ) : (
                 <div className="space-y-1.5">
-                  {bottlenecks.slice(0, 3).map(b => (
-                    <div key={b.stage} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
-                      <div>
-                        <p className="text-xs font-medium capitalize" style={{ color: 'var(--text)' }}>{b.stage}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{b.oldest_item_age_hours}h oldest</p>
+                  {bottlenecks.slice(0, 4).map(b => {
+                    const ageStr    = formatAge(b.oldest_item_age_hours);
+                    const stageLabel = STAGE_COLORS[b.stage]?.label || b.stage;
+                    return (
+                      <div key={b.stage} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{stageLabel}</p>
+                          {ageStr && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{ageStr} oldest</p>}
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <span className="text-lg font-bold" style={{ color: 'var(--text)' }}>{b.backlog_count}</span>
+                          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>items</p>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{b.backlog_count}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -949,6 +1014,7 @@ export default function Dashboard() {
   const [errorFinancial,  setErrorFinancial]  = useState(false);
 
   const [loading,        setLoading]        = useState(true);
+  const [globalUpdatedAt, setGlobalUpdatedAt] = useState(null);
   const [sendingDigest,  setSendingDigest]  = useState(false);
   const [previewInvoiceId,   setPreviewInvoiceId]   = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -1019,6 +1085,7 @@ export default function Dashboard() {
           .catch(err => console.warn('[Dashboard] recent-ai-documents failed', err)),
       ]);
       setLoading(false);
+      setGlobalUpdatedAt(new Date());
     };
     loadAll();
   }, []);
@@ -1063,51 +1130,35 @@ export default function Dashboard() {
             Here&apos;s what&apos;s happening at {user?.company_name || 'your shop'} today
           </p>
         </div>
-        <div className="text-left sm:text-right ml-8 sm:ml-0">
+        <div className="text-left sm:text-right ml-8 sm:ml-0 flex-shrink-0">
           <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            {globalUpdatedAt
+              ? `Updated ${globalUpdatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+              : loading ? 'Loading…' : 'Ready'}
           </p>
         </div>
       </div>
 
-      {/* ── Stat Cards (legacy stats endpoint, kept for compat) ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard title="Total Customers"   value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
-        <StatCard title="Active Orders"     value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
-        <StatCard title="Pending Invoices"  value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
-        <StatCard title="Today's Revenue"   value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
-      </div>
-
-      {/* ── Overdue Alert ────────────────────── */}
-      {dashboardStats?.overdue_count > 0 && (
-        <div className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-          style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger)' }}>
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
-            <div>
-              <p className="font-medium text-sm sm:text-base" style={{ color: 'var(--text)' }}>
-                {dashboardStats.overdue_count} Overdue Invoice{dashboardStats.overdue_count > 1 ? 's' : ''}
-              </p>
-              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-                Total: {formatCurrency(dashboardStats.overdue_total)}
-              </p>
-            </div>
-          </div>
-          <Link to="/invoices?status=overdue">
-            <Button size="sm" data-testid="view-overdue" className="text-white w-full sm:w-auto" style={{ backgroundColor: 'var(--danger)' }}>
-              View Overdue
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {/* ── Row 1: Severity Strip ──────────────── */}
+      {/* ── Priority Action Strip (urgent ops first) ── */}
       <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
 
-      {/* ── Row 2: Today Command Center ─────────── */}
+      {/* ── Business Snapshot (secondary stats) ─────── */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)', borderLeft: '2px solid var(--accent)', paddingLeft: '8px' }}>
+          Business Overview
+        </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3">
+          <StatCard title="Total Customers"   value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
+          <StatCard title="Active Orders"     value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
+          <StatCard title="Pending Invoices"  value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
+          <StatCard title="Today's Revenue"   value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
+        </div>
+      </div>
+
+      {/* ── Today Command Center ─────────── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Clock className="h-4 w-4 text-blue-400" />
@@ -1128,10 +1179,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Row 3: Production Snapshot ──────────── */}
+      {/* ── Production Pipeline ──────────── */}
       <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
 
-      {/* ── Row 4: Customer Attention ───────────── */}
+      {/* ── Customer Attention ───────────── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Users className="h-4 w-4 text-blue-400" />
