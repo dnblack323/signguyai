@@ -74,9 +74,9 @@ const sortByUrgency = (items, tsField = 'requested_at') =>
   });
 
 const getSeverityStyles = (severity) => {
-  if (severity === 'red') return { badge: 'bg-red-500/15 text-red-400', dot: '#EF4444' };
-  if (severity === 'amber') return { badge: 'bg-amber-500/15 text-amber-400', dot: '#F59E0B' };
-  return { badge: 'bg-gray-500/10 text-gray-400', dot: '#6B7280' };
+  if (severity === 'red')   return { badge: 'bg-red-500/25 text-red-200 border border-red-500/50',   dot: '#EF4444' };
+  if (severity === 'amber') return { badge: 'bg-amber-500/25 text-amber-200 border border-amber-500/50', dot: '#F59E0B' };
+  return { badge: 'bg-slate-600/40 text-slate-300 border border-slate-500/40', dot: '#9CA3AF' };
 };
 
 // ─────────────────────────────────────────────
@@ -135,26 +135,25 @@ const getStatusBadgeStyles = (status) => {
 // ─────────────────────────────────────────────
 const CardShell = ({ icon: Icon, iconColor = 'text-blue-500', title, badge, lastUpdatedAt, children, headerRight }) => {
   const freshness = lastUpdatedAt !== undefined ? getFreshness(lastUpdatedAt) : null;
-  const showStale = freshness?.isStale;
+  const showStale   = freshness?.isStale;
   const showMissing = freshness?.isMissing;
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <Icon className={`h-4 w-4 flex-shrink-0 ${iconColor}`} />
-          <h2 className="font-heading text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{title}</h2>
-          {badge}
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>{title}</h2>
+          {badge && <span className="flex-shrink-0">{badge}</span>}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-          {freshness && (
+          {freshness && (showStale || showMissing) && (
             <span
-              className={`text-xs hidden sm:inline ${showStale || showMissing ? 'text-amber-400' : ''}`}
-              style={showStale || showMissing ? {} : { color: 'var(--text-muted)' }}
+              className="text-xs text-amber-400"
               title={showStale ? 'Data may be stale — loaded more than 10 minutes ago.' : undefined}
               data-testid={showStale ? 'stale-indicator' : showMissing ? 'missing-ts-indicator' : undefined}
             >
-              {showStale ? '⚠ Data may be stale.' : showMissing ? 'Last updated unavailable.' : freshness.text}
+              {showStale ? '⚠ Stale' : 'No timestamp'}
             </span>
           )}
           {headerRight}
@@ -175,7 +174,7 @@ const ErrorState = ({ onRetry }) => (
     <div className="flex items-start gap-3">
       <XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>Couldn't load this section.</p>
+        <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>Couldn&apos;t load this section.</p>
         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Please retry.</p>
         {onRetry && (
           <button
@@ -238,11 +237,11 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
             >
               <div className="flex items-center justify-between">
                 <Icon className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${badge}`}>
+                <span className={`text-sm font-bold px-2 py-0.5 rounded-md ${badge}`}>
                   {metric.count}
                 </span>
               </div>
-              <p className="text-xs leading-tight" style={{ color: 'var(--text-muted)' }}>{label}</p>
+              <p className="text-xs font-medium leading-tight" style={{ color: 'var(--text)' }}>{label}</p>
             </div>
           </Link>
         );
@@ -258,7 +257,7 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
 // Due Order Items Today
 const ScheduleWidget = ({ items = [], lastUpdatedAt, loading, error, onRetry }) => {
   const badge = items.length > 0 && (
-    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium ml-1">{items.length}</span>
+    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium border border-purple-500/40">{items.length}</span>
   );
   return (
     <CardShell
@@ -377,10 +376,10 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
 
   const badge = (
     <div className="flex items-center gap-1.5 ml-1">
-      <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-medium" data-testid="team-clocked-in-count">
+      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/40" data-testid="team-clocked-in-count">
         {teamStatus?.clocked_in_count || 0} in
       </span>
-      <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium" data-testid="team-scheduled-count">
+      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium border border-blue-500/40" data-testid="team-scheduled-count">
         {teamStatus?.scheduled_count || 0} sched
       </span>
     </div>
@@ -469,11 +468,11 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
 // Row 3 — Production Snapshot
 // ─────────────────────────────────────────────
 const STAGE_COLORS = {
-  queued:   { bg: 'bg-gray-500/15',   text: 'text-gray-400',   label: 'Queued' },
-  printing: { bg: 'bg-amber-500/15',  text: 'text-amber-400',  label: 'Printing' },
-  finishing:{ bg: 'bg-purple-500/15', text: 'text-purple-400', label: 'Finishing' },
-  install:  { bg: 'bg-blue-500/15',   text: 'text-blue-400',   label: 'Install' },
-  complete: { bg: 'bg-emerald-500/15',text: 'text-emerald-400',label: 'Complete' },
+  queued:    { bg: 'bg-slate-600/40',   text: 'text-slate-200',   border: 'border-slate-500/50',   label: 'Queued'    },
+  printing:  { bg: 'bg-amber-500/30',   text: 'text-amber-200',   border: 'border-amber-500/50',   label: 'Printing'  },
+  finishing: { bg: 'bg-purple-500/30',  text: 'text-purple-200',  border: 'border-purple-500/50',  label: 'Finishing' },
+  install:   { bg: 'bg-blue-500/30',    text: 'text-blue-200',    border: 'border-blue-500/50',    label: 'Install'   },
+  complete:  { bg: 'bg-emerald-500/30', text: 'text-emerald-200', border: 'border-emerald-500/50', label: 'Complete'  },
 };
 
 const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
@@ -504,13 +503,12 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Production Snapshot</h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {freshness && (
+          {freshness && (freshness.isStale || freshness.isMissing) && (
             <span
-              className={`text-xs hidden sm:inline ${freshness.isStale || freshness.isMissing ? 'text-amber-400' : ''}`}
-              style={freshness.isStale || freshness.isMissing ? {} : { color: 'var(--text-muted)' }}
+              className="text-xs text-amber-400"
               data-testid={freshness.isStale ? 'stale-indicator' : freshness.isMissing ? 'missing-ts-indicator' : undefined}
             >
-              {freshness.isStale ? '⚠ Data may be stale.' : freshness.isMissing ? 'Last updated unavailable.' : freshness.text}
+              {freshness.isStale ? '⚠ Stale' : 'No timestamp'}
             </span>
           )}
           <Link to="/production-board" data-testid="production-board-link">
@@ -523,9 +521,9 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
           {/* Stage counts */}
           <div className="grid grid-cols-5 gap-2" data-testid="production-stages">
             {Object.entries(STAGE_COLORS).map(([key, style]) => (
-              <div key={key} className="flex flex-col items-center gap-1 p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }}>
-                <span className={`text-xl font-bold font-heading ${style.text}`}>{stages[key] ?? 0}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${style.bg} ${style.text}`}>{style.label}</span>
+              <div key={key} className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border ${style.bg} ${style.border}`}>
+                <span className={`text-2xl font-bold font-heading ${style.text}`}>{stages[key] ?? 0}</span>
+                <span className={`text-xs font-semibold ${style.text}`}>{style.label}</span>
               </div>
             ))}
           </div>
@@ -591,7 +589,7 @@ const MessagesWidget = ({ data, loading, error, onRetry }) => {
   const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
 
   const badge = messages.length > 0 && (
-    <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium ml-1">{totalUnread} unread</span>
+    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium border border-blue-500/40">{totalUnread} unread</span>
   );
 
   return (
@@ -599,7 +597,7 @@ const MessagesWidget = ({ data, loading, error, onRetry }) => {
       icon={MessageSquare}
       iconColor="text-blue-500"
       title="Messages"
-      badge={messages.length === 0 ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 ml-1">Inbox zero</span> : badge}
+      badge={messages.length === 0 ? <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Inbox zero</span> : badge}
       lastUpdatedAt={data?.last_updated_at}
       headerRight={
         <Link to="/admin-portal?tab=messages">
@@ -640,8 +638,8 @@ const PendingApprovalsWidget = ({ data, loading, error, onRetry }) => {
   // Frontend-sort: urgency_score desc, then requested_at desc
   const approvals = sortByUrgency(data?.approvals_signatures_pending || [], 'requested_at');
   const badge = approvals.length > 0
-    ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium ml-1">{approvals.length} pending</span>
-    : <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 ml-1">All clear</span>;
+    ? <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 font-medium border border-amber-500/40">{approvals.length} pending</span>
+    : <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">All clear</span>;
 
   return (
     <CardShell
@@ -691,7 +689,7 @@ const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
   // Frontend-sort: urgency_score desc, then last_sent_at desc
   const quotes = sortByUrgency(data?.quote_followups || [], 'last_sent_at');
   const badge = quotes.length > 0 && (
-    <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium ml-1">{quotes.length}</span>
+    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium border border-purple-500/40">{quotes.length}</span>
   );
 
   return (
@@ -721,7 +719,7 @@ const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
                   {formatCurrency(q.quote_total)} · {Math.round(q.age_days)}d old
                 </p>
               </div>
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium flex-shrink-0 ml-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 font-medium border border-amber-500/40 flex-shrink-0 ml-2">
                 {Math.round(q.age_days)}d
               </span>
             </div>
@@ -788,13 +786,12 @@ const FinancialAttentionRow = ({ data, loading, error, onRetry }) => {
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Financial Attention</h2>
         </div>
         <div className="flex items-center gap-2">
-          {freshness && (
+          {freshness && (freshness.isStale || freshness.isMissing) && (
             <span
-              className={`text-xs hidden sm:inline ${freshness.isStale || freshness.isMissing ? 'text-amber-400' : ''}`}
-              style={freshness.isStale || freshness.isMissing ? {} : { color: 'var(--text-muted)' }}
+              className="text-xs text-amber-400"
               data-testid={freshness.isStale ? 'stale-indicator' : freshness.isMissing ? 'missing-ts-indicator' : undefined}
             >
-              {freshness.isStale ? '⚠ Data may be stale.' : freshness.isMissing ? 'Last updated unavailable.' : freshness.text}
+              {freshness.isStale ? '⚠ Stale' : 'No timestamp'}
             </span>
           )}
           <Link to="/invoices"><span className="text-xs text-blue-400 hover:underline">All invoices</span></Link>
@@ -823,7 +820,7 @@ const QuickActionBtn = ({ to, onClick, icon: Icon, iconColor, label, testId, dis
       data-testid={testId}
     >
       <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: iconColor || 'var(--accent)' }} />
-      <span className="truncate">{label}</span>
+      <span className="leading-snug text-left">{label}</span>
     </button>
   );
   return to ? <Link to={to}>{inner}</Link> : inner;
@@ -1063,7 +1060,7 @@ export default function Dashboard() {
             <FoundersBadge size="small" />
           </div>
           <p className="ml-8 sm:ml-10 text-sm sm:text-base" style={{ color: 'var(--text-muted)' }}>
-            Here's what's happening at {user?.company_name || 'your shop'} today
+            Here&apos;s what&apos;s happening at {user?.company_name || 'your shop'} today
           </p>
         </div>
         <div className="text-left sm:text-right ml-8 sm:ml-0">
@@ -1114,18 +1111,14 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Clock className="h-4 w-4 text-blue-400" />
-          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Today's Command Center</h2>
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Today&apos;s Command Center</h2>
           {commandCenter && (() => {
             const f = getFreshness(cmdLastUpdated);
-            return (
-              <span
-                className={`text-xs ${f.isStale || f.isMissing ? 'text-amber-400' : ''}`}
-                style={f.isStale || f.isMissing ? {} : { color: 'var(--text-muted)' }}
-                data-testid={f.isStale ? 'stale-indicator' : undefined}
-              >
-                {f.isStale ? '⚠ Data may be stale.' : f.isMissing ? 'Last updated unavailable.' : f.text}
+            return (f.isStale || f.isMissing) ? (
+              <span className="text-xs text-amber-400" data-testid={f.isStale ? 'stale-indicator' : undefined}>
+                {f.isStale ? '⚠ Stale' : 'No timestamp'}
               </span>
-            );
+            ) : null;
           })()}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -1145,15 +1138,11 @@ export default function Dashboard() {
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Customer Attention</h2>
           {customerAttention?.last_updated_at && (() => {
             const f = getFreshness(customerAttention.last_updated_at);
-            return (
-              <span
-                className={`text-xs ${f.isStale || f.isMissing ? 'text-amber-400' : ''}`}
-                style={f.isStale || f.isMissing ? {} : { color: 'var(--text-muted)' }}
-                data-testid={f.isStale ? 'stale-indicator' : undefined}
-              >
-                {f.isStale ? '⚠ Data may be stale.' : f.isMissing ? 'Last updated unavailable.' : f.text}
+            return (f.isStale || f.isMissing) ? (
+              <span className="text-xs text-amber-400" data-testid={f.isStale ? 'stale-indicator' : undefined}>
+                {f.isStale ? '⚠ Stale' : 'No timestamp'}
               </span>
-            );
+            ) : null;
           })()}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
