@@ -2219,57 +2219,6 @@ export default function Webstores() {
                 </TabsContent>
 
                 <TabsContent value="branding" className="space-y-6" data-testid="tab-content-branding">
-                  {/* Store Link Section with QR Code */}
-                  <div className="p-4 rounded-lg bg-gradient-to-r from-[#2F8BFB]/10 to-[#2F8BFB]/5 border border-[#2F8BFB]/20">
-                    <div className="flex items-start gap-4">
-                      {/* QR Code */}
-                      <div className="shrink-0 p-2 bg-white rounded-lg" data-testid="store-qr-code">
-                        <QRCodeSVG 
-                          value={getStoreUrl(selectedStore.id)} 
-                          size={80}
-                          level="M"
-                        />
-                      </div>
-                      
-                      {/* Link Info and Buttons */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Link2 className="h-4 w-4 text-[#2F8BFB]" />
-                          <p className="font-medium text-sm">Public Store Link</p>
-                        </div>
-                        <p className="text-xs font-mono text-muted-foreground truncate max-w-[350px] mb-3">
-                          {getStoreUrl(selectedStore.id)}
-                        </p>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleCopyLink(selectedStore.id)}
-                            data-testid="copy-store-link-btn"
-                          >
-                            <Copy className="h-4 w-4 mr-1" /> Copy Link
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => handleOpenStore(selectedStore.id)}
-                            className="bg-[#2F8BFB] hover:bg-[#2F8BFB]/90 text-white"
-                            data-testid="open-store-btn"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-1" /> Open Store
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(`${window.location.origin}/store/${selectedStore.id}?admin_preview=1`, '_blank')}
-                            data-testid="preview-store-btn"
-                          >
-                            <Eye className="h-4 w-4 mr-1" /> Admin Preview
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Branding Section */}
                   <Card>
                     <CardHeader className="pb-3">

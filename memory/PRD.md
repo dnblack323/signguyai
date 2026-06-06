@@ -22,6 +22,10 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-06 — **Branding Tab Cleanup + Launch Gate Verification — COMPLETE & TESTED (100%)**
+  - **Branding tab de-duplicated**: Removed "Store Link / QR Code" section from top of Branding tab. Section had "Open Store" and "Admin Preview" buttons which duplicated Setup flow Step 9 (Preview) and Step 11 (Launch). Branding tab now opens directly on the Store Branding card (Logo/Banner/Accent Color).
+  - **Launch gate verified**: Backend (`PUT /api/webstores/v2/{id}` with status=active) correctly blocks with "Store cannot be activated yet. Assign at least one product before going live." Frontend `launchReady()` gate shows "Complete Required Steps First" disabled button when `storeProducts.length === 0`. Both layers confirmed via API test.
+
 - 2026-06-06 — **Consolidated Webstore Setup Flow + Tab Restructure — COMPLETE & TESTED (95%)**
   - **WebstoreSetupFlow.js**: Completely rewritten from 8 to 11 sequential steps. New steps: (1) Store Created, (2) Send Setup Questionnaire, (3) Questionnaire Submitted, (4) Staff Review Answers, (5) Branding/Artwork, (6) Products & Pricing, (7) Fulfillment, (8) Owner Stripe Onboarding, (9) Store Preview, (10) Owner Approval, (11) Open Store. Each step shows one clear status badge (Complete/Action Needed/Waiting on Owner/Ready for Review/Not Started/Blocked).
   - **Webstores.js**: Tab structure changed from 4 tabs (Setup/Dashboard/Products/Settings) to 6 tabs (Store Setup/Products/Branding/Payments/Orders/Analytics). Store Setup is now the default tab. Old Settings content distributed: Event/Fundraiser/Shipping settings → bottom of Store Setup; Branding → Branding tab; Stripe/payouts → Payments tab; orders → Orders tab.
