@@ -1,0 +1,52 @@
+{
+  "summary": "Frontend-only UI refactoring tests for Dashboard. All major structural changes verified: unified Action Required card, single Billing Snapshot card, Quick Actions near top only. One issue found: AssistantNudgesWidget background is not dark.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AssistantNudgesWidget",
+        "issue": "Background color is rgb(245, 247, 250) — light/near-white instead of dark theme. The widget should use var(--surface) resolving to a dark color matching the dashboard dark theme.",
+        "selector": "[data-testid='assistant-nudges-widget']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_179.json"],
+  "action_items": [
+    "Fix AssistantNudgesWidget background color — computed style shows rgb(245, 247, 250) instead of dark surface. Check that var(--surface) CSS variable is correctly applied or hardcode the dark background color."
+  ],
+  "critical_code_review_comments": [
+    "AssistantNudgesWidget: backgroundColor: var(--surface) is not resolving to a dark color — may need explicit dark background like var(--card) or a hex dark value"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A",
+    "frontend": "92%"
+  },
+  "test_credentials": "thesigntistslab@gmail.com / password123",
+  "seed_data_creation": "",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Dashboard UI refactoring verified. All tasks passed except AssistantNudgesWidget dark theme. Checked: (1) unified Action Required card with 5 sections (Customer Approvals, Messages, Quote Follow-Ups, Invoices & Payments, Customer Actions) — PASS; (2) no tabs in Action Required — PASS; (3) empty state with green checkmark for Messages section — PASS; (4) Quick Actions near top with 6 primary + More actions toggle showing 4 secondary — PASS; (5) no duplicate Quick Actions at bottom — PASS; (6) Billing Snapshot single card with Unpaid/Overdue/Due This Week/Paid This Week rows and All Invoices link — PASS; (7) AssistantNudgesWidget background is light (rgb(245,247,250)) not dark — FAIL.",
+  "passed_tests": [
+    "Dashboard loads without errors",
+    "Action Required unified card present (not 3 separate cards)",
+    "All 5 sections present: Customer Approvals, Messages, Quote Follow-Ups, Invoices & Payments, Customer Actions",
+    "No tabs in Action Required card",
+    "Empty state for Messages shows green checkmark",
+    "Quick Actions visible near top (offsetTop ~430) next to Business Overview",
+    "Quick Actions shows 6 primary buttons: New Order, New Quote, New Customer, New Invoice, Production Board, Open Calendar",
+    "More actions toggle present with 4 secondary actions: Send Approval, Send Invoice, Time Clock, AI Assistant",
+    "Billing Snapshot as single card with 4 rows (Unpaid, Overdue, Due This Week, Paid This Week)",
+    "All invoices link present in Billing Snapshot",
+    "No duplicate Quick Actions at bottom of page"
+  ],
+  "failed_tests": [
+    "AssistantNudgesWidget dark theme — background is rgb(245, 247, 250) not dark"
+  ]
+}

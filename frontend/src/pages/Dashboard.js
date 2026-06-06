@@ -9,7 +9,7 @@ import {
   CheckCircle, Calendar, UserCheck, Coffee, Sun, Sunset, Moon,
   ChevronRight, Eye, Sparkles, Download, Send, ExternalLink,
   BarChart2, DollarSign, TrendingDown, Package, Layers,
-  RefreshCw, XCircle, Zap
+  RefreshCw, XCircle, Zap, Inbox
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
@@ -796,6 +796,202 @@ const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
 };
 
 // ─────────────────────────────────────────────
+// ACTION REQUIRED — shared sub-components
+// ─────────────────────────────────────────────
+const SectionLabel = ({ icon: Icon, iconColor, label, badge, right }) => (
+  <div className="flex items-center justify-between mb-2">
+    <div className="flex items-center gap-2">
+      <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+      <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      {badge}
+    </div>
+    {right}
+  </div>
+);
+
+const ActionEmptyRow = ({ text }) => (
+  <div className="flex items-center gap-2 py-1 pl-1">
+    <CheckCircle className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{text}</p>
+  </div>
+);
+
+const SectionDivider = () => <div style={{ borderTop: '1px solid var(--border-light)' }} />;
+
+// ─────────────────────────────────────────────
+// ACTION REQUIRED — consolidated vertical-list card
+// Sections: Customer Approvals · Messages · Quote Follow-Ups ·
+//           Invoices & Payments · Customer Actions
+// ─────────────────────────────────────────────
+
+const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
+  const messages    = sortByUrgency(data?.unread_conversations || [], 'last_message_at');
+  const approvals   = sortByUrgency(data?.approvals_signatures_pending || [], 'requested_at');
+  const quotes      = sortByUrgency(data?.quote_followups || [], 'last_sent_at');
+  const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
+  const overdueCount = summaryData?.metrics?.overdue?.count || 0;
+  const unpaidCount  = summaryData?.metrics?.unpaid_invoices?.count || 0;
+  const totalActions = approvals.length + totalUnread + quotes.length + overdueCount;
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      {/* Card header */}
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-amber-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Action Required</h2>
+          {!loading && !error && totalActions > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium border border-amber-500/40" data-testid="action-required-total">
+              {totalActions}
+            </span>
+          )}
+        </div>
+        {loading && <div className="h-3 w-3 rounded-full border-2 border-t-transparent border-blue-400 animate-spin" />}
+      </div>
+
+      {loading ? (
+        <div className="p-4"><LoadingSpinner /></div>
+      ) : error ? (
+        <div className="p-4"><ErrorState onRetry={onRetry} /></div>
+      ) : (
+        <>
+          {/* ── 1. Customer Approvals ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Eye} iconColor="text-amber-400" label="Customer Approvals"
+              badge={approvals.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-500/40 font-semibold">{approvals.length}</span>
+              )}
+              right={<Link to="/approvals"><span className="text-[10px] text-blue-400 hover:underline">All approvals →</span></Link>}
+            />
+            {approvals.length === 0 ? (
+              <ActionEmptyRow text="No approvals pending." />
+            ) : (
+              <div className="space-y-1">
+                {approvals.slice(0, 4).map(item => (
+                  <Link key={item.record_id} to="/approvals" data-testid={`approval-${item.record_id}`}>
+                    <div className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--surface-2)' }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs" style={{ color: 'var(--text)' }}>{item.order_number || item.customer_name}</p>
+                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                          {item.customer_name} · {item.type} · {item.age_hours < 1 ? '<1h' : `${Math.round(item.age_hours)}h`} ago
+                        </p>
+                      </div>
+                      <ChevronRight className="h-3 w-3 ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 2. Messages ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={MessageSquare} iconColor="text-blue-400" label="Messages"
+              badge={totalUnread > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 font-semibold">{totalUnread} unread</span>
+              )}
+              right={<Link to="/admin-portal?tab=messages"><span className="text-[10px] text-blue-400 hover:underline">All messages →</span></Link>}
+            />
+            {messages.length === 0 ? (
+              <ActionEmptyRow text="Inbox zero — no unread messages." />
+            ) : (
+              <div className="space-y-1">
+                {messages.slice(0, 3).map(msg => (
+                  <Link key={msg.conversation_id} to="/admin-portal?tab=messages" data-testid={`message-row-${msg.conversation_id}`}>
+                    <div className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--surface-2)' }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-xs truncate" style={{ color: 'var(--text)' }}>{msg.customer_name}</p>
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] flex items-center justify-center">{msg.unread_count}</span>
+                        </div>
+                        <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{msg.last_message_preview}</p>
+                      </div>
+                      <ChevronRight className="h-3 w-3 ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 3. Quote Follow-Ups ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Send} iconColor="text-purple-400" label="Quote Follow-Ups"
+              badge={quotes.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold">{quotes.length}</span>
+              )}
+              right={<Link to="/orders?filter=quote_sent"><span className="text-[10px] text-blue-400 hover:underline">All quotes →</span></Link>}
+            />
+            {quotes.length === 0 ? (
+              <ActionEmptyRow text="No pending quote follow-ups." />
+            ) : (
+              <div className="space-y-1">
+                {quotes.slice(0, 3).map(q => (
+                  <div key={q.quote_id} className="flex items-center justify-between px-2.5 py-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`quote-followup-${q.quote_id}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-xs truncate" style={{ color: 'var(--text)' }}>{q.customer_name}</p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatCurrency(q.quote_total)} · {Math.round(q.age_days)}d old</p>
+                    </div>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-500/40 flex-shrink-0 ml-2">{Math.round(q.age_days)}d</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 4. Invoices & Payments ── */}
+          <div className="p-4">
+            <SectionLabel
+              icon={Receipt} iconColor="text-amber-400" label="Invoices & Payments"
+              badge={unpaidCount > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">{unpaidCount} unpaid</span>
+              )}
+              right={<Link to="/invoices"><span className="text-[10px] text-blue-400 hover:underline">All invoices →</span></Link>}
+            />
+            {overdueCount > 0 ? (
+              <Link to="/invoices?status=overdue">
+                <div className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                    <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+                      {overdueCount} overdue invoice{overdueCount !== 1 ? 's' : ''} — needs attention
+                    </span>
+                  </div>
+                  <ChevronRight className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                </div>
+              </Link>
+            ) : (
+              <ActionEmptyRow text={unpaidCount > 0 ? `${unpaidCount} unpaid — none overdue yet.` : 'No outstanding invoices.'} />
+            )}
+          </div>
+
+          <SectionDivider />
+
+          {/* ── 5. Customer Actions ── */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Inbox className="h-3.5 w-3.5 text-violet-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Customer Actions</span>
+            </div>
+            <PendingCustomerActionsWidget />
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
 // Row 5 — Financial Attention
 // ─────────────────────────────────────────────
 const FinancialSectionCard = ({ title, icon: Icon, iconColor, data: section, emptyText, href }) => (
@@ -873,48 +1069,156 @@ const FinancialAttentionRow = ({ data, loading, error, onRetry }) => {
 };
 
 // ─────────────────────────────────────────────
-// Row 6 — Quick Actions (enhanced)
+// BILLING SNAPSHOT — replaces Financial Attention row
+// ─────────────────────────────────────────────
+const BILLING_ROWS = [
+  { key: 'unpaid',          icon: Receipt,       label: 'Unpaid',         href: '/invoices?status=sent',    colorSet: { icon: 'text-amber-400',   badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/35'   } },
+  { key: 'overdue',         icon: AlertTriangle, label: 'Overdue',        href: '/invoices?status=overdue', colorSet: { icon: 'text-red-400',     badge: 'bg-red-500/20 text-red-300 border border-red-500/35'         } },
+  { key: 'due_this_week',   icon: Clock,         label: 'Due This Week',  href: '/invoices',                colorSet: { icon: 'text-blue-400',    badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/35'      } },
+  { key: 'recent_payments', icon: TrendingUp,    label: 'Paid This Week', href: '/invoices?status=paid',    colorSet: { icon: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35' } },
+];
+
+const BillingSnapshotCard = ({ data, loading, error, onRetry }) => {
+  // Pick top items from overdue first, then unpaid
+  const topItems = (
+    (data?.overdue?.top_records?.length > 0 ? data.overdue.top_records : data?.unpaid?.top_records) || []
+  ).slice(0, 2);
+  const topLabel = data?.overdue?.top_records?.length > 0 ? 'Most Overdue' : 'Largest Unpaid';
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-emerald-400" />
+          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Billing Snapshot</h2>
+        </div>
+        <Link to="/invoices"><span className="text-xs text-blue-400 hover:underline">All invoices</span></Link>
+      </div>
+      {loading ? (
+        <div className="p-4"><LoadingSpinner /></div>
+      ) : error ? (
+        <div className="p-4"><ErrorState onRetry={onRetry} /></div>
+      ) : (
+        <div className="p-3" data-testid="financial-attention-row">
+          {BILLING_ROWS.map(({ key, icon: Icon, label, href, colorSet }) => {
+            const section = data?.[key];
+            const hasData = section?.count > 0;
+            return (
+              <Link key={key} to={href}>
+                <div
+                  className="flex items-center justify-between px-2 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'transparent' }}
+                  data-testid={`billing-row-${key}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${colorSet.icon}`} />
+                    <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>{label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasData ? (
+                      <>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                          {formatCurrency(section.total_amount)}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colorSet.badge}`}>
+                          {section.count}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Clear</span>
+                    )}
+                    <ChevronRight className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+          {/* Top 2 items */}
+          {topItems.length > 0 && (
+            <div className="mt-1 pt-3 mx-2" style={{ borderTop: '1px solid var(--border-light)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>{topLabel}</p>
+              <div className="space-y-0.5">
+                {topItems.map((rec, i) => (
+                  <Link key={rec.invoice_id || i} to="/invoices">
+                    <div className="flex items-center justify-between py-1.5 hover:opacity-80">
+                      <span className="text-xs truncate flex-1" style={{ color: 'var(--text-muted)' }}>{rec.customer_name}</span>
+                      <span className="text-xs font-semibold ml-2 flex-shrink-0" style={{ color: 'var(--text)' }}>{formatCurrency(rec.amount)}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Row 6 — Quick Actions (6 primary + More toggle)
 // ─────────────────────────────────────────────
 const QuickActionBtn = ({ to, onClick, icon: Icon, iconColor, label, testId, disabled }) => {
   const inner = (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full flex items-center justify-start gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 hover:shadow-sm disabled:opacity-50"
+      className="w-full flex items-center justify-start gap-2 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 hover:shadow-sm disabled:opacity-50"
       style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
       data-testid={testId}
     >
-      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" style={{ color: iconColor || 'var(--accent)' }} />
+      <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: iconColor || 'var(--accent)' }} />
       <span className="leading-snug text-left">{label}</span>
     </button>
   );
   return to ? <Link to={to}>{inner}</Link> : inner;
 };
 
-const QuickActions = ({ onSendDigest, sendingDigest }) => (
-  <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-    <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-light)' }}>
-      <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Quick Actions</h2>
+const QuickActions = ({ onSendDigest, sendingDigest }) => {
+  const [showMore, setShowMore] = useState(false);
+
+  const PRIMARY = [
+    { to: '/orders/new',                    icon: Plus,      iconColor: 'var(--accent)', label: 'New Order',        testId: 'quick-new-order'        },
+    { to: '/orders/new?type=quote',         icon: FileText,  iconColor: '#8B5CF6',       label: 'New Quote',        testId: 'quick-new-quote'        },
+    { to: '/customers',                     icon: Plus,      iconColor: 'var(--accent)', label: 'New Customer',     testId: 'quick-add-customer'     },
+    { to: '/invoices',                      icon: Receipt,   iconColor: '#10B981',       label: 'New Invoice',      testId: 'quick-create-invoice'   },
+    { to: '/production-board',              icon: Briefcase, iconColor: '#2F8BFB',       label: 'Production Board', testId: 'quick-production-board' },
+    { to: '/productivity?view=calendar',    icon: Calendar,  iconColor: '#8B5CF6',       label: 'Open Calendar',    testId: 'quick-open-calendar'    },
+  ];
+
+  const MORE = [
+    { to: '/approvals',   icon: Send,     iconColor: '#F59E0B',       label: 'Send Approval', testId: 'quick-send-approval' },
+    { to: '/invoices',    icon: Send,     iconColor: '#10B981',       label: 'Send Invoice',  testId: 'quick-send-invoice'  },
+    { to: '/timeclock',   icon: Clock,    iconColor: 'var(--accent)', label: 'Time Clock',    testId: 'quick-clock-in'      },
+    { to: '/ai-assistant',icon: Sparkles, iconColor: '#8B5CF6',       label: 'AI Assistant',  testId: 'quick-ai-assistant'  },
+  ];
+
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+      <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Quick Actions</h2>
+      </div>
+      <div className="p-3 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          {PRIMARY.map(a => <QuickActionBtn key={a.testId} {...a} />)}
+        </div>
+        {showMore && (
+          <div className="grid grid-cols-2 gap-2 pt-1" style={{ borderTop: '1px solid var(--border-light)' }}>
+            {MORE.map(a => <QuickActionBtn key={a.testId} {...a} />)}
+          </div>
+        )}
+        <button
+          onClick={() => setShowMore(v => !v)}
+          className="w-full text-xs py-1.5 rounded-lg transition-all hover:opacity-80 flex items-center justify-center gap-1 font-medium"
+          style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border-light)' }}
+          data-testid="quick-actions-more-toggle"
+        >
+          {showMore ? '▲ Show less' : '▼ More actions'}
+        </button>
+      </div>
     </div>
-    <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <QuickActionBtn to="/orders/new"             icon={Plus}        iconColor="var(--accent)"  label="New Order"            testId="quick-add-quote" />
-      <QuickActionBtn to="/customers"              icon={Plus}        iconColor="var(--accent)"  label="New Customer"         testId="quick-add-customer" />
-      <QuickActionBtn to="/production-board"       icon={Briefcase}   iconColor="#2F8BFB"        label="Production Board"     testId="quick-production-board" />
-      <QuickActionBtn to="/productivity?view=calendar" icon={Calendar} iconColor="#8B5CF6"      label="Open Calendar"        testId="quick-open-calendar" />
-      <QuickActionBtn to="/approvals"              icon={Send}        iconColor="#F59E0B"        label="Send Approval"        testId="quick-send-approval" />
-      <QuickActionBtn to="/invoices"               icon={FileText}    iconColor="#10B981"        label="Create Invoice"       testId="quick-create-invoice" />
-      <QuickActionBtn to="/ai-assistant"           icon={Sparkles}    iconColor="#8B5CF6"        label="AI Assistant"         testId="quick-ai-assistant" />
-      <QuickActionBtn
-        onClick={onSendDigest}
-        disabled={sendingDigest}
-        icon={Send} iconColor="#8B5CF6"
-        label={sendingDigest ? 'Sending…' : 'Send Digest'}
-        testId="quick-send-digest"
-      />
-      <QuickActionBtn to="/timeclock"              icon={Clock}       iconColor="var(--accent)"  label="Time Clock"           testId="quick-clock-in" />
-    </div>
-  </div>
-);
+  );
+};
 
 // RecentAIDocumentsWidget — unchanged
 const RecentAIDocumentsWidget = ({ documents }) => {
@@ -1145,17 +1449,20 @@ export default function Dashboard() {
       {/* ── Priority Action Strip (urgent ops first) ── */}
       <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
 
-      {/* ── Business Snapshot (secondary stats) ─────── */}
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)', borderLeft: '2px solid var(--accent)', paddingLeft: '8px' }}>
-          Business Overview
-        </p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3">
-          <StatCard title="Total Customers"   value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
-          <StatCard title="Active Orders"     value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
-          <StatCard title="Pending Invoices"  value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
-          <StatCard title="Today's Revenue"   value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
+      {/* ── Business Overview + Quick Actions (side by side) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)', borderLeft: '2px solid var(--accent)', paddingLeft: '8px' }}>
+            Business Overview
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard title="Total Customers"  value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
+            <StatCard title="Active Orders"    value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
+            <StatCard title="Pending Invoices" value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
+            <StatCard title="Today's Revenue"  value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
+          </div>
         </div>
+        <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
       </div>
 
       {/* ── Today Command Center ─────────── */}
@@ -1182,36 +1489,20 @@ export default function Dashboard() {
       {/* ── Production Pipeline ──────────── */}
       <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
 
-      {/* ── Customer Attention ───────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="h-4 w-4 text-blue-400" />
-          <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Customer Attention</h2>
-          {customerAttention?.last_updated_at && (() => {
-            const f = getFreshness(customerAttention.last_updated_at);
-            return (f.isStale || f.isMissing) ? (
-              <span className="text-xs text-amber-400" data-testid={f.isStale ? 'stale-indicator' : undefined}>
-                {f.isStale ? '⚠ Stale' : 'No timestamp'}
-              </span>
-            ) : null;
-          })()}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-          <MessagesWidget        data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
-          <PendingApprovalsWidget data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
-          <QuoteFollowupsWidget  data={customerAttention} loading={loadingCustomer} error={errorCustomer} onRetry={fetchCustomerAttention} />
-        </div>
-      </div>
+      {/* ── Action Required (consolidated) ─────────── */}
+      <ActionRequiredCard
+        data={customerAttention}
+        loading={loadingCustomer}
+        error={errorCustomer}
+        onRetry={fetchCustomerAttention}
+        summaryData={summaryV2}
+      />
 
-      {/* ── Row 5: Financial Attention ───────────── */}
-      <FinancialAttentionRow data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
+      {/* ── Billing Snapshot ─────────────────────── */}
+      <BillingSnapshotCard data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
 
-      {/* ── Row 6: Quick Actions + Supporting Widgets ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-        <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
-        <PendingCustomerActionsWidget />
-        <RecentAIDocumentsWidget documents={recentAIDocs} />
-      </div>
+      {/* ── Recent AI Documents ──────────────────── */}
+      <RecentAIDocumentsWidget documents={recentAIDocs} />
 
       {/* ── Onboarding + AI Nudges ───────────────── */}
       <OnboardingChecklist />

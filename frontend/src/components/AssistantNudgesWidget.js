@@ -14,11 +14,11 @@ const KIND_ICON = {
   pending_appointment: CalendarCheck,
   reminder: Bell,
 };
-const KIND_COLOR = {
-  stale_quote: 'text-amber-600 bg-amber-50 border-amber-200',
-  overdue_invoice: 'text-rose-600 bg-rose-50 border-rose-200',
-  pending_appointment: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-  reminder: 'text-yellow-700 bg-yellow-50 border-yellow-200',
+const KIND_STYLE = {
+  stale_quote:         { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)',  iconColor: '#FCD34D' },
+  overdue_invoice:     { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   iconColor: '#FCA5A5' },
+  pending_appointment: { bg: 'rgba(34,197,94,0.10)',   border: 'rgba(34,197,94,0.25)',   iconColor: '#86EFAC' },
+  reminder:            { bg: 'rgba(234,179,8,0.10)',   border: 'rgba(234,179,8,0.25)',   iconColor: '#FEF08A' },
 };
 
 /**
@@ -150,49 +150,52 @@ export default function AssistantNudgesWidget() {
   return (
     <>
       <div
-        className="rounded-xl border bg-gradient-to-br from-purple-50 via-white to-white p-4 sm:p-5"
-        style={{ borderColor: 'var(--border-light)' }}
+        className="rounded-xl p-4 sm:p-5"
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
         data-testid="assistant-nudges-widget"
       >
         <div className="flex items-center gap-2 mb-3">
-          <div className="p-1.5 rounded-md bg-purple-100">
-            <Sparkles className="h-4 w-4 text-purple-600" />
+          <div className="p-1.5 rounded-md bg-purple-500/20">
+            <Sparkles className="h-4 w-4 text-purple-400" />
           </div>
-          <h3 className="text-sm font-semibold text-slate-900">Assistant suggestions</h3>
-          <span className="text-xs text-slate-500">{visible.length} for you today</span>
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Assistant suggestions</h3>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{visible.length} for you today</span>
         </div>
 
         <div className="space-y-2">
           {visible.slice(0, 4).map((n, idx) => {
             const Icon = KIND_ICON[n.kind] || Sparkles;
-            const color = KIND_COLOR[n.kind] || 'text-purple-600 bg-purple-50 border-purple-200';
+            const s = KIND_STYLE[n.kind] || { bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)', iconColor: '#a78bfa' };
             const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || idx}`;
             return (
               <div
                 key={key}
-                className={`flex items-center justify-between gap-3 border rounded-md px-3 py-2 ${color}`}
+                className="flex items-center justify-between gap-3 rounded-md px-3 py-2"
+                style={{ backgroundColor: s.bg, border: `1px solid ${s.border}` }}
                 data-testid={`nudge-${n.kind}-${idx}`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className="h-4 w-4 flex-shrink-0" style={{ color: s.iconColor }} />
                   <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{n.title}</div>
-                    <div className="text-xs opacity-80 truncate">{n.subtitle}</div>
+                    <div className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{n.title}</div>
+                    <div className="text-xs opacity-80 truncate" style={{ color: 'var(--text-muted)' }}>{n.subtitle}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <Button
                     size="sm"
                     onClick={() => handleAction(n, idx)}
-                    className="bg-white border border-current hover:bg-current hover:text-white h-7 text-xs px-2"
+                    className="h-7 text-xs px-2"
                     variant="outline"
+                    style={{ color: s.iconColor, borderColor: s.border }}
                     data-testid={`nudge-${n.kind}-${idx}-act`}
                   >
                     {n.confirm_label} <ChevronRight className="h-3 w-3 ml-1" />
                   </Button>
                   <button
                     onClick={() => dismiss(key)}
-                    className="p-1 rounded hover:bg-white/60 transition-colors"
+                    className="p-1 rounded transition-colors hover:bg-white/10"
+                    style={{ color: 'var(--text-muted)' }}
                     aria-label="Dismiss"
                     data-testid={`nudge-${n.kind}-${idx}-dismiss`}
                   >
