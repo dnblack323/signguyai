@@ -162,8 +162,9 @@ DEFAULT_CHECKLIST_ITEMS = [
 # ============== HELPER FUNCTIONS ==============
 
 def require_platform_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
-    """Dependency to ensure user is a platform admin"""
-    if current_user.role != UserRole.PLATFORM_ADMIN:
+    """Dependency to ensure user is a platform admin or owner (owner = app developer/operator)"""
+    allowed_roles = {UserRole.PLATFORM_ADMIN, "platform_admin", UserRole.OWNER, "owner"}
+    if current_user.role not in allowed_roles:
         raise HTTPException(
             status_code=403,
             detail="Access denied: Platform Admin privileges required"

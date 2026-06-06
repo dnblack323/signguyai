@@ -70,7 +70,7 @@ export default function PlatformAdminBroadcastEmail() {
 
   // Guard: platform admin only
   useEffect(() => {
-    if (user && user.role !== 'platform_admin') {
+    if (user && user.role !== 'platform_admin' && user.role !== 'owner') {
       toast.error('Access denied: Platform Admin privileges required');
       navigate('/');
     }
@@ -89,7 +89,7 @@ export default function PlatformAdminBroadcastEmail() {
   }, []);
 
   useEffect(() => {
-    if (user?.role === 'platform_admin') {
+    if (user?.role === 'platform_admin' || user?.role === 'owner') {
       loadAudienceCounts();
       // Pre-fill test address with the admin's own email for convenience.
       setTestTo(user.email || '');

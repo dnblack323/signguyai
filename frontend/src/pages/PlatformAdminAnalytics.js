@@ -137,7 +137,7 @@ export default function PlatformAdminAnalytics() {
 
   // Redirect if not platform admin
   useEffect(() => {
-    if (user && user.role !== 'platform_admin') {
+    if (user && user.role !== 'platform_admin' && user.role !== 'owner') {
       toast.error('Access denied');
       navigate('/');
     }
@@ -155,7 +155,7 @@ export default function PlatformAdminAnalytics() {
   }, [activeRange, customStart, customEnd]);
 
   const fetchAll = useCallback(async () => {
-    if (user?.role !== 'platform_admin') return;
+    if (user?.role !== 'platform_admin' && user?.role !== 'owner') return;
     setLoading(true);
     setLoadError(null);
     const q = rangeParams();
@@ -178,7 +178,7 @@ export default function PlatformAdminAnalytics() {
   }, [user, rangeParams]);
 
   const fetchTab = useCallback(async (tab) => {
-    if (user?.role !== 'platform_admin') return;
+    if (user?.role !== 'platform_admin' && user?.role !== 'owner') return;
     const q = rangeParams();
     const headers = authHeader();
     try {
@@ -201,7 +201,7 @@ export default function PlatformAdminAnalytics() {
     } catch {}
   }, [user, rangeParams]);
 
-  useEffect(() => { if (user?.role === 'platform_admin') fetchAll(); }, [user, fetchAll]);
+  useEffect(() => { if (user?.role === 'platform_admin' || user?.role === 'owner') fetchAll(); }, [user, fetchAll]);
 
   useEffect(() => {
     if (activeTab !== 'overview' && activeTab !== 'users' && activeTab !== 'charts') {
