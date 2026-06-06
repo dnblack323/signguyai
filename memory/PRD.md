@@ -22,6 +22,15 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-06-06 — **Admin Analytics Page — COMPLETE & LIVE**
+  - New route: `/platform-admin/analytics` (platform_admin only, uses existing `require_platform_admin` guard)
+  - New backend: `/app/backend/routes/admin_analytics.py` — 8 endpoints (overview, activity-chart, users, routes, sessions, referrers, errors, suspicious)
+  - New frontend: `/app/frontend/src/pages/PlatformAdminAnalytics.js` — 8-tab dashboard
+  - New tracker: `/app/frontend/src/utils/analytics.js` — lightweight event tracker (visitor_id/session_id via localStorage/sessionStorage, auto page views, global error capture)
+  - New collection: `analytics_events` (auto-created on first event ingest; indexed on timestamp, event_type, session_id, user_id, route, ip_address)
+  - Added "Analytics" button to `/platform-admin` nav (first button in the row)
+  - Added `PageTracker` component + error init in `App.js` for automatic page view and error tracking
+
 - 2026-06-06 — **Store Snapshot Feature — COMPLETE & TESTED**
   - New `StoreSnapshotModal.js` component renders a branded, printable snapshot of any webstore.
   - Accessed via "Store Snapshot" button (`data-testid="store-snapshot-btn"`) in the Analytics tab.
