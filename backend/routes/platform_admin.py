@@ -162,8 +162,8 @@ DEFAULT_CHECKLIST_ITEMS = [
 # ============== HELPER FUNCTIONS ==============
 
 def require_platform_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
-    """Dependency to ensure user is a platform admin or owner (owner = app developer/operator)"""
-    allowed_roles = {UserRole.PLATFORM_ADMIN, "platform_admin", UserRole.OWNER, "owner"}
+    """Only platform_creator (app developer) and platform_admin accounts may access these routes."""
+    allowed_roles = {UserRole.PLATFORM_ADMIN, "platform_admin", UserRole.PLATFORM_CREATOR, "platform_creator"}
     if current_user.role not in allowed_roles:
         raise HTTPException(
             status_code=403,
@@ -226,7 +226,7 @@ async def list_tenants(
         user_count = await db.users.count_documents({"tenant_id": tenant["id"]})
         result.append(TenantListItem(
             id=tenant["id"],
-            name=tenant["name"],
+            name=tenant.get("name", "Unnamed Tenant"),
             owner_email=tenant.get("owner_email", ""),
             plan=tenant.get("plan", "starter"),
             created_at=tenant.get("created_at", ""),

@@ -65,7 +65,7 @@ export default function PlatformAdminAuditLog() {
 
   // Redirect if not platform admin
   useEffect(() => {
-    if (user && user.role !== 'platform_admin' && user.role !== 'owner') {
+    if (user && user.role !== 'platform_admin' && user.role !== 'platform_creator') {
       toast.error('Access denied: Platform Admin privileges required');
       navigate('/');
     }
@@ -122,7 +122,7 @@ export default function PlatformAdminAuditLog() {
   }, [actionFilter, categoryFilter, actorEmail, tenantIdFilter, navigate]);
 
   useEffect(() => {
-    if (user?.role === 'platform_admin' || user?.role === 'owner') {
+    if (user?.role === 'platform_admin' || user?.role === 'platform_creator') {
       fetchActions();
       fetchEntries();
     }
@@ -135,7 +135,7 @@ export default function PlatformAdminAuditLog() {
     setTenantIdFilter('');
   };
 
-  if (user?.role !== 'platform_admin' && user?.role !== 'owner') return null;
+  if (user?.role !== 'platform_admin' && user?.role !== 'platform_creator') return null;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6" data-testid="platform-admin-audit-log-page">

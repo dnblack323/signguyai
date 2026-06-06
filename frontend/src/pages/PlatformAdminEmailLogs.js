@@ -91,7 +91,7 @@ export default function PlatformAdminEmailLogs() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    if (user && user.role !== 'platform_admin' && user.role !== 'owner') {
+    if (user && user.role !== 'platform_admin' && user.role !== 'platform_creator') {
       toast.error('Access denied');
       navigate('/');
     }
@@ -137,7 +137,7 @@ export default function PlatformAdminEmailLogs() {
   }, [statusFilter, emailFilter, tenantIdFilter, navigate]);
 
   useEffect(() => {
-    if (user?.role === 'platform_admin' || user?.role === 'owner') fetchData();
+    if (user?.role === 'platform_admin' || user?.role === 'platform_creator') fetchData();
   }, [user, fetchData]);
 
   const handleClear = () => {
@@ -146,7 +146,7 @@ export default function PlatformAdminEmailLogs() {
     setTenantIdFilter('');
   };
 
-  if (user?.role !== 'platform_admin' && user?.role !== 'owner') return null;
+  if (user?.role !== 'platform_admin' && user?.role !== 'platform_creator') return null;
 
   return (
     <div

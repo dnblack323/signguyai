@@ -4810,6 +4810,21 @@ async def startup_migrations():
     except Exception as e:
         logger.error(f"Failed to schedule password hash audit: {e}")
 
+    # Ensure the platform creator account has the correct role.
+    # PLATFORM_CREATOR_EMAIL in .env identifies the one app developer/creator.
+    # This runs on every startup so a redeploy always self-heals the role.
+    try:
+        creator_email = os.environ.get("PLATFORM_CREATOR_EMAIL", "").strip().lower()
+        if creator_email:
+            result = await db.users.update_one(
+                {"email": creator_email},
+                {"$set": {"role": "platform_creator"}}
+            )
+            if result.modified_count:
+                logger.info(f"Platform creator role assigned to {creator_email}")
+    except Exception as e:
+        logger.warning(f"Platform creator role assignment deferred: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

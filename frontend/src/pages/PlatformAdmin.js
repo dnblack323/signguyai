@@ -20,7 +20,7 @@ export default function PlatformAdmin() {
 
   // Redirect if not platform admin
   useEffect(() => {
-    if (user && user.role !== 'platform_admin' && user.role !== 'owner') {
+    if (user && user.role !== 'platform_admin' && user.role !== 'platform_creator') {
       toast.error('Access denied: Platform Admin privileges required');
       navigate('/');
     }
@@ -28,7 +28,7 @@ export default function PlatformAdmin() {
 
   // Fetch tenants
   useEffect(() => {
-    if (user?.role === 'platform_admin' || user?.role === 'owner') {
+    if (user?.role === 'platform_admin' || user?.role === 'platform_creator') {
       fetchTenants();
     }
   }, [user]);
@@ -78,7 +78,7 @@ export default function PlatformAdmin() {
     }
   };
 
-  if (user?.role !== 'platform_admin' && user?.role !== 'owner') {
+  if (user?.role !== 'platform_admin' && user?.role !== 'platform_creator') {
     return null;
   }
 

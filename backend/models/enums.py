@@ -209,6 +209,9 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     STAFF = "staff"
     PLATFORM_ADMIN = "platform_admin"
+    # The one app creator/developer account. Assigned automatically at startup
+    # via PLATFORM_CREATOR_EMAIL env var. No other account ever receives this role.
+    PLATFORM_CREATOR = "platform_creator"
     # Webstore owners (fundraiser organizers, creators, etc.) — connected to a
     # webstore but NOT a tenant. Scoped to /owner-portal only.
     WEBSTORE_OWNER = "webstore_owner"

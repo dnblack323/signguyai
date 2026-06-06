@@ -51,7 +51,7 @@ export default function PlatformAdminSiteSettings() {
   const [savingMaint, setSavingMaint] = useState(false);
 
   useEffect(() => {
-    if (user && user.role !== 'platform_admin' && user.role !== 'owner') {
+    if (user && user.role !== 'platform_admin' && user.role !== 'platform_creator') {
       toast.error('Access denied');
       navigate('/');
     }
@@ -87,7 +87,7 @@ export default function PlatformAdminSiteSettings() {
   }, [navigate]);
 
   useEffect(() => {
-    if (user?.role === 'platform_admin' || user?.role === 'owner') fetchSettings();
+    if (user?.role === 'platform_admin' || user?.role === 'platform_creator') fetchSettings();
   }, [user, fetchSettings]);
 
   const handleSaveAnnouncement = async () => {
@@ -174,7 +174,7 @@ export default function PlatformAdminSiteSettings() {
     }
   };
 
-  if (user?.role !== 'platform_admin' && user?.role !== 'owner') return null;
+  if (user?.role !== 'platform_admin' && user?.role !== 'platform_creator') return null;
 
   const announcementActive = !!(announcement && announcement.message);
 
