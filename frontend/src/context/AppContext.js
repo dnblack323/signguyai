@@ -726,6 +726,12 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  // Admin-progress stamps (mark_preview_ready, mark_owner_approved, …)
+  const stampWebstoreAdminProgress = async (webstoreId, flagKey) => {
+    const res = await api.patch(`/webstores/v2/${webstoreId}/admin-progress`, { [flagKey]: true });
+    return res.data;
+  };
+
   // Tenant / Company Settings
   const fetchTenant = useCallback(async () => {
     try {
@@ -830,6 +836,8 @@ export const AppProvider = ({ children }) => {
     getWebstoreOwnerStatus, sendWebstoreOwnerInvite,
     // Questionnaire review
     getWebstoreQuestionnaireReviewDetails,
+    // Admin-progress stamps
+    stampWebstoreAdminProgress,
     // Tenant / Company Settings
     tenant, fetchTenant, getTenant, updateTenant,
     // Stripe Connect

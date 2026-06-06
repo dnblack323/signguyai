@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import WebstoreDetailDashboard from '../components/WebstoreDetailDashboard';
 import StoreSetupWizard from '../components/webstores/StoreSetupWizard';
 import WebstoreSetupFlow from '../components/WebstoreSetupFlow';
+import WebstoreOwnerConnectCard from '../components/WebstoreOwnerConnectCard';
 
 // Product category options
 const categoryOptions = [
@@ -155,6 +156,7 @@ export default function Webstores() {
     createProduct,
     getWebstoreQuestionnaire, sendWebstoreQuestionnaire, applyWebstoreQuestionnaireAnswers,
     getWebstoreEventChecklist,
+    stampWebstoreAdminProgress,
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -180,7 +182,12 @@ export default function Webstores() {
   const [selectedStore, setSelectedStore] = useState(null);
   const [storeProducts, setStoreProducts] = useState([]);
   const [storePayouts, setStorePayouts] = useState([]);
-  const [detailTab, setDetailTab] = useState('dashboard');
+  const [storeDetailOrders, setStoreDetailOrders] = useState([]);
+  const [loadingDetailOrders, setLoadingDetailOrders] = useState(false);
+  const [detailPayoutAmount, setDetailPayoutAmount] = useState('');
+  const [detailPayoutNotes, setDetailPayoutNotes] = useState('');
+  const [submittingDetailPayout, setSubmittingDetailPayout] = useState(false);
+  const [detailTab, setDetailTab] = useState('setup');
   const [loadingStoreDetails, setLoadingStoreDetails] = useState(false);
   
   // Create product inline form states
@@ -1183,6 +1190,49 @@ export default function Webstores() {
     }
   };
 
+  const handleStampAdminProgress = async (flagKey) => {
+    if (!selectedStore) return;
+    try {
+      const result = await stampWebstoreAdminProgress(selectedStore.id, flagKey);
+      // Merge stamp timestamps back into selectedStore so the setup flow updates
+      setSelectedStore((s) => ({ ...s, ...result }));
+      toast.success('Progress updated.');
+    } catch (err) {
+      const rawDetail = err?.response?.data?.detail;
+      toast.error(typeof rawDetail === 'string' ? rawDetail : 'Could not update progress');
+    }
+  };
+
+  const handleLoadDetailOrders = async () => {
+    if (!selectedStore) return;
+    setLoadingDetailOrders(true);
+    try {
+      const ordr = await getWebstoreOrdersV2({ webstore_id: selectedStore.id });
+      setStoreDetailOrders(ordr || []);
+    } catch {
+      setStoreDetailOrders([]);
+    } finally {
+      setLoadingDetailOrders(false);
+    }
+  };
+
+  const handleRecordDetailPayout = async () => {
+    if (!selectedStore || !detailPayoutAmount) return;
+    setSubmittingDetailPayout(true);
+    try {
+      await recordPayout(selectedStore.id, parseFloat(detailPayoutAmount), detailPayoutNotes);
+      toast.success('Payout recorded.');
+      setDetailPayoutAmount('');
+      setDetailPayoutNotes('');
+      const updated = await getWebstorePayouts(selectedStore.id);
+      setStorePayouts(updated || []);
+    } catch (err) {
+      toast.error('Failed to record payout');
+    } finally {
+      setSubmittingDetailPayout(false);
+    }
+  };
+
   const filteredStores = (selectedType === 'all' 
     ? webstores 
     : webstores.filter(s => s.store_type === selectedType)
@@ -1670,24 +1720,33 @@ export default function Webstores() {
                 </div>
               </DialogHeader>
 
-              <Tabs value={detailTab} onValueChange={setDetailTab}>
-                {/* Scrollable tab bar — no overflow clipping at any viewport */}
-                <TabsList className="flex w-full overflow-x-auto bg-muted rounded-lg p-1 gap-0 h-auto">
+              <Tabs value={detailTab} onValueChange={(t) => {
+                setDetailTab(t);
+                if (t === 'orders' && storeDetailOrders.length === 0) handleLoadDetailOrders();
+              }}>
+                {/* Tab bar — 6 tabs, no horizontal scroll */}
+                <TabsList className="flex w-full bg-muted rounded-lg p-1 gap-0 h-auto flex-wrap">
                   <TabsTrigger value="setup" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-setup">
-                    Setup
-                  </TabsTrigger>
-                  <TabsTrigger value="dashboard" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-dashboard">
-                    Dashboard
+                    Store Setup
                   </TabsTrigger>
                   <TabsTrigger value="products" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-products">
                     Products
                   </TabsTrigger>
-                  <TabsTrigger value="settings" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-settings">
-                    Settings
+                  <TabsTrigger value="branding" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-branding">
+                    Branding
+                  </TabsTrigger>
+                  <TabsTrigger value="payments" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-payments">
+                    Payments
+                  </TabsTrigger>
+                  <TabsTrigger value="orders" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-orders">
+                    Orders
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" className="shrink-0 flex-1 min-w-[72px] text-xs sm:text-sm" data-testid="tab-analytics">
+                    Analytics
                   </TabsTrigger>
                 </TabsList>
 
-                {/* ── Setup tab ──────────────────────────────────────────── */}
+                {/* ── Store Setup tab ─────────────────────────────────────── */}
                 <TabsContent value="setup" className="mt-4" data-testid="tab-content-setup">
                   <WebstoreSetupFlow
                     store={selectedStore}
@@ -1712,14 +1771,195 @@ export default function Webstores() {
                         toast.error(typeof detail === 'string' ? detail : 'Could not activate store');
                       }
                     }}
+                    onStampProgress={handleStampAdminProgress}
                   />
-                </TabsContent>
 
-                <TabsContent value="dashboard" className="mt-4">
-                  <WebstoreDetailDashboard 
-                    store={selectedStore} 
-                    onClose={() => setIsDetailDialogOpen(false)}
-                  />
+                  {/* Store Access — always visible below the setup flow */}
+                  <Card className="mt-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        Store Access
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">Store Active</Label>
+                          <p className="text-xs text-muted-foreground">Enable or disable this storefront</p>
+                        </div>
+                        <Switch
+                          checked={selectedStore.status === 'active'}
+                          onCheckedChange={(checked) => handleUpdateStatus(checked ? 'active' : 'disabled')}
+                          data-testid="store-active-switch"
+                        />
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">Public Access</Label>
+                          <p className="text-xs text-muted-foreground">Allow anyone to view and order</p>
+                        </div>
+                        <Switch
+                          checked={selectedStore.is_public}
+                          onCheckedChange={(checked) => handleUpdatePublic(checked)}
+                          data-testid="store-public-switch"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Event Settings — event stores only */}
+                  {selectedStore.store_type === 'event' && (
+                    <Card className="mt-4">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-orange-400" />
+                          Event Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">Event Name</Label>
+                            <Input
+                              value={eventEdits.event_name || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, event_name: e.target.value })}
+                              placeholder="e.g., Johnson Benefit Dinner 2026"
+                              data-testid="edit-event-name-input"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Event Date</Label>
+                            <Input type="date"
+                              value={eventEdits.event_start_date || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, event_start_date: e.target.value })}
+                              data-testid="edit-event-date-input"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Event Location</Label>
+                            <Input
+                              value={eventEdits.event_location || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, event_location: e.target.value })}
+                              placeholder="Venue or city"
+                              data-testid="edit-event-location-input"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Store Opens</Label>
+                            <Input type="date"
+                              value={eventEdits.store_open_date || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, store_open_date: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Order Deadline</Label>
+                            <Input type="date"
+                              value={eventEdits.order_deadline || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, order_deadline: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">Pickup / Delivery Instructions</Label>
+                            <Textarea
+                              value={eventEdits.pickup_delivery_instructions || ''}
+                              onChange={(e) => setEventEdits({ ...eventEdits, pickup_delivery_instructions: e.target.value })}
+                              placeholder="e.g., Pick up at check-in table the night of the event"
+                              rows={2}
+                              data-testid="edit-pickup-instructions"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button size="sm" onClick={handleSaveEventSettings} disabled={savingEvent} data-testid="save-event-settings-btn">
+                            {savingEvent ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            Save Event Settings
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Fundraiser Settings */}
+                  {(selectedStore.fundraiser_enabled || fundraiserEdits.fundraiser_enabled) && (
+                    <Card className="mt-4">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Fundraiser Settings</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1 col-span-2">
+                            <Label className="text-xs">Fundraiser Name</Label>
+                            <Input
+                              value={fundraiserEdits.fundraiser_name || ''}
+                              onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_name: e.target.value })}
+                              placeholder="Fundraiser name"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Goal Amount ($)</Label>
+                            <Input type="number" min="0" step="0.01"
+                              value={fundraiserEdits.fundraiser_goal_amount ?? ''}
+                              onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_goal_amount: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button size="sm" onClick={handleSaveFundraiserSettings} disabled={savingFundraiser} data-testid="save-fundraiser-settings-btn">
+                            {savingFundraiser ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            Save Fundraiser Settings
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Shipping & Handling Fee */}
+                  <Card className="mt-4">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        Shipping &amp; Handling Fee
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Shipping &amp; Handling Bundle</Label>
+                        <Switch
+                          checked={lockedEdits.shipping_handling_enabled || false}
+                          onCheckedChange={(checked) => setLockedEdits({ ...lockedEdits, shipping_handling_enabled: checked })}
+                          data-testid="edit-sh-enabled-switch"
+                        />
+                      </div>
+                      {lockedEdits.shipping_handling_enabled && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Bundle Fee ($)</Label>
+                            <Input type="number" min="0" step="0.01"
+                              value={lockedEdits.shipping_handling_fee ?? ''}
+                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_fee: e.target.value })}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Label</Label>
+                            <Input
+                              value={lockedEdits.shipping_handling_label || ''}
+                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_label: e.target.value })}
+                              placeholder="Shipping & Handling"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex justify-end">
+                        <Button size="sm" onClick={handleSaveLockedSettings} disabled={savingLocked} data-testid="save-locked-settings-btn">
+                          {savingLocked ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                          Save Shipping Settings
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                 </TabsContent>
 
                 <TabsContent value="products" className="space-y-4">
@@ -1978,7 +2218,7 @@ export default function Webstores() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="settings" className="space-y-6">
+                <TabsContent value="branding" className="space-y-6" data-testid="tab-content-branding">
                   {/* Store Link Section with QR Code */}
                   <div className="p-4 rounded-lg bg-gradient-to-r from-[#2F8BFB]/10 to-[#2F8BFB]/5 border border-[#2F8BFB]/20">
                     <div className="flex items-start gap-4">
@@ -2322,654 +2562,110 @@ export default function Webstores() {
                       </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
 
-                  {/* Event Store Setup Checklist — admin quick-status card */}
-                  {selectedStore.store_type === 'event' && eventChecklist && (
-                    <Card data-testid="admin-event-checklist-card">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <ListChecks className="h-4 w-4 text-teal-500" />
-                          Event Store Setup
-                          <span className="ml-auto text-xs font-medium text-slate-500" data-testid="admin-event-checklist-progress">
-                            {eventChecklist.required_done ?? 0} / {eventChecklist.required_count ?? 0} ({eventChecklist.percent_complete ?? 0}%)
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1.5">
-                        {(eventChecklist.items || []).map((item) => (
-                          <div
-                            key={item.key}
-                            className="flex items-start gap-2 text-sm"
-                            data-testid={`admin-event-checklist-${item.key}-${item.done ? 'done' : 'todo'}`}
-                          >
-                            {item.done ? (
-                              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 shrink-0" />
-                            ) : (
-                              <div className="h-4 w-4 mt-0.5 rounded-full border border-slate-300 shrink-0" />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className={item.done ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}>
-                                {item.label}
-                                {item.optional && !item.done && (
-                                  <span className="text-slate-400 font-normal"> (optional)</span>
-                                )}
-                              </p>
-                              {!item.done && item.hint && (
-                                <p className="text-xs text-slate-500 mt-0.5">{item.hint}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  )}
+                <TabsContent value="payments" className="space-y-4" data-testid="tab-content-payments">
+                  <WebstoreOwnerConnectCard webstore={selectedStore} />
 
-                  {/* Event Store Settings — only visible for event stores */}
-                  {selectedStore.store_type === 'event' && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 text-orange-400" />
-                          Event Settings
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1 col-span-2">
-                            <Label className="text-xs">Event Name</Label>
-                            <Input
-                              value={eventEdits.event_name || ''}
-                              onChange={(e) => setEventEdits({ ...eventEdits, event_name: e.target.value })}
-                              placeholder="e.g., Johnson Benefit Dinner 2026"
-                              data-testid="edit-event-name-input"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Event Type</Label>
-                            <Select
-                              value={eventEdits.event_type || ''}
-                              onValueChange={(val) => setEventEdits({ ...eventEdits, event_type: val })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="one_time">One-time event</SelectItem>
-                                <SelectItem value="annual">Annual event</SelectItem>
-                                <SelectItem value="seasonal">Seasonal event</SelectItem>
-                                <SelectItem value="recurring">Recurring event</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Event Location</Label>
-                            <Input
-                              value={eventEdits.event_location || ''}
-                              onChange={(e) => setEventEdits({ ...eventEdits, event_location: e.target.value })}
-                              placeholder="Venue or city"
-                              data-testid="edit-event-location-input"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Event Start Date</Label>
-                            <Input
-                              type="date"
-                              value={eventEdits.event_start_date || ''}
-                              onChange={(e) => setEventEdits({ ...eventEdits, event_start_date: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Event End Date</Label>
-                            <Input
-                              type="date"
-                              value={eventEdits.event_end_date || ''}
-                              onChange={(e) => setEventEdits({ ...eventEdits, event_end_date: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Order Deadline</Label>
-                            <Input
-                              type="date"
-                              value={eventEdits.order_deadline || ''}
-                              onChange={(e) => setEventEdits({ ...eventEdits, order_deadline: e.target.value })}
-                              data-testid="edit-order-deadline-input"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Pickup / Delivery Date</Label>
-                            <Input
-                              type="date"
-                              value={eventEdits.pickup_delivery_date || ''}
-                              onChange={(e) => setEventEdits({ ...eventEdits, pickup_delivery_date: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-1 col-span-2">
-                            <Label className="text-xs">Pickup / Delivery Instructions</Label>
-                            <Textarea
-                              value={eventEdits.pickup_delivery_instructions || ''}
-                              onChange={(e) => setEventEdits({ ...eventEdits, pickup_delivery_instructions: e.target.value })}
-                              placeholder="e.g., Items available at the venue check-in table"
-                              rows={2}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label className="text-sm">Auto-close after deadline</Label>
-                            <p className="text-xs text-muted-foreground">Stop accepting orders after deadline</p>
-                          </div>
-                          <Switch
-                            checked={eventEdits.auto_close_after_deadline || false}
-                            onCheckedChange={(checked) => setEventEdits({ ...eventEdits, auto_close_after_deadline: checked })}
-                            data-testid="edit-auto-close-switch"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label className="text-sm">Allow late orders</Label>
-                            <p className="text-xs text-muted-foreground">Accept orders after deadline with a notice</p>
-                          </div>
-                          <Switch
-                            checked={eventEdits.allow_late_orders || false}
-                            onCheckedChange={(checked) => setEventEdits({ ...eventEdits, allow_late_orders: checked })}
-                            data-testid="edit-allow-late-orders-switch"
-                          />
-                        </div>
-                        <div className="flex justify-end">
-                          <Button
-                            size="sm"
-                            onClick={handleSaveEventSettings}
-                            disabled={savingEvent}
-                            data-testid="save-event-settings-btn"
-                          >
-                            {savingEvent ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                            Save Event Settings
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Event Store Questionnaire — send, status, apply */}
-                  {selectedStore.store_type === 'event' && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <Heart className="h-4 w-4 text-pink-400" />
-                          Fundraiser Settings
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label className="text-sm">Fundraiser Enabled</Label>
-                            <p className="text-xs text-muted-foreground">Is this store raising funds for a cause?</p>
-                          </div>
-                          <Switch
-                            checked={fundraiserEdits.fundraiser_enabled || false}
-                            onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_enabled: v })}
-                            data-testid="fundraiser-enabled-switch"
-                          />
-                        </div>
-                        {fundraiserEdits.fundraiser_enabled && (
-                          <>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1 col-span-2">
-                                <Label className="text-xs">Fundraiser Name</Label>
-                                <Input
-                                  value={fundraiserEdits.fundraiser_name || ''}
-                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_name: e.target.value })}
-                                  placeholder="e.g., Gala Fund, Team Spirit Fund"
-                                  data-testid="fundraiser-name-input"
-                                />
-                              </div>
-                              <div className="space-y-1 col-span-2">
-                                <Label className="text-xs">Fundraiser Description</Label>
-                                <Textarea
-                                  value={fundraiserEdits.fundraiser_description || ''}
-                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_description: e.target.value })}
-                                  placeholder="What will the funds be used for?"
-                                  rows={2}
-                                  data-testid="fundraiser-description-input"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Goal Amount ($) <span className="text-muted-foreground">(optional)</span></Label>
-                                <Input
-                                  type="number" min="0" step="0.01"
-                                  value={fundraiserEdits.fundraiser_goal_amount ?? ''}
-                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_goal_amount: e.target.value })}
-                                  placeholder="Leave blank for open-ended"
-                                  data-testid="fundraiser-goal-input"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Fundraiser Cap ($) <span className="text-muted-foreground">(optional)</span></Label>
-                                <Input
-                                  type="number" min="0" step="0.01"
-                                  value={fundraiserEdits.fundraiser_cap_amount ?? ''}
-                                  onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fundraiser_cap_amount: e.target.value })}
-                                  placeholder="Stop allocating after this amount"
-                                />
-                              </div>
-                            </div>
-
-                            <Separator />
-
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <Label className="text-sm">Show Progress Bar</Label>
-                                <p className="text-xs text-muted-foreground">Requires goal amount &gt; 0</p>
-                              </div>
-                              <Switch
-                                checked={fundraiserEdits.show_progress_bar || false}
-                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, show_progress_bar: v })}
-                                disabled={!fundraiserEdits.fundraiser_goal_amount}
-                                data-testid="show-progress-bar-switch"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <Label className="text-sm">Show Total Raised Publicly</Label>
-                                <p className="text-xs text-muted-foreground">Display raised amount on the storefront</p>
-                              </div>
-                              <Switch
-                                checked={fundraiserEdits.show_total_raised_publicly || false}
-                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, show_total_raised_publicly: v })}
-                                data-testid="show-total-raised-switch"
-                              />
-                            </div>
-
-                            <Separator />
-
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <Label className="text-sm">Allow Checkout Donations</Label>
-                                <p className="text-xs text-muted-foreground">Customers can add a donation at checkout</p>
-                              </div>
-                              <Switch
-                                checked={fundraiserEdits.allow_checkout_donations || false}
-                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, allow_checkout_donations: v })}
-                                data-testid="allow-donations-switch"
-                              />
-                            </div>
-                            {fundraiserEdits.allow_checkout_donations && (
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1 col-span-2">
-                                  <Label className="text-xs">Donation Amount Options</Label>
-                                  <Input
-                                    value={fundraiserEdits.donation_amount_options || ''}
-                                    onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, donation_amount_options: e.target.value })}
-                                    placeholder="e.g., $5, $10, $25, $50"
-                                  />
-                                </div>
-                                <div className="flex items-center justify-between col-span-2">
-                                  <Label className="text-sm">Allow Custom Amount</Label>
-                                  <Switch
-                                    checked={fundraiserEdits.allow_custom_donation || false}
-                                    onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, allow_custom_donation: v })}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            <Separator />
-
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <Label className="text-sm">Profit Allocation</Label>
-                                <p className="text-xs text-muted-foreground">Allocate a portion of each sale to the fundraiser</p>
-                              </div>
-                              <Switch
-                                checked={fundraiserEdits.profit_allocation_enabled || false}
-                                onCheckedChange={(v) => setFundraiserEdits({ ...fundraiserEdits, profit_allocation_enabled: v })}
-                                data-testid="profit-allocation-switch"
-                              />
-                            </div>
-                            {fundraiserEdits.profit_allocation_enabled && (
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1 col-span-2">
-                                  <Label className="text-xs">Allocation Type</Label>
-                                  <Select
-                                    value={fundraiserEdits.profit_allocation_type || ''}
-                                    onValueChange={(v) => setFundraiserEdits({ ...fundraiserEdits, profit_allocation_type: v })}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="percentage">Percentage of each sale</SelectItem>
-                                      <SelectItem value="fixed_per_item">Fixed amount per item</SelectItem>
-                                      <SelectItem value="manual">Manual (decide after store closes)</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                {fundraiserEdits.profit_allocation_type === 'percentage' && (
-                                  <div className="space-y-1 col-span-2">
-                                    <Label className="text-xs">Allocation %</Label>
-                                    <Input
-                                      type="number" min="0" max="100" step="0.1"
-                                      value={fundraiserEdits.profit_allocation_percentage ?? ''}
-                                      onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, profit_allocation_percentage: e.target.value })}
-                                    />
-                                  </div>
-                                )}
-                                {fundraiserEdits.profit_allocation_type === 'fixed_per_item' && (
-                                  <div className="space-y-1 col-span-2">
-                                    <Label className="text-xs">Amount Per Item ($)</Label>
-                                    <Input
-                                      type="number" min="0" step="0.01"
-                                      value={fundraiserEdits.fixed_amount_per_item ?? ''}
-                                      onChange={(e) => setFundraiserEdits({ ...fundraiserEdits, fixed_amount_per_item: e.target.value })}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            <Separator />
-
-                            <div className="space-y-1">
-                              <Label className="text-xs">Show Supporter Names</Label>
-                              <Select
-                                value={fundraiserEdits.show_supporter_names || ''}
-                                onValueChange={(v) => setFundraiserEdits({ ...fundraiserEdits, show_supporter_names: v })}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select option" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="no">No — keep anonymous</SelectItem>
-                                  <SelectItem value="yes_with_permission">Yes, if customer consents</SelectItem>
-                                  <SelectItem value="yes_all">Yes, show all supporters</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </>
-                        )}
-                        <div className="flex justify-end">
-                          <Button
-                            size="sm"
-                            onClick={handleSaveFundraiserSettings}
-                            disabled={savingFundraiser}
-                            data-testid="save-fundraiser-settings-btn"
-                          >
-                            {savingFundraiser ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                            Save Fundraiser Settings
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Setup Questionnaire — all store types */}
-                  {(() => {
-                    const qLabel = getQuestionnaireLabel(selectedStore.store_type);
-                    const qPhase = getQStatusPhase(questionnaireStatus);
-                    const qPhaseCfg = Q_PHASE_CONFIG[qPhase] || Q_PHASE_CONFIG.not_sent;
-                    return (
-                      <Card data-testid="questionnaire-card">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <ClipboardCheck className="h-4 w-4 text-orange-400" />
-                            {qLabel}
-                            <Badge className={`ml-auto text-xs border ${qPhaseCfg.badge}`}>
-                              {qPhaseCfg.label}
-                            </Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {loadingQuestionnaire ? (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Loading questionnaire status…
-                            </div>
-                          ) : questionnaireStatus?.linked ? (
-                            <>
-                              {/* Status grid */}
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Last Sent</p>
-                                  <p className="font-medium text-xs">
-                                    {questionnaireStatus.questionnaire?.last_sent_at
-                                      ? new Date(questionnaireStatus.questionnaire.last_sent_at).toLocaleDateString()
-                                      : 'Not sent yet'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Responses</p>
-                                  <p className="font-medium">
-                                    {questionnaireStatus.questionnaire?.response_count ?? 0}
-                                  </p>
-                                </div>
-                                {questionnaireStatus.latest_response?.submitted_at && (
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">Last Submitted</p>
-                                    <p className="font-medium text-xs">
-                                      {new Date(questionnaireStatus.latest_response.submitted_at).toLocaleDateString()}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Phase-specific callouts */}
-                              {qPhase === 'awaiting_review' && (
-                                <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 rounded p-2" data-testid="q-awaiting-review-notice">
-                                  <ClipboardCheck className="h-3 w-3 shrink-0" />
-                                  Owner has submitted answers. Review and apply when ready.
-                                </div>
-                              )}
-                              {qPhase === 'applied' && (
-                                <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 rounded p-2" data-testid="q-applied-notice">
-                                  <Check className="h-3 w-3 shrink-0" />
-                                  Answers have been reviewed and applied to this store.
-                                </div>
-                              )}
-
-                              {/* Actions */}
-                              <div className="flex flex-wrap gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setShowSendDialog(true)}
-                                  data-testid="resend-questionnaire-btn"
-                                >
-                                  <Mail className="h-4 w-4 mr-2" />
-                                  Resend
-                                </Button>
-                                {questionnaireStatus.questionnaire?.id && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.open(`/questionnaire/${questionnaireStatus.questionnaire.id}`, '_blank')}
-                                    data-testid="view-questionnaire-btn"
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    View Form
-                                  </Button>
-                                )}
-                                {questionnaireStatus.latest_response && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={handleApplyQuestionnaireAnswers}
-                                    disabled={applyingAnswers}
-                                    data-testid="apply-answers-btn"
-                                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                                  >
-                                    {applyingAnswers
-                                      ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      : <Check className="h-4 w-4 mr-2" />}
-                                    Apply Safe Answers
-                                  </Button>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-sm text-muted-foreground">
-                                Send the <strong>{qLabel}</strong> to the store owner to{' '}
-                                {getQuestionnaireDescription(selectedStore.store_type)}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Tenant-controlled financial values will be shown as read-only.
-                                Store owner answers will not overwrite your locked settings.
-                              </p>
-                              <Button
-                                size="sm"
-                                onClick={() => setShowSendDialog(true)}
-                                className="bg-orange-500 hover:bg-orange-600 text-white"
-                                data-testid="send-questionnaire-btn"
-                              >
-                                <Send className="h-4 w-4 mr-2" />
-                                Send {qLabel}
-                              </Button>
-                            </>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })()}
-
-                  {/* Send / Resend Questionnaire Dialog */}
-                  {showSendDialog && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-                      <Card className="w-full max-w-md mx-4">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Mail className="h-5 w-5 text-orange-400" />
-                            {getQuestionnaireLabel(selectedStore.store_type)}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Send To (email)</Label>
-                            <Input
-                              type="email"
-                              value={sendEmailOverride}
-                              onChange={(e) => setSendEmailOverride(e.target.value)}
-                              placeholder={selectedStore?.owner_email || 'Store owner email'}
-                              data-testid="send-email-input"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Leave blank to use the store owner email on file.
-                            </p>
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Custom Message (optional)</Label>
-                            <Textarea
-                              value={sendMessageOverride}
-                              onChange={(e) => setSendMessageOverride(e.target.value)}
-                              placeholder="Add a personal note to include in the email..."
-                              rows={3}
-                              data-testid="send-message-input"
-                            />
-                          </div>
-                          <div className="bg-amber-500/10 border border-amber-500/20 rounded p-3 text-xs text-amber-400">
-                            <Lock className="h-3 w-3 inline mr-1" />
-                            Tenant-controlled financial values (locked settings) will be shown as read-only. Store owner answers cannot overwrite them.
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setShowSendDialog(false);
-                                setSendEmailOverride('');
-                                setSendMessageOverride('');
-                              }}
-                              disabled={sendingQuestionnaire}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={handleSendQuestionnaire}
-                              disabled={sendingQuestionnaire}
-                              className="bg-orange-500 hover:bg-orange-600 text-white"
-                              data-testid="confirm-send-questionnaire-btn"
-                            >
-                              {sendingQuestionnaire
-                                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                : <Send className="h-4 w-4 mr-2" />}
-                              Send Questionnaire
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-
-                  {/* Tenant-Controlled Shipping & Handling Fee */}
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
-                        Shipping &amp; Handling Fee
-                        <Badge variant="outline" className="text-xs ml-auto bg-amber-500/10 text-amber-400 border-amber-500/30">
-                          Store-Level
-                        </Badge>
-                      </CardTitle>
+                      <CardTitle className="text-sm">Record Payout</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-xs text-muted-foreground">
-                        A flat per-order fee charged at checkout. Per-product costs (base cost, production cost, retail price, owner profit) are configured when adding products to this store.
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label className="text-sm">Shipping &amp; Handling Bundle</Label>
-                          <p className="text-xs text-muted-foreground">Replace individual fees with a single rate</p>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Amount ($)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={detailPayoutAmount}
+                            onChange={(e) => setDetailPayoutAmount(e.target.value)}
+                            placeholder="0.00"
+                            className="h-8 text-sm"
+                            data-testid="payout-amount-input"
+                          />
                         </div>
-                        <Switch
-                          checked={lockedEdits.shipping_handling_enabled || false}
-                          onCheckedChange={(checked) => setLockedEdits({ ...lockedEdits, shipping_handling_enabled: checked })}
-                          data-testid="edit-sh-enabled-switch"
-                        />
+                        <div className="space-y-1">
+                          <Label className="text-xs">Notes (optional)</Label>
+                          <Input
+                            value={detailPayoutNotes}
+                            onChange={(e) => setDetailPayoutNotes(e.target.value)}
+                            placeholder="e.g., Check #1234"
+                            className="h-8 text-sm"
+                            data-testid="payout-notes-input"
+                          />
+                        </div>
                       </div>
-                      {lockedEdits.shipping_handling_enabled && (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Bundle Fee ($)</Label>
-                            <Input
-                              type="number" min="0" step="0.01"
-                              value={lockedEdits.shipping_handling_fee ?? ''}
-                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_fee: e.target.value })}
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Label</Label>
-                            <Input
-                              value={lockedEdits.shipping_handling_label || ''}
-                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_label: e.target.value })}
-                              placeholder="Shipping & Handling"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1 col-span-2">
-                            <Label className="text-xs">Description (shown at checkout)</Label>
-                            <Input
-                              value={lockedEdits.shipping_handling_description || ''}
-                              onChange={(e) => setLockedEdits({ ...lockedEdits, shipping_handling_description: e.target.value })}
-                              placeholder="Optional description"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                        </div>
-                      )}
                       <div className="flex justify-end">
                         <Button
                           size="sm"
-                          onClick={handleSaveLockedSettings}
-                          disabled={savingLocked}
-                          data-testid="save-locked-settings-btn"
+                          onClick={handleRecordDetailPayout}
+                          disabled={submittingDetailPayout || !detailPayoutAmount}
+                          data-testid="record-payout-btn"
                         >
-                          {savingLocked ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                          Save Shipping Settings
+                          {submittingDetailPayout ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                          Record Payout
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
+
+                  {storePayouts.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Payout History</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {storePayouts.map((p) => (
+                            <div key={p.id} className="flex justify-between items-center text-sm border-b pb-2">
+                              <div>
+                                <p className="font-medium">${p.amount?.toFixed?.(2) ?? p.amount}</p>
+                                {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {p.created_at ? new Date(p.created_at).toLocaleDateString() : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="orders" className="space-y-4" data-testid="tab-content-orders">
+                  {loadingDetailOrders ? (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading orders…
+                    </div>
+                  ) : storeDetailOrders.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground text-sm">
+                      No orders for this store yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {storeDetailOrders.map((order) => (
+                        <div key={order.id} className="border rounded-lg p-3 flex items-center justify-between gap-3" data-testid={`store-order-${order.id}`}>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{order.customer_name || order.buyer_name || 'Unknown Customer'}</p>
+                            <p className="text-xs text-muted-foreground">{order.created_at ? new Date(order.created_at).toLocaleDateString() : ''}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-semibold text-sm">${(order.total_amount || 0).toFixed(2)}</p>
+                            <Badge variant="outline" className="text-[10px]">{order.status}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="analytics" className="mt-4" data-testid="tab-content-analytics">
+                  <WebstoreDetailDashboard
+                    store={selectedStore}
+                    onClose={() => setIsDetailDialogOpen(false)}
+                  />
                 </TabsContent>
               </Tabs>
             </>

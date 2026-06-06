@@ -385,11 +385,13 @@ class Webstore(BaseModel):
     # ── SEO slug (read-only after creation) ─────────────────────────────────
     store_slug: Optional[str] = None
     # ── Questionnaire review state ───────────────────────────────────────────
-    # Set by the public questionnaire submit endpoint (non-blocking).
-    # Staff must review and apply answers before the store can be launched.
     questionnaire_submitted_at: Optional[str] = None
     questionnaire_reviewed: Optional[bool] = None
     questionnaire_reviewed_at: Optional[str] = None
+    # ── Store setup milestone stamps ─────────────────────────────────────────
+    # Set via PATCH /admin-progress; returned so the setup flow can show status.
+    preview_ready_at: Optional[str] = None
+    owner_approved_at: Optional[str] = None
 
 
 class WebstoreCreate(BaseModel):
