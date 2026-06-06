@@ -23,7 +23,7 @@ from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST
 # Get BASE_URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://sign-shop-checkout.preview.emergentagent.com"
+    BASE_URL = "https://guided-onboarding-1.preview.emergentagent.com"
 
 # Test credentials
 TEST_EMAIL = "testuser123@test.com"

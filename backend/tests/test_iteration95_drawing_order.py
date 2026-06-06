@@ -9,7 +9,7 @@ import os
 import struct
 import zlib
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sign-shop-checkout.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://guided-onboarding-1.preview.emergentagent.com')
 
 
 class TestAuth:

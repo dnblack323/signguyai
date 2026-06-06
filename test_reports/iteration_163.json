@@ -67,7 +67,7 @@
     },
     "T14_production_board_navigation": {
       "status": "PASS",
-      "description": "Clicking quick-production-board navigates to https://sign-shop-checkout.preview.emergentagent.com/production-board. Route exists and loads."
+      "description": "Clicking quick-production-board navigates to https://guided-onboarding-1.preview.emergentagent.com/production-board. Route exists and loads."
     },
     "T15_open_calendar_navigation": {
       "status": "PASS",
