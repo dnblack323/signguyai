@@ -19,7 +19,7 @@ import time
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://guided-onboarding-1.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://platform-insights-4.preview.emergentagent.com").rstrip("/")
 ADMIN_EMAIL = "thesigntistslab@gmail.com"
 ADMIN_PASSWORD = "password123"
 
