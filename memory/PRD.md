@@ -22,7 +22,16 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
-- 2026-06-05 — **Staff Review Workflow for Questionnaire Answers — COMPLETE & TESTED**
+- 2026-06-06 — **Consolidated Webstore Setup Flow + Tab Restructure — COMPLETE & TESTED (95%)**
+  - **WebstoreSetupFlow.js**: Completely rewritten from 8 to 11 sequential steps. New steps: (1) Store Created, (2) Send Setup Questionnaire, (3) Questionnaire Submitted, (4) Staff Review Answers, (5) Branding/Artwork, (6) Products & Pricing, (7) Fulfillment, (8) Owner Stripe Onboarding, (9) Store Preview, (10) Owner Approval, (11) Open Store. Each step shows one clear status badge (Complete/Action Needed/Waiting on Owner/Ready for Review/Not Started/Blocked).
+  - **Webstores.js**: Tab structure changed from 4 tabs (Setup/Dashboard/Products/Settings) to 6 tabs (Store Setup/Products/Branding/Payments/Orders/Analytics). Store Setup is now the default tab. Old Settings content distributed: Event/Fundraiser/Shipping settings → bottom of Store Setup; Branding → Branding tab; Stripe/payouts → Payments tab; orders → Orders tab.
+  - **AdminStoreProgressCard.js**: Removed all 3 stage-stamp buttons (Mark production started, Mark ready for pickup, Mark completed). These were store-level buttons that conflated order fulfillment with store setup.
+  - **WebstoreDetailDashboard.js**: Simplified to analytics-only (removed AdminStoreProgressCard, WebstoreOwnerConnectCard, internal orders/payouts tabs). Shows KPI cards, sales trend chart, top products, order status breakdown.
+  - **AppContext.js**: Added `stampWebstoreAdminProgress(webstoreId, flagKey)` function for admin-progress PATCH calls.
+  - **Webstores.py (backend)**: Added `preview_ready_at` and `owner_approved_at` to `Webstore` Pydantic model so they're returned from GET endpoints.
+  - **Tests**: 95% pass rate (iteration_177). All 14 requirements verified. Only unverified: launch gate for 0-products stores (no readily available test store).
+
+
   - **P0 Fix**: `webstores.py` had an `IndentationError` at line 3700 (orphaned dict entries after `SAFE_MAP = QUESTIONNAIRE_SAFE_MAP`) — backend was completely DOWN. Fixed by removing the 42-line orphaned block.
   - **P1 Fix**: `AppContext.js` `getWebstoreQuestionnaireReviewDetails` called `/webstores/` instead of `/webstores/v2/` — 404 on every review-details load. Fixed URL path.
   - **P1 Fix**: `review-details` endpoint processed `response.answers` as a list of dicts but answers are stored as `{question_id: value}` dict. Fixed to build `q_id_to_label` map and convert correctly.

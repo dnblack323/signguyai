@@ -2270,41 +2270,6 @@ export default function Webstores() {
                     </div>
                   </div>
 
-                  {/* Store Status Controls */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        Store Status
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Store Active</Label>
-                          <p className="text-xs text-muted-foreground">Enable or disable this storefront</p>
-                        </div>
-                        <Switch
-                          checked={selectedStore.status === 'active'}
-                          onCheckedChange={(checked) => handleUpdateStatus(checked ? 'active' : 'disabled')}
-                          data-testid="store-active-switch"
-                        />
-                      </div>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Public Access</Label>
-                          <p className="text-xs text-muted-foreground">Allow anyone to view and order</p>
-                        </div>
-                        <Switch
-                          checked={selectedStore.is_public}
-                          onCheckedChange={(checked) => handleUpdatePublic(checked)}
-                          data-testid="store-public-switch"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
                   {/* Branding Section */}
                   <Card>
                     <CardHeader className="pb-3">
