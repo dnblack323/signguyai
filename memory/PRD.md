@@ -665,9 +665,15 @@ Addressed all 4 missing endpoints and 1 security bug discovered in iteration_132
 - Team / Workforce Ribbon rebuild (on hold).
 - Optional: UI banner before Connect click reminding tenants to close old Stripe tabs.
 
-## Dashboard UI Changelog — 2026-02
+## Dashboard UI Changelog — 2026-02 (Continued)
 
-### 2026-02 — Dashboard UI Refactoring Phase 3 — COMPLETE
+### 2026-02 — Shop Health Card + Dashboard Layout Reorder — COMPLETE
+- **Shop Health Card** (new): Compact 5-row status card: Production Load (Light/Normal/Heavy), Oldest Job (from pipeline bottleneck ages), Awaiting Approval, Invoice Risk (overdue count+amount), Team Today (scheduled count). Color-coded green/amber/red. Pure frontend derivation — no new backend endpoints.
+- **TodayScheduleCard** (new): Merged ScheduleWidget + AppointmentsWidget into one "Today's Schedule" card with Due Today + Appointments sub-sections.
+- **Layout Reorder**: Production Pipeline → Operations 3-col (Schedule|TeamStatus|ShopHealth) → Action Required → Business Overview → Billing Snapshot → Recent Docs + Quick Actions → Onboarding+Nudges. Business Overview and Quick Actions moved from position 3 to positions 5 and 8 respectively.
+- Files changed: `Dashboard.js`
+
+
 - **Action Required Card**: Replaced 5 scattered widgets (MessagesWidget, PendingApprovalsWidget, QuoteFollowupsWidget, PendingCustomerActionsWidget, AssistantNudgesWidget tabs) with ONE unified vertical-list "Action Required" card. 5 sections: Customer Approvals · Messages · Quote Follow-Ups · Invoices & Payments · Customer Actions. Compact empty states (green checkmark + text). All links/actions preserved.
 - **Billing Snapshot**: Replaced `FinancialAttentionRow` (4 separate cards: Unpaid / Overdue / Due This Week / Recent Payments) with single `BillingSnapshotCard` showing summary rows + top 2 urgent items + "All invoices" link.
 - **Quick Actions**: Removed duplicate instance from Row 6. Single placement remains next to Business Overview (correct position). 6 primary + "More actions" toggle (4 secondary). Labels not truncated.
