@@ -83,9 +83,9 @@ const sortByUrgency = (items, tsField = 'requested_at') =>
   });
 
 const getSeverityStyles = (severity) => {
-  if (severity === 'red')   return { badge: 'bg-red-500/25 text-red-200 border border-red-500/50',   dot: '#EF4444' };
-  if (severity === 'amber') return { badge: 'bg-amber-500/25 text-amber-200 border border-amber-500/50', dot: '#F59E0B' };
-  return { badge: 'bg-slate-600/40 text-slate-300 border border-slate-500/40', dot: '#9CA3AF' };
+  if (severity === 'red')   return { badge: 'bg-red-100 text-red-800 border border-red-200',   dot: '#EF4444' };
+  if (severity === 'amber') return { badge: 'bg-amber-100 text-amber-800 border border-amber-200', dot: '#F59E0B' };
+  return { badge: 'bg-slate-100 text-slate-600 border border-slate-200', dot: '#9CA3AF' };
 };
 
 // ─────────────────────────────────────────────
@@ -240,27 +240,32 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
         const isRedUrgent = metric.severity === 'red'   && metric.count > 0;
         const isAmber     = metric.severity === 'amber' && metric.count > 0;
 
-        let cardBg, cardBorder, countColor, iconColor;
+        // Cards sit on a light surface (#F5F7FA) — use DARK text for readability
+        let cardBg, cardBorder, countColor, iconColor, labelColor;
         if (isOverdue) {
-          cardBg     = 'rgba(239,68,68,0.14)';
-          cardBorder = 'rgba(239,68,68,0.55)';
-          countColor = '#FCA5A5';
+          cardBg     = '#FEF2F2';
+          cardBorder = '#FECACA';
+          countColor = '#B91C1C';
           iconColor  = '#EF4444';
+          labelColor = '#7F1D1D';
         } else if (isRedUrgent) {
-          cardBg     = 'rgba(239,68,68,0.08)';
-          cardBorder = 'rgba(239,68,68,0.35)';
-          countColor = '#FCA5A5';
+          cardBg     = '#FFF5F5';
+          cardBorder = '#FCA5A5';
+          countColor = '#B91C1C';
           iconColor  = '#EF4444';
+          labelColor = '#7F1D1D';
         } else if (isAmber) {
-          cardBg     = 'rgba(245,158,11,0.10)';
-          cardBorder = 'rgba(245,158,11,0.40)';
-          countColor = '#FCD34D';
-          iconColor  = '#F59E0B';
+          cardBg     = '#FFFBEB';
+          cardBorder = '#FDE68A';
+          countColor = '#92400E';
+          iconColor  = '#D97706';
+          labelColor = '#78350F';
         } else {
           cardBg     = 'var(--surface)';
           cardBorder = 'var(--border-light)';
           countColor = 'var(--text)';
           iconColor  = 'var(--text-muted)';
+          labelColor = 'var(--text-muted)';
         }
 
         return (
@@ -270,10 +275,10 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
               style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}
             >
               <Icon className="h-4 w-4 flex-shrink-0" style={{ color: iconColor }} />
-              <span className="text-3xl font-bold font-heading leading-none" style={{ color: countColor }}>
+              <span className="text-2xl font-bold font-heading leading-none" style={{ color: countColor }}>
                 {metric.count}
               </span>
-              <p className="text-xs font-medium leading-tight" style={{ color: 'var(--text)' }}>{label}</p>
+              <p className="text-xs font-semibold leading-tight" style={{ color: labelColor }}>{label}</p>
             </div>
           </Link>
         );
@@ -289,7 +294,7 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
 // Due Order Items Today
 const ScheduleWidget = ({ items = [], lastUpdatedAt, loading, error, onRetry }) => {
   const badge = items.length > 0 && (
-    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium border border-purple-500/40">{items.length}</span>
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#F5F3FF', color: '#5B21B6', border: '1px solid #DDD6FE' }}>{items.length}</span>
   );
   return (
     <CardShell
@@ -408,10 +413,10 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
 
   const badge = (
     <div className="flex items-center gap-1.5 ml-1">
-      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/40" data-testid="team-clocked-in-count">
+      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' }} data-testid="team-clocked-in-count">
         {teamStatus?.clocked_in_count || 0} in
       </span>
-      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium border border-blue-500/40" data-testid="team-scheduled-count">
+      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }} data-testid="team-scheduled-count">
         {teamStatus?.scheduled_count || 0} sched
       </span>
     </div>
@@ -503,7 +508,7 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
 const TodayScheduleCard = ({ dueItems = [], appointments = [], loading, error, onRetry, lastUpdatedAt }) => {
   const totalItems = dueItems.length + appointments.length;
   const badge = totalItems > 0 && (
-    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium border border-blue-500/40">{totalItems}</span>
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }}>{totalItems}</span>
   );
   return (
     <CardShell
@@ -660,11 +665,11 @@ const ShopHealthCard = ({ summaryData, productionData, customerData, financialDa
 // Row 3 — Production Pipeline
 // ─────────────────────────────────────────────
 const STAGE_COLORS = {
-  queued:    { bg: 'bg-slate-600/40',   text: 'text-slate-200',   border: 'border-slate-500/50',   label: 'Queued'    },
-  printing:  { bg: 'bg-amber-500/30',   text: 'text-amber-200',   border: 'border-amber-500/50',   label: 'Printing'  },
-  finishing: { bg: 'bg-purple-500/30',  text: 'text-purple-200',  border: 'border-purple-500/50',  label: 'Finishing' },
-  install:   { bg: 'bg-blue-500/30',    text: 'text-blue-200',    border: 'border-blue-500/50',    label: 'Install'   },
-  complete:  { bg: 'bg-emerald-500/30', text: 'text-emerald-200', border: 'border-emerald-500/50', label: 'Completed' },
+  queued:    { bg: '#F8FAFC', text: '#334155', border: '#E2E8F0', topBar: '#94A3B8', label: 'Queued'    },
+  printing:  { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A', topBar: '#F59E0B', label: 'Printing'  },
+  finishing: { bg: '#F5F3FF', text: '#5B21B6', border: '#DDD6FE', topBar: '#8B5CF6', label: 'Finishing' },
+  install:   { bg: '#EFF6FF', text: '#1E40AF', border: '#BFDBFE', topBar: '#3B82F6', label: 'Install'   },
+  complete:  { bg: '#F0FDF4', text: '#15803D', border: '#BBF7D0', topBar: '#22C55E', label: 'Completed' },
 };
 
 const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
@@ -685,10 +690,10 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
   }[r] || r);
 
   const _reasonBadge = (r) => ({
-    overdue:                    { bg: 'rgba(239,68,68,0.20)',   color: '#FCA5A5', border: 'rgba(239,68,68,0.40)'    },
-    due_within_24h_not_started: { bg: 'rgba(245,158,11,0.20)', color: '#FCD34D', border: 'rgba(245,158,11,0.40)'  },
-    blocked:                    { bg: 'rgba(107,114,128,0.25)', color: '#D1D5DB', border: 'rgba(107,114,128,0.40)' },
-  }[r] || { bg: 'rgba(107,114,128,0.25)', color: '#D1D5DB', border: 'rgba(107,114,128,0.40)' });
+    overdue:                    { bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5'  },
+    due_within_24h_not_started: { bg: '#FEF3C7', color: '#92400E', border: '#FDE68A' },
+    blocked:                    { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1'  },
+  }[r] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1' });
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}>
@@ -718,11 +723,19 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
             {Object.entries(STAGE_COLORS).map(([key, style]) => {
               const ageStr = ageByStage[key] != null ? formatAge(ageByStage[key]) : null;
               return (
-                <div key={key} className={`flex flex-col items-center gap-1 p-3 rounded-lg border ${style.bg} ${style.border}`}>
-                  <span className={`text-2xl font-bold font-heading ${style.text}`}>{stages[key] ?? 0}</span>
-                  <span className={`text-xs font-semibold ${style.text}`}>{style.label}</span>
+                <div
+                  key={key}
+                  className="flex flex-col items-center gap-1 p-3 rounded-lg"
+                  style={{
+                    backgroundColor: style.bg,
+                    border: `1px solid ${style.border}`,
+                    borderTop: `3px solid ${style.topBar}`,
+                  }}
+                >
+                  <span className="text-2xl font-bold font-heading" style={{ color: style.text }}>{stages[key] ?? 0}</span>
+                  <span className="text-xs font-semibold" style={{ color: style.text }}>{style.label}</span>
                   {ageStr && (
-                    <span className={`text-[10px] opacity-75 ${style.text}`}>{ageStr} oldest</span>
+                    <span className="text-[10px]" style={{ color: style.text, opacity: 0.7 }}>{ageStr} oldest</span>
                   )}
                 </div>
               );
@@ -814,7 +827,7 @@ const MessagesWidget = ({ data, loading, error, onRetry }) => {
   const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
 
   const badge = messages.length > 0 && (
-    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium border border-blue-500/40">{totalUnread} unread</span>
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }}>{totalUnread} unread</span>
   );
 
   return (
@@ -822,7 +835,7 @@ const MessagesWidget = ({ data, loading, error, onRetry }) => {
       icon={MessageSquare}
       iconColor="text-blue-500"
       title="Messages"
-      badge={messages.length === 0 ? <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Inbox zero</span> : badge}
+      badge={messages.length === 0 ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' }}>Inbox zero</span> : badge}
       lastUpdatedAt={data?.last_updated_at}
       headerRight={
         <Link to="/admin-portal?tab=messages">
@@ -863,8 +876,8 @@ const PendingApprovalsWidget = ({ data, loading, error, onRetry }) => {
   // Frontend-sort: urgency_score desc, then requested_at desc
   const approvals = sortByUrgency(data?.approvals_signatures_pending || [], 'requested_at');
   const badge = approvals.length > 0
-    ? <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 font-medium border border-amber-500/40">{approvals.length} pending</span>
-    : <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">All clear</span>;
+    ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{approvals.length} pending</span>
+    : <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0' }}>All clear</span>;
 
   return (
     <CardShell
@@ -914,7 +927,7 @@ const QuoteFollowupsWidget = ({ data, loading, error, onRetry }) => {
   // Frontend-sort: urgency_score desc, then last_sent_at desc
   const quotes = sortByUrgency(data?.quote_followups || [], 'last_sent_at');
   const badge = quotes.length > 0 && (
-    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium border border-purple-500/40">{quotes.length}</span>
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#F5F3FF', color: '#5B21B6', border: '1px solid #DDD6FE' }}>{quotes.length}</span>
   );
 
   return (
@@ -1001,7 +1014,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
           <Zap className="h-4 w-4 text-amber-400" />
           <h2 className="font-heading text-sm font-semibold" style={{ color: 'var(--text)' }}>Action Required</h2>
           {!loading && !error && totalActions > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium border border-amber-500/40" data-testid="action-required-total">
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }} data-testid="action-required-total">
               {totalActions}
             </span>
           )}
@@ -1020,7 +1033,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
             <SectionLabel
               icon={Eye} iconColor="text-amber-400" label="Customer Approvals"
               badge={approvals.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-500/40 font-semibold">{approvals.length}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{approvals.length}</span>
               )}
               right={<Link to="/approvals"><span className="text-[10px] text-blue-400 hover:underline">All approvals →</span></Link>}
             />
@@ -1052,7 +1065,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
             <SectionLabel
               icon={MessageSquare} iconColor="text-blue-400" label="Messages"
               badge={totalUnread > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 font-semibold">{totalUnread} unread</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', border: '1px solid #BFDBFE' }}>{totalUnread} unread</span>
               )}
               right={<Link to="/admin-portal?tab=messages"><span className="text-[10px] text-blue-400 hover:underline">All messages →</span></Link>}
             />
@@ -1085,7 +1098,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
             <SectionLabel
               icon={Send} iconColor="text-purple-400" label="Quote Follow-Ups"
               badge={quotes.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold">{quotes.length}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#F5F3FF', color: '#5B21B6', border: '1px solid #DDD6FE' }}>{quotes.length}</span>
               )}
               right={<Link to="/orders?filter=quote_sent"><span className="text-[10px] text-blue-400 hover:underline">All quotes →</span></Link>}
             />
@@ -1099,7 +1112,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
                       <p className="font-medium text-xs truncate" style={{ color: 'var(--text)' }}>{q.customer_name}</p>
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatCurrency(q.quote_total)} · {Math.round(q.age_days)}d old</p>
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-500/40 flex-shrink-0 ml-2">{Math.round(q.age_days)}d</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ml-2" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{Math.round(q.age_days)}d</span>
                   </div>
                 ))}
               </div>
@@ -1113,7 +1126,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
             <SectionLabel
               icon={Receipt} iconColor="text-amber-400" label="Invoices & Payments"
               badge={unpaidCount > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">{unpaidCount} unpaid</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>{unpaidCount} unpaid</span>
               )}
               right={<Link to="/invoices"><span className="text-[10px] text-blue-400 hover:underline">All invoices →</span></Link>}
             />
@@ -1316,8 +1329,74 @@ const BillingSnapshotCard = ({ data, loading, error, onRetry }) => {
 };
 
 // ─────────────────────────────────────────────
-// Row 6 — Quick Actions (6 primary + More toggle)
+// Quick Actions — compact horizontal strip
 // ─────────────────────────────────────────────
+const QUICK_PRIMARY = [
+  { to: '/orders/new',                 icon: Plus,      label: 'New Order',        testId: 'quick-new-order',        color: '#2F8BFB' },
+  { to: '/orders/new?type=quote',      icon: FileText,  label: 'New Quote',        testId: 'quick-new-quote',        color: '#8B5CF6' },
+  { to: '/customers',                  icon: Users,     label: 'New Customer',     testId: 'quick-add-customer',     color: '#10B981' },
+  { to: '/invoices',                   icon: Receipt,   label: 'New Invoice',      testId: 'quick-create-invoice',   color: '#10B981' },
+  { to: '/production-board',           icon: Briefcase, label: 'Production Board', testId: 'quick-production-board', color: '#2F8BFB' },
+  { to: '/productivity?view=calendar', icon: Calendar,  label: 'Open Calendar',    testId: 'quick-open-calendar',    color: '#8B5CF6' },
+];
+const QUICK_MORE = [
+  { to: '/approvals',    icon: Send,     label: 'Send Approval', testId: 'quick-send-approval', color: '#F59E0B' },
+  { to: '/invoices',     icon: Send,     label: 'Send Invoice',  testId: 'quick-send-invoice',  color: '#10B981' },
+  { to: '/timeclock',    icon: Clock,    label: 'Time Clock',    testId: 'quick-clock-in',      color: '#2F8BFB' },
+  { to: '/ai-assistant', icon: Sparkles, label: 'AI Assistant',  testId: 'quick-ai-assistant',  color: '#8B5CF6' },
+];
+
+const QuickActionsStrip = () => {
+  const [showMore, setShowMore] = useState(false);
+  return (
+    <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="quick-actions-strip">
+      <div className="px-4 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5 text-amber-500" />
+          <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Quick Actions</span>
+        </div>
+        <button
+          onClick={() => setShowMore(v => !v)}
+          className="text-[11px] font-medium px-2 py-0.5 rounded transition hover:opacity-80"
+          style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface-2)' }}
+          data-testid="quick-actions-more-toggle"
+        >
+          {showMore ? '▲ Less' : '▼ More'}
+        </button>
+      </div>
+      <div className="px-3 py-2">
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_PRIMARY.map(({ to, icon: Icon, label, testId, color }) => (
+            <Link key={testId} to={to}>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-sm hover:opacity-90 whitespace-nowrap"
+                style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+                data-testid={testId}
+              >
+                <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
+                {label}
+              </button>
+            </Link>
+          ))}
+          {showMore && QUICK_MORE.map(({ to, icon: Icon, label, testId, color }) => (
+            <Link key={testId} to={to}>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-sm hover:opacity-90 whitespace-nowrap"
+                style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-light)' }}
+                data-testid={testId}
+              >
+                <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
+                {label}
+              </button>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const QuickActionBtn = ({ to, onClick, icon: Icon, iconColor, label, testId, disabled }) => {
   const inner = (
     <button
@@ -1421,12 +1500,19 @@ const RecentAIDocumentsWidget = ({ documents }) => {
         </div>
         <Link to="/ai-tools"><span className="text-xs text-purple-400 hover:underline flex items-center gap-1">Create new <ArrowRight className="h-3 w-3" /></span></Link>
       </div>
-      <div className="p-4">
+      <div className="p-3">
         {!documents?.length ? (
-          <div className="text-center py-4">
-            <Sparkles className="h-7 w-7 mx-auto mb-2 text-purple-500/30" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No AI documents yet</p>
-            <Link to="/ai-tools"><Button size="sm" variant="outline" className="mt-2 text-xs text-purple-500 border-purple-500/30"><Plus className="h-3 w-3 mr-1" /> Create</Button></Link>
+          <div className="flex items-center gap-3 py-2">
+            <Sparkles className="h-5 w-5 text-purple-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>No AI documents yet</p>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Create your first with the AI Tools</p>
+            </div>
+            <Link to="/ai-tools">
+              <Button size="sm" variant="outline" className="text-xs flex-shrink-0">
+                <Plus className="h-3 w-3 mr-1" /> Create
+              </Button>
+            </Link>
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -1609,7 +1695,10 @@ export default function Dashboard() {
       {/* ── Priority Action Strip (urgent ops first) ── */}
       <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
 
-      {/* ── 3. Production Pipeline (wide) ───────── */}
+      {/* ── Quick Actions strip — right below KPIs ── */}
+      <QuickActionsStrip />
+
+      {/* ── Production Pipeline (wide) ───────── */}
       <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
 
       {/* ── 3. Operations Row: Schedule · Team · Shop Health ── */}
@@ -1658,15 +1747,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── 6. Billing Snapshot ─────────────────── */}
-      <BillingSnapshotCard data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
-
-      {/* ── 7 + 8. Recent Documents + Quick Actions ─ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className="lg:col-span-2">
-          <RecentAIDocumentsWidget documents={recentAIDocs} />
-        </div>
-        <QuickActions onSendDigest={handleSendDigest} sendingDigest={sendingDigest} />
+      {/* ── 6. Compact utility row: Billing Snapshot + Recent AI Docs ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+        <BillingSnapshotCard data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
+        <RecentAIDocumentsWidget documents={recentAIDocs} />
       </div>
 
       {/* ── Onboarding + AI Nudges ───────────────── */}
