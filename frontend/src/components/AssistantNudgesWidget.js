@@ -15,10 +15,10 @@ const KIND_ICON = {
   reminder: Bell,
 };
 const KIND_STYLE = {
-  stale_quote:         { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)',  iconColor: '#FCD34D' },
-  overdue_invoice:     { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   iconColor: '#FCA5A5' },
-  pending_appointment: { bg: 'rgba(34,197,94,0.10)',   border: 'rgba(34,197,94,0.25)',   iconColor: '#86EFAC' },
-  reminder:            { bg: 'rgba(234,179,8,0.10)',   border: 'rgba(234,179,8,0.25)',   iconColor: '#FEF08A' },
+  stale_quote:         { bg: '#FEF3C7', border: '#FDE68A', iconColor: '#D97706' },
+  overdue_invoice:     { bg: '#FEE2E2', border: '#FECACA', iconColor: '#DC2626' },
+  pending_appointment: { bg: '#D1FAE5', border: '#A7F3D0', iconColor: '#059669' },
+  reminder:            { bg: '#FEFCE8', border: '#FEF08A', iconColor: '#CA8A04' },
 };
 
 /**
@@ -66,7 +66,8 @@ export default function AssistantNudgesWidget() {
   useEffect(() => { load(); }, [load]);
 
   const dismiss = (nudgeKey) => {
-    const next = new Set(dismissed); next.add(nudgeKey);
+    const next = new Set(dismissed);
+    next.add(nudgeKey);
     setDismissed(next);
     persistDismissed(next);
   };
@@ -151,21 +152,21 @@ export default function AssistantNudgesWidget() {
     <>
       <div
         className="rounded-xl p-4 sm:p-5"
-        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }}
+        style={{ backgroundColor: '#F5F3FF', border: '1px solid #DDD6FE' }}
         data-testid="assistant-nudges-widget"
       >
         <div className="flex items-center gap-2 mb-3">
-          <div className="p-1.5 rounded-md bg-purple-500/20">
-            <Sparkles className="h-4 w-4 text-purple-400" />
+          <div className="p-1.5 rounded-md bg-purple-100">
+            <Sparkles className="h-4 w-4 text-purple-600" />
           </div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Assistant suggestions</h3>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{visible.length} for you today</span>
+          <h3 className="text-sm font-semibold" style={{ color: '#1E1B4B' }}>Assistant suggestions</h3>
+          <span className="text-xs" style={{ color: '#6D28D9' }}>{visible.length} for you today</span>
         </div>
 
         <div className="space-y-2">
           {visible.slice(0, 4).map((n, idx) => {
             const Icon = KIND_ICON[n.kind] || Sparkles;
-            const s = KIND_STYLE[n.kind] || { bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)', iconColor: '#a78bfa' };
+            const s = KIND_STYLE[n.kind] || { bg: '#F3E8FF', border: '#D8B4FE', iconColor: '#7C3AED' };
             const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || idx}`;
             return (
               <div
@@ -177,8 +178,8 @@ export default function AssistantNudgesWidget() {
                 <div className="flex items-center gap-2 min-w-0">
                   <Icon className="h-4 w-4 flex-shrink-0" style={{ color: s.iconColor }} />
                   <div className="min-w-0">
-                    <div className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{n.title}</div>
-                    <div className="text-xs opacity-80 truncate" style={{ color: 'var(--text-muted)' }}>{n.subtitle}</div>
+                    <div className="text-sm font-medium truncate" style={{ color: '#0F172A' }}>{n.title}</div>
+                    <div className="text-xs opacity-80 truncate" style={{ color: '#475569' }}>{n.subtitle}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -194,8 +195,8 @@ export default function AssistantNudgesWidget() {
                   </Button>
                   <button
                     onClick={() => dismiss(key)}
-                    className="p-1 rounded transition-colors hover:bg-white/10"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="p-1 rounded transition-colors hover:bg-black/10"
+                    style={{ color: '#94A3B8' }}
                     aria-label="Dismiss"
                     data-testid={`nudge-${n.kind}-${idx}-dismiss`}
                   >

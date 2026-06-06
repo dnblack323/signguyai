@@ -665,7 +665,16 @@ Addressed all 4 missing endpoints and 1 security bug discovered in iteration_132
 - Team / Workforce Ribbon rebuild (on hold).
 - Optional: UI banner before Connect click reminding tenants to close old Stripe tabs.
 
-## Key Files
+## Dashboard UI Changelog — 2026-02
+
+### 2026-02 — Dashboard UI Refactoring Phase 3 — COMPLETE
+- **Action Required Card**: Replaced 5 scattered widgets (MessagesWidget, PendingApprovalsWidget, QuoteFollowupsWidget, PendingCustomerActionsWidget, AssistantNudgesWidget tabs) with ONE unified vertical-list "Action Required" card. 5 sections: Customer Approvals · Messages · Quote Follow-Ups · Invoices & Payments · Customer Actions. Compact empty states (green checkmark + text). All links/actions preserved.
+- **Billing Snapshot**: Replaced `FinancialAttentionRow` (4 separate cards: Unpaid / Overdue / Due This Week / Recent Payments) with single `BillingSnapshotCard` showing summary rows + top 2 urgent items + "All invoices" link.
+- **Quick Actions**: Removed duplicate instance from Row 6. Single placement remains next to Business Overview (correct position). 6 primary + "More actions" toggle (4 secondary). Labels not truncated.
+- **AssistantNudgesWidget**: Updated from light purple gradient to neutral `var(--surface)` background with light-mode-compatible colored item rows. Standalone below BillingSnapshot.
+- Files changed: `Dashboard.js`, `AssistantNudgesWidget.js`
+
+
 - `backend/routes/stripe_connect.py` — Connect onboarding, webhooks, checkout.
 - `backend/routes/webstores.py` — webstore CRUD, unified order creation.
 - `backend/routes/employees.py` — payroll transactions, snapshots.
