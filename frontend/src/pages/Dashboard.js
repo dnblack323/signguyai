@@ -1695,9 +1695,6 @@ export default function Dashboard() {
       {/* ── Priority Action Strip (urgent ops first) ── */}
       <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
 
-      {/* ── Quick Actions strip — right below KPIs ── */}
-      <QuickActionsStrip />
-
       {/* ── Production Pipeline (wide) ───────── */}
       <ProductionSnapshotWidget data={productionSnapshot} loading={loadingProduction} error={errorProduction} onRetry={fetchProductionSnapshot} />
 
@@ -1747,11 +1744,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── 6. Compact utility row: Billing Snapshot + Recent AI Docs ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        <BillingSnapshotCard data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
-        <RecentAIDocumentsWidget documents={recentAIDocs} />
-      </div>
+      {/* ── 6. Billing Snapshot ─────────────────── */}
+      <BillingSnapshotCard data={financialAttention} loading={loadingFinancial} error={errorFinancial} onRetry={fetchFinancialAttention} />
 
       {/* ── Onboarding + AI Nudges ───────────────── */}
       <OnboardingChecklist />
