@@ -232,6 +232,7 @@ class Permission(str, Enum):
 
 # Role to permissions mapping
 ROLE_PERMISSIONS = {
+    UserRole.PLATFORM_CREATOR: list(Permission),  # Platform creator (root) has all permissions
     UserRole.PLATFORM_ADMIN: list(Permission),  # Platform admins have all permissions including impersonation
     UserRole.OWNER: list(Permission),  # Owners have all permissions
     UserRole.ADMIN: [
