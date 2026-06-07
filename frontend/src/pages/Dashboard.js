@@ -1518,8 +1518,6 @@ export default function Dashboard() {
   const [productionSnapshot, setProductionSnapshot] = useState(null);
   const [customerAttention,  setCustomerAttention]  = useState(null);
   const [financialAttention, setFinancialAttention] = useState(null);
-  const [recentAIDocs,       setRecentAIDocs]       = useState([]);
-
   // Per-section loading/error states
   const [loadingSummary,    setLoadingSummary]    = useState(true);
   const [loadingCommand,    setLoadingCommand]    = useState(true);
@@ -1600,9 +1598,6 @@ export default function Dashboard() {
         fetchProductionSnapshot(),
         fetchCustomerAttention(),
         fetchFinancialAttention(),
-        axios.get(`${API}/dashboard/recent-ai-documents`, { headers: getHeaders() })
-          .then(res => setRecentAIDocs(res.data))
-          .catch(err => console.warn('[Dashboard] recent-ai-documents failed', err)),
       ]);
       setLoading(false);
       setGlobalUpdatedAt(new Date());
