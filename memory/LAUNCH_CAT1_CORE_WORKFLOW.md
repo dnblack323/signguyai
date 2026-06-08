@@ -10,13 +10,13 @@
 - [ ] Fix public signature requests so expired, declined, or completed requests cannot be signed or declined again.
 - [ ] Add tenant scoping to signature-driven parent-record updates.
 - [ ] Protect signature image files from unauthenticated ID-based access.
-- [ ] Fix quote share links that currently point to `/portal/{token}`, for which no frontend route exists.
-- [ ] Replace the Quotes Email action that currently reports success while explicitly stating email integration is coming soon.
-- [ ] Verify and fix the stored quote-send regression where `sent_at` was not returned after sending.
-- [ ] Fix Approvals resend and delete actions so they do not show success for failed HTTP responses.
+- [x] Fix quote share links that currently point to `/portal/{token}`, for which no frontend route exists. ✅ *Fixed 2026-06-08 — created `POST /api/magic-links`, `GET /api/portal/preview/{token}`, and `/portal/:token` frontend route with PortalPreview.js*
+- [x] Replace the Quotes Email action that currently reports success while explicitly stating email integration is coming soon. ✅ *Fixed 2026-06-08 — wired to POST /api/quotes/{id}/send with SendGrid email*
+- [x] Verify and fix the stored quote-send regression where `sent_at` was not returned after sending. ✅ *Fixed 2026-06-08 — send_quote now returns email send status*
+- [x] Fix Approvals resend and delete actions so they do not show success for failed HTTP responses. ✅ *Fixed 2026-06-08 — handleResend/handleDelete check res.ok*
 - [ ] Remove or hide incomplete Wrap Command Center customer-facing actions and placeholders.
-- [ ] Stop Wrap Command Center load failures from falling back to placeholder data that can look real.
-- [ ] Fix backend updates and deletes that locate a tenant-scoped record but mutate it later using only its ID.
+- [x] Stop Wrap Command Center load failures from falling back to placeholder data that can look real. ✅ *Fixed 2026-06-08 — added loadError state; failures now show error message + retry button instead of placeholder data*
+- [x] Fix backend updates and deletes that locate a tenant-scoped record but mutate it later using only its ID. ✅ *Fixed 2026-06-08 — quotes, orders, job_tickets, invoices all now include tenant_id in mutate filters*
 - [ ] Decide and enforce the single launch workflow between legacy Quotes/Jobs and the newer Orders/Job Tickets system.
 - [ ] Complete an authenticated end-to-end customer-to-order-to-approval-to-signature-to-completion clickthrough.
 

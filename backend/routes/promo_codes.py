@@ -150,12 +150,12 @@ async def update_promo_code(
     
     if update_data:
         await db.promo_codes.update_one(
-            {"id": code_id},
+            {"id": code_id, "tenant_id": current_user.tenant_id},
             {"$set": update_data}
         )
     
     # Return updated code
-    updated = await db.promo_codes.find_one({"id": code_id}, {"_id": 0})
+    updated = await db.promo_codes.find_one({"id": code_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     return updated
 
 

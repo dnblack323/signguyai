@@ -65,6 +65,7 @@ export default function WrapCommandCenterPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [order, setOrder] = useState(null);
   const [item, setItem] = useState(null);
   const [customer, setCustomer] = useState(null);
@@ -97,8 +98,9 @@ export default function WrapCommandCenterPage() {
             .catch(() => { /* keep wrapData null on failure */ }));
         }
         await Promise.all(tasks);
-      } catch (_) {
-        // network/auth failure — fall back to placeholder UI so users still see structure
+      } catch (err) {
+        // network/auth failure — show an error state instead of placeholder data
+        if (!cancelled) setLoadError(err?.response?.data?.detail || 'Failed to load order. Please try again.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -473,6 +475,20 @@ export default function WrapCommandCenterPage() {
     return (
       <div className="flex items-center justify-center py-20" data-testid="wrap-cc-loading">
         <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4" data-testid="wrap-cc-error">
+        <div className="text-red-500 font-medium">{loadError}</div>
+        <button
+          className="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-700 transition-colors"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
       </div>
     );
   }

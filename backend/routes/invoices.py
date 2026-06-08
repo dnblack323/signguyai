@@ -54,6 +54,8 @@ async def create_invoice(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Create a new invoice"""
+    if not has_permission(current_user, Permission.INVOICES_CREATE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions to create invoices")
     invoice = Invoice(**input.model_dump())
     invoice.tenant_id = current_user.tenant_id
     doc = invoice.model_dump()
@@ -61,7 +63,7 @@ async def create_invoice(
     
     # Link invoice to job if job_id provided
     if input.job_id:
-        await db.jobs.update_one({"id": input.job_id}, {"$set": {"invoice_id": invoice.id}})
+        await db.jobs.update_one({"id": input.job_id, "tenant_id": current_user.tenant_id}, {"$set": {"invoice_id": invoice.id}})
     
     return invoice
 
@@ -73,6 +75,8 @@ async def get_invoices(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """List all invoices with optional filtering"""
+    if not has_permission(current_user, Permission.INVOICES_VIEW):
+        raise HTTPException(status_code=403, detail="Insufficient permissions to view invoices")
     query = {"tenant_id": current_user.tenant_id}
     if customer_id:
         query["customer_id"] = customer_id
@@ -92,6 +96,8 @@ async def get_invoice(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get a specific invoice by ID"""
+    if not has_permission(current_user, Permission.INVOICES_VIEW):
+        raise HTTPException(status_code=403, detail="Insufficient permissions to view invoices")
     invoice, _collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -105,6 +111,8 @@ async def update_invoice(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Update an invoice"""
+    if not has_permission(current_user, Permission.INVOICES_EDIT):
+        raise HTTPException(status_code=403, detail="Insufficient permissions to edit invoices")
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
@@ -144,6 +152,8 @@ async def delete_invoice(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Delete an invoice"""
+    if not has_permission(current_user, Permission.INVOICES_DELETE):
+        raise HTTPException(status_code=403, detail="Insufficient permissions to delete invoices")
     invoice, collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -151,11 +161,11 @@ async def delete_invoice(
     # Unlink from job if linked
     if invoice.get("job_id"):
         await db.jobs.update_one(
-            {"id": invoice["job_id"]},
+            {"id": invoice["job_id"], "tenant_id": current_user.tenant_id},
             {"$unset": {"invoice_id": ""}}
         )
     
-    await collection.delete_one({"id": invoice_id})
+    await collection.delete_one({"id": invoice_id, "tenant_id": current_user.tenant_id})
     return {"message": "Invoice deleted"}
 
 
@@ -196,7 +206,7 @@ async def create_invoice_from_job(
         # Fallback to job subtotal or quote total
         total = job.get("subtotal", 0)
         if total == 0 and job.get("quote_id"):
-            quote = await db.quotes.find_one({"id": job["quote_id"]}, {"_id": 0})
+            quote = await db.quotes.find_one({"id": job["quote_id"], "tenant_id": current_user.tenant_id}, {"_id": 0})
             if quote:
                 total = quote.get("total", 0)
     
@@ -212,7 +222,7 @@ async def create_invoice_from_job(
     await db.invoices.insert_one(doc)
     
     # Update job with invoice_id
-    await db.jobs.update_one({"id": job_id}, {"$set": {"invoice_id": invoice.id}})
+    await db.jobs.update_one({"id": job_id, "tenant_id": current_user.tenant_id}, {"$set": {"invoice_id": invoice.id}})
     
     # Log activity
     await log_job_activity(job_id, JobActivityType.INVOICE_CREATED, f"Invoice created for ${total:.2f}", new_value=invoice.id)
@@ -231,7 +241,7 @@ async def send_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
     
     await collection.update_one(
-        {"id": invoice_id},
+        {"id": invoice_id, "tenant_id": current_user.tenant_id},
         {"$set": {
             "status": InvoiceStatus.SENT.value,
             "sent_at": datetime.now(timezone.utc).isoformat(),
@@ -259,7 +269,7 @@ async def send_invoice_to_portal(
     
     # Get customer info for notification
     customer = await db.customers.find_one(
-        {"id": invoice["customer_id"]},
+        {"id": invoice["customer_id"], "tenant_id": current_user.tenant_id},
         {"_id": 0}
     )
     if not customer:
@@ -285,7 +295,7 @@ async def send_invoice_to_portal(
         update_data["sent_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.invoices.update_one(
-        {"id": invoice_id},
+        {"id": invoice_id, "tenant_id": current_user.tenant_id},
         {"$set": update_data}
     )
     
@@ -342,7 +352,7 @@ async def record_payment(
         new_status = invoice.get("status", InvoiceStatus.SENT.value)
     
     await db.invoices.update_one(
-        {"id": invoice_id},
+        {"id": invoice_id, "tenant_id": current_user.tenant_id},
         {"$set": {
             "amount_paid": new_amount_paid,
             "status": new_status,
@@ -381,7 +391,14 @@ async def get_invoice_payments(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get all payments for an invoice"""
-    payments = await db.payments.find({"invoice_id": invoice_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    # Verify invoice ownership before returning payments
+    invoice, _ = await _find_invoice_document(invoice_id, current_user.tenant_id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    payments = await db.payments.find(
+        {"invoice_id": invoice_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
     return payments
 
 

@@ -286,7 +286,8 @@ export default function Quotes() {
         setPortalLink(link);
         toast.success('Share link created (expires in 7 days)');
       } else {
-        toast.error('Failed to generate share link');
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.detail || 'Failed to generate share link');
       }
     } catch (err) {
       toast.error('Failed to generate share link');
@@ -314,9 +315,25 @@ export default function Quotes() {
       toast.error('Customer has no email address');
       return;
     }
-    // For now, show a toast with instructions
-    // In production, this would integrate with an email service
-    toast.success(`Quote ready to email to ${customer.email}. Email integration coming soon!`);
+    try {
+      const res = await fetch(`${API_URL}/api/quotes/${selectedQuote.id}/send`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to send quote');
+      }
+      const data = await res.json();
+      if (data.email?.sent) {
+        toast.success(`Quote emailed to ${customer.email}`);
+      } else {
+        toast.success('Quote marked as sent');
+      }
+      await fetchQuotes();
+    } catch (err) {
+      toast.error(err.message || 'Failed to send quote');
+    }
   };
 
   return (

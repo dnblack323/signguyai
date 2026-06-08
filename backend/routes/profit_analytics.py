@@ -517,15 +517,19 @@ async def get_financial_summary(start_date: str = None, end_date: str = None, cu
     if end_date:
         query.setdefault("date", {})["$lte"] = end_date
 
-    sales = await db.sales_entries.find(query, {"_id": 0, "amount": 1}).to_list(1000)
+    sales = await db.sales_entries.find(query, {"_id": 0, "amount": 1, "tax_amount": 1}).to_list(1000)
     expenses = await db.expense_entries.find(query, {"_id": 0, "amount": 1}).to_list(1000)
     total_sales = sum(s.get("amount", 0) for s in sales)
+    total_tax = sum(s.get("tax_amount", 0) or 0 for s in sales)
     total_expenses = sum(e.get("amount", 0) for e in expenses)
+    net_profit = round(total_sales - total_expenses, 2)
 
     return {
         "total_sales": round(total_sales, 2),
+        "total_tax": round(total_tax, 2),
         "total_expenses": round(total_expenses, 2),
-        "net_profit": round(total_sales - total_expenses, 2),
+        "net_profit": net_profit,
+        "net_income": net_profit,  # frontend alias
         "sales_count": len(sales),
         "expense_count": len(expenses),
     }

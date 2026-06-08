@@ -203,7 +203,7 @@ async def update_order(order_id: str, data: OrderUpdate, current_user: UserInDB 
     if "status" in update_data and update_data["status"] == OrderStatus.COMPLETED.value:
         update_data["final_completion_date"] = datetime.now(timezone.utc).isoformat()
 
-    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    await db.orders.update_one({"id": order_id, "tenant_id": current_user.tenant_id}, {"$set": update_data})
     updated = await db.orders.find_one({"id": order_id}, {"_id": 0})
     return updated
 

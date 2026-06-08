@@ -24,15 +24,15 @@
 
 ### Current Launch Blockers
 - [ ] Fix or hide promotional double-sided pricing because the field is visible but ignored by the calculator.
-- [ ] Fix Custom/Other job-ticket description persistence.
-- [ ] Fix Promo Codes update and updated-record read to include `tenant_id`.
+- [x] Fix Custom/Other job-ticket description persistence. ✅ *Fixed 2026-06-08 — description field added to AddTicketToOrder state and POST body*
+- [x] Fix Promo Codes update and updated-record read to include `tenant_id`. ✅ *Fixed 2026-06-08 — update_one and find_one both use tenant_id filter*
 - [ ] Fix Promo Codes redemption to include `tenant_id`, active/expiry/max-use checks, and atomic usage-limit enforcement.
 - [ ] Decide whether promo codes are platform-global or tenant-owned, then make creation, validation, checkout, and redemption follow one consistent model.
 - [ ] Add backend validation for promo discount values, trial days, expiration, and maximum uses.
-- [ ] Fix `PricingSetup.handleAnalyze` returning `response.json` instead of parsed response data.
+- [x] Fix `PricingSetup.handleAnalyze` returning `response.json` instead of parsed response data. ✅ *Fixed 2026-06-08 — changed to await response.json()*
 - [ ] Add historical import upload file-size, file-count, row-count, and PDF-page limits.
 - [ ] Remove or complete Pricing Foundation Category Methods actions that currently only show "coming in next phase."
-- [ ] Remove or development-gate the pricing-calculation console log.
+- [x] Remove or development-gate the pricing-calculation console log. ✅ *Fixed 2026-06-08 — removed console.log from Pricing.js*
 - [ ] Verify every visible pricing category against real shop examples.
 - [ ] Complete authenticated live clickthrough and responsive visual QA.
 
