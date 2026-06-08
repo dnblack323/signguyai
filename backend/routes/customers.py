@@ -81,7 +81,7 @@ async def create_customer(
     
     # Check tenant settings for auto-welcome email
     tenant = await db.tenants.find_one(
-        {"tenant_id": current_user.tenant_id},
+        {"id": current_user.tenant_id},
         {"_id": 0}
     )
     
@@ -594,7 +594,7 @@ async def update_customer(
         {"id": customer_id, "tenant_id": current_user.tenant_id}, 
         {"$set": update_data}
     )
-    customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    customer = await db.customers.find_one({"id": customer_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     return customer
 
 

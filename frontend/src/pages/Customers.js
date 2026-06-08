@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useReducer, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -89,29 +89,39 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailTab, setDetailTab] = useState('overview');
   const [invitingPortal, setInvitingPortal] = useState(false);
+
   // Phase 4 follow-up — webstore connections for the selected customer.
-  const [customerWebstores, setCustomerWebstores] = useState({ as_owner: [], as_buyer: [], tags: [] });
+  const [webstoreState, dispatchWebstore] = useReducer(
+    (s, a) => {
+      switch (a.type) {
+        case 'LOADING': return { data: { as_owner: [], as_buyer: [], tags: [] }, loading: true, error: false };
+        case 'LOADED':  return { data: a.data, loading: false, error: false };
+        case 'ERROR':   return { data: { as_owner: [], as_buyer: [], tags: [] }, loading: false, error: true };
+        case 'RESET':   return { data: { as_owner: [], as_buyer: [], tags: [] }, loading: false, error: false };
+        default:        return s;
+      }
+    },
+    { data: { as_owner: [], as_buyer: [], tags: [] }, loading: false, error: false },
+  );
+  // Keep a compat alias so downstream JSX doesn't need to change
+  const customerWebstores = webstoreState.data;
+
+  const loadWebstores = useCallback((customerId) => {
+    dispatchWebstore({ type: 'LOADING' });
+    axios.get(`${API_URL}/api/customers/${customerId}/webstores`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    })
+      .then(res => dispatchWebstore({ type: 'LOADED', data: res.data || { as_owner: [], as_buyer: [], tags: [] } }))
+      .catch(() => dispatchWebstore({ type: 'ERROR' }));
+  }, []);
 
   useEffect(() => {
     if (!isDetailOpen || !selectedCustomer?.id) {
-      setCustomerWebstores({ as_owner: [], as_buyer: [], tags: [] });
+      dispatchWebstore({ type: 'RESET' });
       return;
     }
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/customers/${selectedCustomer.id}/webstores`, {
-          headers: { Authorization: `Bearer ${getAuthToken()}` },
-        });
-        if (!cancelled) setCustomerWebstores(res.data || { as_owner: [], as_buyer: [], tags: [] });
-      } catch (err) {
-        // Non-fatal — just hide the card on failure.
-        if (!cancelled) setCustomerWebstores({ as_owner: [], as_buyer: [], tags: [] });
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDetailOpen, selectedCustomer?.id]);
+    loadWebstores(selectedCustomer.id);
+  }, [isDetailOpen, selectedCustomer?.id, loadWebstores]);
 
   // Phase 3: declare context so "create an order for this customer" works.
   useSetPageContext(
@@ -125,8 +135,15 @@ export default function Customers() {
       : { page: 'customers_list' },
   );
 
-  // CSV Import state
-  const [isImportOpen, setIsImportOpen] = useState(false);
+  // CSV Import state — check for ?import=true URL param on mount
+  const [isImportOpen, setIsImportOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('import') === 'true') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return true;
+    }
+    return false;
+  });
   const [csvFile, setCsvFile] = useState(null);
   const [csvPreview, setCsvPreview] = useState([]);
   const [csvHeaders, setCsvHeaders] = useState([]);
@@ -156,27 +173,27 @@ export default function Customers() {
     fetchJobs();
     fetchInvoices();
     fetchQuotes();
-    
-    // Check URL params for auto-open import dialog
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('import') === 'true') {
-      setIsImportOpen(true);
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
   }, []);
+
+  const [loadError, setLoadError] = useState(false);
 
   const loadCustomers = async () => {
     setLoading(true);
+    setLoadError(false);
     const params = {};
     if (statusFilter !== 'all') params.status = statusFilter;
     if (search) params.search = search;
-    await fetchCustomers(params);
-    setLoading(false);
+    try {
+      await fetchCustomers(params);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewCustomer = (customer) => {
-    setSelectedCustomer(customer);
+    setSelectedCustomer(structuredClone(customer));
     setDetailTab('overview');
     setIsDetailOpen(true);
   };
@@ -818,6 +835,11 @@ export default function Customers() {
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center justify-center h-32 gap-2" data-testid="customers-load-error">
+              <p className="text-sm text-gray-500">Failed to load customers.</p>
+              <Button size="sm" variant="outline" onClick={loadCustomers} data-testid="customers-retry-btn">Retry</Button>
+            </div>
           ) : filteredCustomers.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <p>No customers found</p>
@@ -1338,7 +1360,7 @@ export default function Customers() {
                     <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => { setIsDetailOpen(false); navigate(`/orders/new?customer_id=${selectedCustomer.id}&customer_name=${encodeURIComponent(selectedCustomer.name || '')}&company=${encodeURIComponent(selectedCustomer.company || '')}&email=${encodeURIComponent(selectedCustomer.email || '')}&phone=${encodeURIComponent(selectedCustomer.phone || '')}`); }} data-testid="customer-popup-new-order-btn">
                       <Package className="h-4 w-4 mr-2" /> New Order
                     </Button>
-                    <Button variant="outline" onClick={() => { setIsDetailOpen(false); navigate('/quotes'); }} data-testid="customer-popup-view-quotes-btn">
+                    <Button variant="outline" onClick={() => { setIsDetailOpen(false); navigate(`/quotes?customer_id=${selectedCustomer.id}`); }} data-testid="customer-popup-view-quotes-btn">
                       <Briefcase className="h-4 w-4 mr-2" /> View Quotes
                     </Button>
                     <Button variant="outline" onClick={() => setIsDetailOpen(false)}>

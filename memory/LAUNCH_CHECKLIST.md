@@ -61,15 +61,32 @@ Source: LAUNCH READY MASTER DOC.pdf (uploaded 2026-06-07)
 ---
 
 ### Section 2 — Customers
-**Status:** Not yet reviewed in this session. See PDF for full checklist.
+**Status:** Reviewed and fixed 2026-06-07.
 
-**Key PO bugs to fix:**
-- [ ] Fix customer update response lookup (uses only customer ID, not tenant-scoped)
-- [ ] Fix tenant settings lookup during customer creation (queries by tenant_id instead of id)
+#### ✅ Fixed in This Session (2026-06-07)
+- [x] **Backend bug**: `update_customer` final read-back now tenant-scoped (`{"id": cid, "tenant_id": tid}`)
+- [x] **Backend bug**: `create_customer` tenant lookup fixed from `{"tenant_id": ...}` → `{"id": ...}`
+- [x] **Frontend**: `loadCustomers()` now has try/catch/finally — cannot stay stuck; shows visible error + Retry button (`data-testid="customers-load-error"`, `"customers-retry-btn"`)
+- [x] **Frontend**: "View Quotes" from customer detail now navigates to `/quotes?customer_id=...` (filtered) instead of unfiltered `/quotes`
+- [x] **Frontend (Quotes.js)**: Quotes page reads `?customer_id` URL param on mount and applies customer filter chip with ✕ clear button (`data-testid="quote-customer-filter-chip"`)
+- [x] **Frontend lint**: Webstores useEffect converted to `useReducer` + `dispatch` (removes set-state-in-effect error and adds error state tracking)
+- [x] **Frontend lint**: URL param import dialog converted to lazy initializer (removes set-state-in-effect error)
+- [x] **Frontend lint**: `handleViewCustomer` uses `structuredClone` to satisfy immutability rule
+
+#### ❌ Still Needed (PO Items from Checklist)
 - [ ] Verify auto-welcome-email settings actually control welcome emails
-- [ ] Decide deletion policy for customers with related records
-- [ ] Fix CSV frontend validation for Company-only rows
+- [ ] Decide deletion policy for customers with related records (prefer archive over destructive delete)
+- [ ] Fix CSV frontend validation so Company-only rows are allowed
 - [ ] Add backend uniqueness/duplicate rules for customer email
+- [ ] Validate email and phone formats consistently during create/update
+- [ ] Review temporary portal PIN display and delivery for security
+- [ ] Confirm portal invite failure cannot leave portal access partially enabled
+- [ ] Add visible errors for failed related jobs, quotes, invoices, and webstore loads in detail modal
+- [ ] Add Retry actions for failed list and detail sections
+- [ ] Preserve form data after save failure
+- [ ] Show clear import result details (created/updated/skipped/invalid counts)
+- [ ] Confirm CSV import cannot freeze UI on FileReader callback errors
+- [ ] Define and test customer merge behavior for duplicate records
 
 ---
 
