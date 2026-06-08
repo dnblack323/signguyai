@@ -504,3 +504,30 @@
 - Deployment fix: requirements.txt cleaned from 137 → 24 packages
 - SendGrid email configured
 - Production setup endpoint and page (/setup)
+
+## 2026-06-08 — Launch Readiness Phase A P0 Fixes
+### Security
+- Signature requests: block expired/already-signed/declined requests (410/400)
+- Signature file endpoint: requires auth + tenant-scoped lookup  
+- Signature parent mutations: all update_one include tenant_id
+- Appointment confirm/reject: GET shows HTML page; POST mutates (prevents email scanner auto-confirm)
+- Invoice permissions: INVOICES_VIEW/CREATE/EDIT/DELETE enforced on all endpoints
+- Invoice tenant scoping: all mutations include tenant_id
+- Quote/Order/Job ticket mutations: all include tenant_id
+
+### New Features
+- Magic Links: POST/GET /api/magic-links, GET /api/portal/preview/{token}
+- Quote send email wired to SendGrid (needs account credits top-up)
+- Portal Preview page at /portal/:token
+- Financials summary returns total_tax and net_income
+
+### Bug Fixes
+- Approvals toast: only shown on success (res.ok check)
+- PricingSetup: await response.json() fixed
+- Production Board: moveToStage only toasts on API success
+- Appointment nudge: fixed dead route
+- Wrap Command Center: error state instead of placeholder on load failure
+- AddTicketToOrder: description field added + persisted
+- Duplicate className fixed in Financials.js + Invoices.js
+- console.log removed from Pricing.js
+- BillingManagement: handles ?checkout=success/cancel params
