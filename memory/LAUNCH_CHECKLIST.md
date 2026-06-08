@@ -190,9 +190,12 @@ Source: LAUNCH READY MASTER DOC.pdf (uploaded 2026-06-07)
 ---
 
 ## Progress Summary
-- **Category 1, Section 1 (Dashboard):** ~40% complete
-  - Verified items: All 5 confirmed working
-  - Fixed: 3 items (permission bug, PendingCustomerActionsWidget error state, dead code)
-  - Remaining: 12 PO items + 13 clickthrough tests + 7 visual checks
+- **Category 1, Section 1 (Dashboard):** ~60% complete
+  - Fixed: Permission bug (platform_creator), PendingCustomerActionsWidget error state, dead code cleanup
+  - Remaining: 12 PO items + live clickthrough tests + visual audit
+
+- **Category 1, Section 2 (Customers):** ~40% complete
+  - Fixed (2026-06-07): 8 items — backend tenant scoping, customer filter in Quotes, error states, lint fixes
+  - Remaining: welcome email verification, deletion policy, CSV validation, email uniqueness, portal PIN security
 
 Last updated: 2026-06-07
