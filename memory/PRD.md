@@ -11,6 +11,39 @@ Full-stack business management app for sign/graphics shops: customer management,
 - **AI Business Assistant** — Phase 5 (saved commands, routines, modes, bulk action previews).
 - **Stripe Connect (platform-owned) + Stripe Connect (tenant onboarding)** — platform billing + tenant payouts.
 
+## Launch Readiness Checklist Status (as of 2026-06-08)
+- Checklists: `/app/memory/LAUNCH_CAT1_CORE_WORKFLOW.md`, `LAUNCH_CAT2_PRODUCTION.md`, `LAUNCH_CAT3_PRICING.md`, `LAUNCH_CAT4_BILLING.md`
+- Last major batch of P0 fixes applied: 2026-06-08
+
+### Fixed in Latest Session (2026-06-08)
+1. Financials summary: Added `total_tax` + `net_income` alias to backend response
+2. Invoice permissions: Added INVOICES_VIEW/CREATE/EDIT/DELETE enforcement
+3. Invoice tenant scoping: All mutations now include tenant_id filters
+4. Quote send: `POST /api/quotes/{id}/send` now emails customer via SendGrid (blocked by SendGrid credit exhaustion — needs top-up)
+5. Quote share links: Created magic links backend (`POST /api/magic-links`, `GET /api/portal/preview/{token}`) and `/portal/:token` frontend route with PortalPreview.js
+6. Approvals: handleResend/handleDelete check res.ok before toast
+7. Approvals: Signature requests block re-signing/declining if expired, declined, or completed
+8. Signature file endpoint: Now requires authentication + tenant-scoped lookup
+9. Signature parent-record updates: All update_one calls now include tenant_id
+10. Promo codes: update/read-back now include tenant_id filter
+11. Orders, job_tickets: update/delete filters now include tenant_id
+12. PricingSetup: `handleAnalyze` returns `await response.json()`
+13. Production Board: moveToStage only toasts on success
+14. Appointment confirm/reject: GET shows landing page; POST performs mutation (prevents email scanner auto-mutation)
+15. Appointment nudge route: Fixed `/appointments/{id}` → `/productivity/appointments/{id}`
+16. Wrap Command Center: Load failures show error + retry instead of placeholder data
+17. AddTicketToOrder: description field added and wired to backend
+18. Duplicate className: Fixed in Financials.js and Invoices.js
+19. console.log: Removed from Pricing.js
+20. BillingManagement: Handles `?checkout=success/cancel` query params
+
+### Remaining Launch Blockers (P0/P1)
+- CAT1: Quote share link `sent_at` regression (minor); end-to-end E2E clickthrough pending
+- CAT2: Production task tenant scoping; workflow-template schema inconsistency
+- CAT3: Promotional double-sided pricing visibility fix; promo redemption atomic enforcement
+- CAT4: Stripe webhook signing required for production; expense receipt uploads
+- Cross-cutting: SendGrid credits exhausted (user must add credits to thesigntistslab@gmail.com SendGrid account)
+
 ## Architecture — Stripe Service Layer
 As of 2026-04-25, all Stripe business logic is centralised in `backend/services/stripe_service.py`:
 - Platform fee schedule, `get_stripe_mode()`, `get_tenant_tier()`

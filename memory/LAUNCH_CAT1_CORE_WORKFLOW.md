@@ -7,9 +7,9 @@
 
 ## Category-Wide Confirmed Launch Blockers
 
-- [ ] Fix public signature requests so expired, declined, or completed requests cannot be signed or declined again.
-- [ ] Add tenant scoping to signature-driven parent-record updates.
-- [ ] Protect signature image files from unauthenticated ID-based access.
+- [x] Fix public signature requests so expired, declined, or completed requests cannot be signed or declined again. ✅ *Fixed 2026-06-08 — sign_public_request and decline_public_request now check all terminal statuses*
+- [x] Add tenant scoping to signature-driven parent-record updates. ✅ *Fixed 2026-06-08 — _apply_signed_status and _apply_declined_status now include tenant_id in all update_one filters*
+- [x] Protect signature image files from unauthenticated ID-based access. ✅ *Fixed 2026-06-08 — get_signature_file now requires authentication and tenant-scoped lookup*
 - [x] Fix quote share links that currently point to `/portal/{token}`, for which no frontend route exists. ✅ *Fixed 2026-06-08 — created `POST /api/magic-links`, `GET /api/portal/preview/{token}`, and `/portal/:token` frontend route with PortalPreview.js*
 - [x] Replace the Quotes Email action that currently reports success while explicitly stating email integration is coming soon. ✅ *Fixed 2026-06-08 — wired to POST /api/quotes/{id}/send with SendGrid email*
 - [x] Verify and fix the stored quote-send regression where `sent_at` was not returned after sending. ✅ *Fixed 2026-06-08 — send_quote now returns email send status*

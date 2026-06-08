@@ -66,13 +66,18 @@ export default function ProductionBoard() {
     try {
       await axios.put(`${API}/production-tasks/${taskId}`, updates, { headers: hdr() });
       await load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Update failed'); }
-    finally { setTaskLoading(''); }
+      return true;
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Update failed');
+      return false;
+    } finally {
+      setTaskLoading('');
+    }
   };
 
   const moveToStage = async (taskId, stageKey) => {
-    await updateTask(taskId, { production_stage: stageKey });
-    toast.success(`Moved to ${fmt(stageKey)}`);
+    const ok = await updateTask(taskId, { production_stage: stageKey });
+    if (ok) toast.success(`Moved to ${fmt(stageKey)}`);
   };
 
   const handleDragStart = (e, task) => {

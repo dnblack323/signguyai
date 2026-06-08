@@ -16,15 +16,15 @@
 
 ## Category-Wide Confirmed Launch Blockers
 
-- [ ] Fix Production Board stage movement so it never shows a success toast after an API update fails.
+- [x] Fix Production Board stage movement so it never shows a success toast after an API update fails. ✅ *Fixed 2026-06-08 — moveToStage checks return value from updateTask, only toasts on success*
 - [ ] Enforce proof-approval dependencies before production tasks can start or complete; the backend currently checks and then intentionally allows the transition.
 - [ ] Add tenant scoping to production-task mutations, ticket/order rollups, workflow-template updates, and appointment updates after initial validation.
 - [ ] Decide and consolidate the overlapping production systems: Production Board stages, production-task workflow templates, and legacy production timelines.
 - [ ] Resolve incompatible workflow-template schemas stored in the same `workflow_templates` collection.
 - [ ] Prevent unsafe workflow-template reset/reseed actions from deleting or changing workflows used by active work.
-- [ ] Fix public appointment Confirm and Request Change actions so email scanners and simple GET requests cannot mutate appointment status.
+- [x] Fix public appointment Confirm and Request Change actions so email scanners and simple GET requests cannot mutate appointment status. ✅ *Fixed 2026-06-08 — GET shows landing page/form, POST performs the mutation*
 - [ ] Add expiry, tenant binding, and revocation behavior to public appointment action tokens.
-- [ ] Fix the dead appointment nudge route that navigates to `/appointments/{id}` instead of `/productivity/appointments/{id}`.
+- [x] Fix the dead appointment nudge route that navigates to `/appointments/{id}` instead of `/productivity/appointments/{id}`. ✅ *Fixed 2026-06-08 — corrected navigate path in AssistantNudgesWidget.js*
 - [ ] Add visible error and Retry states across Production Board, Production Settings, Productivity, and Appointment Detail.
 - [ ] Replace skipped Productivity writeback, drag/drop, and cross-view tests with seeded passing tests.
 - [ ] Complete full cross-module handoff verification from approved order item through production completion.
