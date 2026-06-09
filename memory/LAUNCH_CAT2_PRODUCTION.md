@@ -64,7 +64,7 @@
 - [ ] Show "Moved to..." only after the production task update succeeds.
 - [ ] Prevent drag/drop and Next from falsely reporting success after failed updates.
 - [ ] Add tenant scoping when enriching board tasks from job tickets.
-- [ ] Add tenant scoping to production-task update and final lookup after tenant-scoped validation.
+- [x] Add tenant scoping to production-task update and final lookup after tenant-scoped validation. ✅ *Fixed 2026-06-09 — update_one and final find_one now include tenant_id*
 - [ ] Add tenant scoping to ticket and order progress rollups.
 - [ ] Enforce `depends_on_proof` instead of silently allowing start/complete.
 - [ ] Define an explicit authorized override workflow if proof-gate overrides are required.

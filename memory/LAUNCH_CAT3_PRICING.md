@@ -23,10 +23,10 @@
 - [x] Stored iteration 130 report includes passing product CRUD coverage.
 
 ### Current Launch Blockers
-- [ ] Fix or hide promotional double-sided pricing because the field is visible but ignored by the calculator.
+- [x] Fix or hide promotional double-sided pricing because the field is visible but ignored by the calculator. ✅ *2026-06-09 — Reviewed: Promotional section UI has no double_sided field; Rigid Signs double_sided_art is conditionally disabled when sidedness != double. No fix needed.*
 - [x] Fix Custom/Other job-ticket description persistence. ✅ *Fixed 2026-06-08 — description field added to AddTicketToOrder state and POST body*
 - [x] Fix Promo Codes update and updated-record read to include `tenant_id`. ✅ *Fixed 2026-06-08 — update_one and find_one both use tenant_id filter*
-- [ ] Fix Promo Codes redemption to include atomic usage-limit enforcement (prevent race condition on max_uses).
+- [x] Fix Promo Codes redemption to include atomic usage-limit enforcement (prevent race condition on max_uses). ✅ *Fixed 2026-06-09 — apply-promo uses find_one_and_update with conditional $expr filter*
 - [x] Decide whether promo codes are platform-global or tenant-owned — **DECIDED: platform-only (platform_creator/platform_admin only)**. ✅ *Fixed 2026-06-09 — require_platform_admin() enforces role; codes are unscoped (no tenant_id); tenants have no access to create/view/edit/delete codes*
 - [ ] Add backend validation for promo discount values, trial days, expiration, and maximum uses.
 - [x] Fix `PricingSetup.handleAnalyze` returning `response.json` instead of parsed response data. ✅ *Fixed 2026-06-08 — changed to await response.json()*
@@ -331,7 +331,7 @@
 - [ ] Make public validation select the intended promo deterministically.
 - [ ] Prevent duplicate code collisions across tenants if validation remains global.
 - [ ] Enforce expiry and max-use checks during redemption, not validation only.
-- [ ] Make usage-limit check and increment atomic.
+- [x] Make usage-limit check and increment atomic. ✅ *Fixed 2026-06-09 — find_one_and_update with $expr conditional*
 - [ ] Prevent inactive or expired codes from being redeemed.
 - [ ] Confirm checkout uses the same validation and redemption rules.
 - [ ] Add tests proving one tenant cannot update or redeem another tenant's code.

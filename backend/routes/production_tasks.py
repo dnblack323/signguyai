@@ -183,11 +183,11 @@ async def update_production_task(task_id: str, data: ProductionTaskUpdate, curre
                            user_id=current_user.id, user_name=current_user.full_name or "",
                            old_value=existing.get("status"), new_value=new_status)
 
-    await db.production_tasks.update_one({"id": task_id}, {"$set": update_data})
+    await db.production_tasks.update_one({"id": task_id, "tenant_id": current_user.tenant_id}, {"$set": update_data})
 
     # Roll up progress
     await update_ticket_progress(db, existing["job_ticket_id"])
     await update_order_progress(db, existing["order_id"])
 
-    updated = await db.production_tasks.find_one({"id": task_id}, {"_id": 0})
+    updated = await db.production_tasks.find_one({"id": task_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     return updated

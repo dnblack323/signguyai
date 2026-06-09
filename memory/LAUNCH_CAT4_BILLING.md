@@ -12,16 +12,16 @@
 
 ## Category-Wide Confirmed Launch Blockers
 
-- [ ] Add backend permission enforcement to invoices, Financials, billing changes, and Stripe Connect management; authenticated tenant users can currently reach sensitive connect/disconnect/dashboard/reconcile actions without explicit financial/admin checks.
+- [x] Add backend permission enforcement to invoices, Financials, billing changes, and Stripe Connect management; authenticated tenant users can currently reach sensitive connect/disconnect/dashboard/reconcile actions without explicit financial/admin checks. ✅ *Fixed 2026-06-09 — FINANCIALS_MANAGE/VIEW enforced on all Financials endpoints; _require_stripe_admin enforced on create/refresh/disconnect/dashboard-link*
 - [x] Fix multiple invoice mutations that verify tenant ownership and then update or delete using unscoped filters. ✅ *Fixed 2026-06-08 — all invoice update/delete/send/send-to-portal/record-payment filters now include tenant_id*
 - [x] Fix invoice customer and quote lookups that omit tenant scope. ✅ *Fixed 2026-06-08 — customer and quote lookups include tenant_id*
 - [x] Fix invoice payment-history query so it verifies invoice ownership and scopes payments by tenant. ✅ *Fixed 2026-06-08 — get_invoice_payments verifies ownership and filters by tenant_id*
 - [ ] Validate manual payment amounts and prevent zero, negative, or overpayments unless explicitly supported.
 - [x] Fix Financials frontend/backend summary contract: frontend reads `total_tax` and `net_income`; backend returns neither `total_tax` nor `net_income` and instead returns `net_profit`. ✅ *Fixed 2026-06-08 — backend now returns total_tax and net_income alias*
 - [x] Fix duplicate JSX `className` attributes on Financials and Invoices access-denied headings. ✅ *Fixed 2026-06-08 — merged duplicate className attributes in both files*
-- [ ] Persist expense receipt uploads or remove the visible receipt controls.
+- [x] Persist expense receipt uploads or remove the visible receipt controls. ✅ *Fixed 2026-06-09 — Receipt photo UI hidden from expense dialog until object storage is integrated*
 - [ ] Require signed Stripe webhooks in production; both billing and Stripe Connect webhooks currently allow unsigned fallback parsing when secrets are absent.
-- [ ] Make webhook failures return an error status so Stripe retries instead of receiving a successful HTTP response containing an error payload.
+- [x] Make webhook failures return an error status so Stripe retries instead of receiving a successful HTTP response containing an error payload. ✅ *Fixed 2026-06-09 — Exception handler now raises HTTPException(500) instead of returning {"status": "error"}*
 - [x] Fix or clarify the Founder Billing return flow because founder checkout returns to `/billing?checkout=...`, while Billing Management does not process those query parameters. ✅ *Fixed 2026-06-08 — BillingManagement.js now reads checkout/session_id query params and redirects to billing/success or shows cancel toast*
 - [ ] Verify all plan/feature/fee claims against current launch-visible product behavior.
 - [ ] Complete real Stripe test-mode clickthroughs before enabling live payments.
@@ -577,7 +577,7 @@
 - [x] Stored Stripe Connect report shows 22 passing tests.
 
 ### PO Authorization And Configuration
-- [ ] Require owner/admin or financial-manage permission for Stripe create-account, refresh-link, disconnect, dashboard-link, tenant-dashboard, and reconciliation.
+- [x] Require owner/admin or financial-manage permission for Stripe create-account, refresh-link, disconnect, dashboard-link, tenant-dashboard, and reconciliation. ✅ *Fixed 2026-06-09 — _require_stripe_admin helper added to all 4 endpoints*
 - [ ] Require invoice payment permission for invoice payment-link actions.
 - [ ] Confirm public webstore checkout remains public but validates store, product, assignment, pricing, and Stripe readiness.
 - [ ] Require signed Stripe Connect webhook verification in production.

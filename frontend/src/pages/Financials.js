@@ -30,7 +30,7 @@ import {
 } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign, Wallet, CreditCard, Mail, Banknote, AlertTriangle, Camera, Image as ImageIcon } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Receipt, DollarSign, Wallet, CreditCard, Mail, Banknote, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSetPageContext } from '../context/PageContext';
 
@@ -105,7 +105,6 @@ export default function Financials() {
     amount: 0,
     category: 'materials',
     description: '',
-    receipt_file: null,
   });
 
   useEffect(() => {
@@ -180,7 +179,6 @@ export default function Financials() {
         amount: 0,
         category: 'materials',
         description: '',
-        receipt_file: null,
       });
       await loadData();
     } catch (err) {
@@ -374,20 +372,7 @@ export default function Financials() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Receipt Photo</Label>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="sm" className="gap-1 flex-1" onClick={() => document.getElementById('expense-receipt-camera')?.click()} data-testid="expense-receipt-camera-btn">
-                      <Camera className="h-3.5 w-3.5" /> Take Photo
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="gap-1 flex-1" onClick={() => document.getElementById('expense-receipt-gallery')?.click()} data-testid="expense-receipt-gallery-btn">
-                      <ImageIcon className="h-3.5 w-3.5" /> Choose File
-                    </Button>
-                  </div>
-                  <input id="expense-receipt-camera" type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setExpenseForm({ ...expenseForm, receipt_file: e.target.files?.[0] || null })} />
-                  <input id="expense-receipt-gallery" type="file" accept="image/*" className="hidden" onChange={(e) => setExpenseForm({ ...expenseForm, receipt_file: e.target.files?.[0] || null })} />
-                  {expenseForm.receipt_file && (
-                    <p className="text-xs text-green-600">{expenseForm.receipt_file.name}</p>
-                  )}
+                  {/* Receipt photo upload is not yet persisted — hidden until object storage is integrated */}
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>

@@ -53,6 +53,15 @@ router = APIRouter(prefix="/stripe-connect", tags=["Stripe Connect"])
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or os.environ.get("STRIPE_API_KEY")
 
 
+def _require_stripe_admin(user: UserInDB) -> None:
+    """Only owner or admin roles may manage Stripe Connect settings."""
+    if user.role not in ("owner", "admin", "platform_creator", "platform_admin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only account owners and admins can manage Stripe Connect settings"
+        )
+
+
 class ConnectAccountResponse(BaseModel):
     """Response for connect account status"""
     connected: bool = False
@@ -265,6 +274,7 @@ async def create_connect_account(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Create a Stripe Connect account and return onboarding link"""
+    _require_stripe_admin(current_user)
     tenant = await db.tenants.find_one(
         {"id": current_user.tenant_id},
         {"_id": 0}
@@ -363,6 +373,7 @@ async def refresh_onboarding_link(
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Refresh the onboarding link for incomplete accounts"""
+    _require_stripe_admin(current_user)
     tenant = await db.tenants.find_one(
         {"id": current_user.tenant_id},
         {"_id": 0, "stripe_connect_account_id": 1}
@@ -426,6 +437,7 @@ async def refresh_onboarding_link(
 @router.delete("/disconnect")
 async def disconnect_stripe_account(current_user: UserInDB = Depends(get_current_active_user)):
     """Disconnect Stripe account from tenant"""
+    _require_stripe_admin(current_user)
     result = await db.tenants.update_one(
         {"id": current_user.tenant_id},
         {
@@ -445,6 +457,7 @@ async def disconnect_stripe_account(current_user: UserInDB = Depends(get_current
 @router.get("/dashboard-link")
 async def get_stripe_dashboard_link(current_user: UserInDB = Depends(get_current_active_user)):
     """Get link to Stripe Express dashboard for the connected account"""
+    _require_stripe_admin(current_user)
     tenant = await db.tenants.find_one(
         {"id": current_user.tenant_id},
         {"_id": 0, "stripe_connect_account_id": 1}
