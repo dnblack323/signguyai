@@ -68,22 +68,20 @@ class PromoCodeValidationResponse(BaseModel):
     trial_days: Optional[int] = None
 
 
-# Helper to check if user is platform founder (only founder can manage promo codes)
-def require_founder(user: UserInDB):
-    if not getattr(user, 'is_founder', False):
-        raise HTTPException(status_code=403, detail="Platform founder access required")
+# Helper — only platform_creator or platform_admin can manage promo codes
+def require_platform_admin(user: UserInDB):
+    if user.role not in ("platform_creator", "platform_admin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Platform administrator access required"
+        )
 
 
 @router.get("", response_model=List[PromoCodeResponse])
 async def list_promo_codes(current_user: UserInDB = Depends(get_current_active_user)):
-    """List all promo codes (admin only)"""
-    require_founder(current_user)
-    
-    codes = await db.promo_codes.find(
-        {"tenant_id": current_user.tenant_id},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    
+    """List all promo codes — platform admin only"""
+    require_platform_admin(current_user)
+    codes = await db.promo_codes.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
     return codes
 
 
@@ -92,39 +90,33 @@ async def create_promo_code(
     data: PromoCodeCreate,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Create a new promo code (admin only)"""
-    require_founder(current_user)
-    
-    # Check if code already exists
-    existing = await db.promo_codes.find_one({
-        "code": data.code.upper(),
-        "tenant_id": current_user.tenant_id
-    })
+    """Create a new promo code — platform admin only"""
+    require_platform_admin(current_user)
+
+    existing = await db.promo_codes.find_one({"code": data.code.upper()})
     if existing:
         raise HTTPException(status_code=400, detail="Promo code already exists")
-    
-    # Validate discount type
-    if data.discount_type not in ['percent', 'fixed', 'free_trial', 'free_days']:
+
+    if data.discount_type not in ('percent', 'fixed', 'free_trial', 'free_days'):
         raise HTTPException(status_code=400, detail="Invalid discount type")
-    
+
     promo_code = {
         "id": str(uuid.uuid4()),
-        "tenant_id": current_user.tenant_id,
         "code": data.code.upper(),
         "description": data.description,
         "discount_type": data.discount_type,
         "discount_value": data.discount_value,
-        "trial_days": data.trial_days if data.discount_type in ['free_trial', 'free_days'] else 0,
+        "trial_days": data.trial_days if data.discount_type in ('free_trial', 'free_days') else 0,
         "max_uses": data.max_uses,
         "times_used": 0,
         "expires_at": data.expires_at,
         "is_active": data.is_active,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": current_user.id,
     }
-    
+
     await db.promo_codes.insert_one(promo_code)
-    del promo_code["_id"]
-    
+    promo_code.pop("_id", None)
     return promo_code
 
 
@@ -134,28 +126,20 @@ async def update_promo_code(
     data: PromoCodeUpdate,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Update a promo code (admin only)"""
-    require_founder(current_user)
+    """Update a promo code — platform admin only"""
+    require_platform_admin(current_user)
     
-    # Find existing code
-    existing = await db.promo_codes.find_one({
-        "id": code_id,
-        "tenant_id": current_user.tenant_id
-    })
+    # Find existing code — platform-wide, no tenant scoping
+    existing = await db.promo_codes.find_one({"id": code_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Promo code not found")
-    
-    # Build update
+
     update_data = {k: v for k, v in data.dict().items() if v is not None}
-    
+
     if update_data:
-        await db.promo_codes.update_one(
-            {"id": code_id, "tenant_id": current_user.tenant_id},
-            {"$set": update_data}
-        )
-    
-    # Return updated code
-    updated = await db.promo_codes.find_one({"id": code_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
+        await db.promo_codes.update_one({"id": code_id}, {"$set": update_data})
+
+    updated = await db.promo_codes.find_one({"id": code_id}, {"_id": 0})
     return updated
 
 
@@ -164,17 +148,13 @@ async def delete_promo_code(
     code_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Delete a promo code (admin only)"""
-    require_founder(current_user)
-    
-    result = await db.promo_codes.delete_one({
-        "id": code_id,
-        "tenant_id": current_user.tenant_id
-    })
-    
+    """Delete a promo code — platform admin only"""
+    require_platform_admin(current_user)
+
+    result = await db.promo_codes.delete_one({"id": code_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Promo code not found")
-    
+
     return {"message": "Promo code deleted"}
 
 
