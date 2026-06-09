@@ -63,7 +63,7 @@
 - [x] Stored `pricing_expansion_results.xml` reports 16 passing tests.
 
 ### Must Fix Or Decide
-- [ ] Remove `console.log('Item calculated:', itemData)` from `frontend/src/pages/Pricing.js` or development-gate it.
+- [x] Remove `console.log('Item calculated:', itemData)` from `frontend/src/pages/Pricing.js` or development-gate it. ✅ *Fixed 2026-06-08 — console.log removed*
 - [ ] Confirm the Add Item callback actually sends the calculated item to the intended order/quote context.
 - [ ] Confirm standalone use explains where the calculated item goes.
 - [ ] Confirm all visible fields affect the calculation or saved item.
@@ -160,7 +160,7 @@
 - [x] Stored `pricing_setup_results.xml` reports 15 passing tests.
 
 ### Must Fix Or Decide
-- [ ] Fix `handleAnalyze` to return parsed response data rather than `response.json`.
+- [x] Fix `handleAnalyze` to return parsed response data rather than `response.json`. ✅ *Fixed 2026-06-08 — changed to await response.json()*
 - [ ] Add maximum individual file size.
 - [ ] Add maximum combined upload size.
 - [ ] Add maximum files per import.
@@ -757,3 +757,4 @@
 ---
 
 *Last updated: 2026-06-07 | No fixes applied yet — full clickthrough and accuracy QA pending*
+ full clickthrough and accuracy QA pending*

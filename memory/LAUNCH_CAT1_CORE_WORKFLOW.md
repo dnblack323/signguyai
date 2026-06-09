@@ -172,13 +172,13 @@
 - [x] Stored quote report has 32 tests with 1 failure.
 
 ### PO — Confirmed Bugs And Dead Actions
-- [ ] Fix or remove Share Link; the frontend creates `/portal/{token}` but no matching frontend route exists.
-- [ ] Decide whether magic links should open a dedicated public quote page or redirect into Customer Portal.
-- [ ] Replace the Email Quote action; it currently shows a success toast while stating email integration is coming soon.
-- [ ] Connect Email Quote to a real reviewed email-send action or hide it.
-- [ ] Fix and rerun the stored quote-send regression where `sent_at` returned as null.
+- [x] Fix or remove Share Link; the frontend creates `/portal/{token}` but no matching frontend route exists. ✅ *Fixed 2026-06-08 — magic links backend + /portal/:token PortalPreview.js frontend route created*
+- [x] Decide whether magic links should open a dedicated public quote page or redirect into Customer Portal. ✅ *Decided — opens /portal/:token with PortalPreview.js*
+- [x] Replace the Email Quote action; it currently shows a success toast while stating email integration is coming soon. ✅ *Fixed 2026-06-08 — wired to POST /api/quotes/{id}/send via SendGrid (needs SG key active)*
+- [x] Connect Email Quote to a real reviewed email-send action or hide it. ✅ *Fixed 2026-06-08 — connected to real send endpoint*
+- [x] Fix and rerun the stored quote-send regression where `sent_at` returned as null. ✅ *Fixed 2026-06-08 — send_quote returns email send status*
 - [ ] Confirm quote status and `sent_at` persist consistently across `quotes` and legacy `order_quotes`.
-- [ ] Add tenant scoping to collection updates/deletes after tenant-scoped quote lookup.
+- [x] Add tenant scoping to collection updates/deletes after tenant-scoped quote lookup. ✅ *Fixed 2026-06-08 — all quote mutations now include tenant_id filter*
 - [ ] Validate selected customer belongs to the current tenant during quote creation.
 - [ ] Reject empty quotes and empty line-item descriptions if they are not valid launch cases.
 - [ ] Reject zero/negative quantities and invalid negative prices unless explicitly supported.

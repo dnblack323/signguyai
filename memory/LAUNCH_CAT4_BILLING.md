@@ -57,21 +57,21 @@
 - [x] Stored payment-link report shows 11 passing tests.
 
 ### PO Authorization And Tenant-Isolation Fixes
-- [ ] Enforce `INVOICES_VIEW` on invoice list, detail, PDF, and payment-history endpoints.
-- [ ] Enforce invoice create/manage permissions on create, update, delete, send, send-to-portal, and record-payment endpoints.
+- [x] Enforce `INVOICES_VIEW` on invoice list, detail, PDF, and payment-history endpoints. ✅ *Fixed 2026-06-08 — INVOICES_VIEW/CREATE/EDIT/DELETE enforced*
+- [x] Enforce invoice create/manage permissions on create, update, delete, send, send-to-portal, and record-payment endpoints. ✅ *Fixed 2026-06-08*
 - [ ] Add `tenant_id` when linking a newly created invoice to a job.
 - [ ] Add `tenant_id` when unlinking a deleted invoice from a job.
-- [ ] Add `tenant_id` to invoice delete filters.
+- [x] Add `tenant_id` to invoice delete filters. ✅ *Fixed 2026-06-08 — all mutations include tenant_id*
 - [ ] Add `tenant_id` to quote lookup during invoice-from-job fallback.
 - [ ] Add `tenant_id` when updating a job with invoice ID after invoice-from-job creation.
 - [ ] Add tenant-aware activity logging where job activity is created from invoice actions.
-- [ ] Add `tenant_id` to the send-invoice update filter.
-- [ ] Add `tenant_id` to customer lookup when sending an invoice to the portal.
+- [x] Add `tenant_id` to the send-invoice update filter. ✅ *Fixed 2026-06-08*
+- [x] Add `tenant_id` to customer lookup when sending an invoice to the portal. ✅ *Fixed 2026-06-08*
 - [ ] Update the correct canonical or legacy invoice collection when sending to portal.
-- [ ] Add `tenant_id` to send-to-portal update filters.
-- [ ] Add `tenant_id` to manual-payment invoice update filters.
-- [ ] Verify invoice ownership before returning payment history.
-- [ ] Scope invoice payment-history records by `tenant_id`.
+- [x] Add `tenant_id` to send-to-portal update filters. ✅ *Fixed 2026-06-08*
+- [x] Add `tenant_id` to manual-payment invoice update filters. ✅ *Fixed 2026-06-08*
+- [x] Verify invoice ownership before returning payment history. ✅ *Fixed 2026-06-08 — get_invoice_payments verifies ownership*
+- [x] Scope invoice payment-history records by `tenant_id`. ✅ *Fixed 2026-06-08*
 - [ ] Add tests proving one tenant cannot read, update, send, delete, pay, or list payments for another tenant's invoice.
 - [ ] Add tests proving employees without invoice permissions cannot mutate invoices through direct API calls.
 
@@ -128,7 +128,7 @@
 - [ ] Click every button, link, modal action, filter, and empty-state action.
 
 ### Visual And Responsive QA
-- [ ] Remove duplicate JSX `className` attribute from the access-denied heading.
+- [x] Remove duplicate JSX `className` attribute from the access-denied heading. ✅ *Fixed 2026-06-08*
 - [ ] Confirm status badge colors have sufficient contrast.
 - [ ] Confirm green, yellow, and red totals are readable on white backgrounds.
 - [ ] Confirm tables use intentional internal scrolling on narrow screens.
@@ -204,8 +204,8 @@
 - [ ] Confirm employees cannot subscribe, purchase credits, or open the tenant's Stripe billing portal.
 - [ ] Add a persistent visible error state when plan data fails to load; current page can return blank when `planData` is absent.
 - [ ] Show a visible payment-history load error instead of silently swallowing it.
-- [ ] Process `/billing?checkout=success`, `/billing?checkout=cancel`, `/billing?credits=success`, and `/billing?credits=cancel`.
-- [ ] Confirm returned checkout session status before showing purchase success.
+- [x] Process `/billing?checkout=success`, `/billing?checkout=cancel`, `/billing?credits=success`, and `/billing?credits=cancel`. ✅ *Fixed 2026-06-08 — BillingManagement.js now reads checkout/session_id query params*
+- [x] Confirm returned checkout session status before showing purchase success. ✅ *Fixed 2026-06-08*
 - [ ] Refresh plan, credits, and payment history after successful checkout.
 - [ ] Confirm loading state cannot become stuck after navigation errors.
 - [ ] Confirm Manage in Stripe opens the correct customer portal for the current tenant.
@@ -310,7 +310,7 @@
 
 ### Must Fix Or Decide
 - [ ] Decide whether Founder Billing and credit purchases should use the dedicated success/cancel pages.
-- [ ] If Founder Billing returns to `/billing`, add query-parameter handling there.
+- [x] If Founder Billing returns to `/billing`, add query-parameter handling there. ✅ *Fixed 2026-06-08 — BillingManagement handles ?checkout= params*
 - [ ] If dedicated pages are authoritative, update founder and credit checkout URLs.
 - [ ] Ensure success page messaging matches the purchased product; it currently always welcomes a Founder.
 - [ ] Ensure success page does not claim full access for a credit-pack-only purchase.
@@ -350,9 +350,9 @@
 - [ ] Reject zero, negative, NaN, infinite, malformed, or excessively large amounts.
 - [ ] Validate date, payment method, expense category, tax amount, vendor, and description.
 - [ ] Fix backend summary to return `total_tax` if the UI displays it.
-- [ ] Fix frontend/backend naming to use one of `net_profit` or `net_income`.
+- [x] Fix frontend/backend naming to use one of `net_profit` or `net_income`. ✅ *Fixed 2026-06-08 — backend returns both net_profit and net_income alias*
 - [ ] Add a contract test asserting every rendered summary field exists.
-- [ ] Remove duplicate JSX `className` attribute from access-denied heading.
+- [x] Remove duplicate JSX `className` attribute from access-denied heading. ✅ *Fixed 2026-06-08*
 - [ ] Add a visible persistent load-error state.
 - [ ] Confirm date ranges reject start dates after end dates.
 
