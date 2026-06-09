@@ -742,4 +742,4 @@
 
 ---
 
-*Last updated: 2026-06-07 | Applied: platform_creator permission fix (invoices/financials now accessible). Full backend permission enforcement, tenant scoping fixes, and Stripe test matrix pending.*
+*Last updated: 2026-06-09 | Applied: Financials RBAC (ensure_financials_manage + ensure_reporting_access on all 6 endpoints), Stripe Connect admin guard (_require_stripe_admin), billing webhook returns HTTP 500 on failure, promo code atomic redemption (find_one_and_update + $expr), production task update_one tenant scoping, expense receipt UI hidden, Wrap CC placeholder header actions removed.*

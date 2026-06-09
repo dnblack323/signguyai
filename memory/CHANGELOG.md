@@ -531,3 +531,22 @@
 - Duplicate className fixed in Financials.js + Invoices.js
 - console.log removed from Pricing.js
 - BillingManagement: handles ?checkout=success/cancel params
+
+## 2026-06-09 — Launch Readiness Phase B P0 Security Fixes
+### Security
+- Financials RBAC: ensure_financials_manage() on POST /api/financials/sales and /api/financials/expenses; ensure_reporting_access() on all GET endpoints (summary, invoice-aging, sales, expenses)
+- Stripe Connect: _require_stripe_admin() helper guards create-account, refresh-link, disconnect, dashboard-link (owner/admin only)
+- Billing webhook: Exception handler now raises HTTPException(500) so Stripe retries on processing failure (was returning HTTP 200 with error body)
+- Promo code atomic redemption: apply-promo uses find_one_and_update with $expr conditional — prevents race condition on max_uses
+- Production tasks: update_one and final find_one both include tenant_id scoping
+
+### UI Fixes
+- Expense dialog: Removed non-functional receipt photo upload buttons (Camera/Choose File) — hidden until object storage integrated
+- Wrap Command Center: Removed 8 placeholder header action buttons (Send Quote, Send Contract, Create AI Mockup, etc.) — Phase 2 work
+- Wrap Command Center Design tab: Questionnaire "Send" button now disabled with "Phase 2" label
+
+### Checklists Updated
+- CAT1: Wrap CC placeholder actions ✅
+- CAT2: Production task tenant scoping ✅
+- CAT3: Promo atomic redemption ✅, promotional double-sided N/A ✅
+- CAT4: Financials RBAC ✅, Stripe Connect admin guard ✅, webhook error status ✅, expense receipt hidden ✅

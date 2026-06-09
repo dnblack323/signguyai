@@ -11,38 +11,26 @@ Full-stack business management app for sign/graphics shops: customer management,
 - **AI Business Assistant** — Phase 5 (saved commands, routines, modes, bulk action previews).
 - **Stripe Connect (platform-owned) + Stripe Connect (tenant onboarding)** — platform billing + tenant payouts.
 
-## Launch Readiness Checklist Status (as of 2026-06-08)
+## Launch Readiness Checklist Status (as of 2026-06-09)
 - Checklists: `/app/memory/LAUNCH_CAT1_CORE_WORKFLOW.md`, `LAUNCH_CAT2_PRODUCTION.md`, `LAUNCH_CAT3_PRICING.md`, `LAUNCH_CAT4_BILLING.md`
-- Last major batch of P0 fixes applied: 2026-06-08
+- Last major batch of P0 fixes applied: 2026-06-09
+- Progress: CAT1 104/507 (21%), CAT2 73/366 (20%), CAT3 116/524 (22%), CAT4 106/547 (19%)
 
-### Fixed in Latest Session (2026-06-08)
-1. Financials summary: Added `total_tax` + `net_income` alias to backend response
-2. Invoice permissions: Added INVOICES_VIEW/CREATE/EDIT/DELETE enforcement
-3. Invoice tenant scoping: All mutations now include tenant_id filters
-4. Quote send: `POST /api/quotes/{id}/send` now emails customer via SendGrid (blocked by SendGrid credit exhaustion — needs top-up)
-5. Quote share links: Created magic links backend (`POST /api/magic-links`, `GET /api/portal/preview/{token}`) and `/portal/:token` frontend route with PortalPreview.js
-6. Approvals: handleResend/handleDelete check res.ok before toast
-7. Approvals: Signature requests block re-signing/declining if expired, declined, or completed
-8. Signature file endpoint: Now requires authentication + tenant-scoped lookup
-9. Signature parent-record updates: All update_one calls now include tenant_id
-10. Promo codes: update/read-back now include tenant_id filter
-11. Orders, job_tickets: update/delete filters now include tenant_id
-12. PricingSetup: `handleAnalyze` returns `await response.json()`
-13. Production Board: moveToStage only toasts on success
-14. Appointment confirm/reject: GET shows landing page; POST performs mutation (prevents email scanner auto-mutation)
-15. Appointment nudge route: Fixed `/appointments/{id}` → `/productivity/appointments/{id}`
-16. Wrap Command Center: Load failures show error + retry instead of placeholder data
-17. AddTicketToOrder: description field added and wired to backend
-18. Duplicate className: Fixed in Financials.js and Invoices.js
-19. console.log: Removed from Pricing.js
-20. BillingManagement: Handles `?checkout=success/cancel` query params
+### Fixed in Session 2026-06-09 (Phase B)
+1. Financials RBAC: ensure_financials_manage() + ensure_reporting_access() on all 6 /api/financials/* endpoints
+2. Stripe Connect: _require_stripe_admin() on create-account, refresh-link, disconnect, dashboard-link
+3. Billing webhook: HTTPException(500) on failure — Stripe will now retry
+4. Promo code atomic redemption: find_one_and_update with $expr prevents max_uses race condition
+5. Production tasks: tenant_id added to update_one + final find_one
+6. Expense receipt UI: Hidden from expense dialog until object storage is integrated
+7. Wrap CC: Placeholder header action buttons removed (Phase 2)
+8. Wrap CC Design tab: Questionnaire button disabled with Phase 2 label
 
 ### Remaining Launch Blockers (P0/P1)
-- CAT1: Quote share link `sent_at` regression (minor); end-to-end E2E clickthrough pending
-- CAT2: Production task tenant scoping; workflow-template schema inconsistency
-- CAT3: Promotional double-sided pricing visibility fix; promo redemption atomic enforcement
-- CAT4: Stripe webhook signing required for production; expense receipt uploads
-- Cross-cutting: SendGrid credits exhausted (user must add credits to thesigntistslab@gmail.com SendGrid account)
+- SendGrid email blocked (user needs to provide SG.* API key from app.sendgrid.com)
+- Stripe webhook signature required in production (currently allows unsigned fallback)
+- Live clickthrough E2E scenarios (Category A-D) — manual QA needed
+- CAT2: Workflow template schema inconsistency; overlapping production systems decision
 
 ## Architecture — Stripe Service Layer
 As of 2026-04-25, all Stripe business logic is centralised in `backend/services/stripe_service.py`:
