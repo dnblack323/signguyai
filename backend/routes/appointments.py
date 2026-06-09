@@ -313,6 +313,27 @@ async def create_appointment(
         tenant = await db.tenants.find_one({"id": current_user.tenant_id}, {"_id": 0}) or {}
         await _send_customer_appointment_email(doc, tenant)
 
+        # SMS reminder
+        cust_full = await db.customers.find_one(
+            {"id": doc["customer_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0, "phone": 1, "name": 1}
+        )
+        if cust_full and cust_full.get("phone"):
+            from services.sms_service import SMSService
+            sms_svc = SMSService()
+            shop_name = tenant.get("name") or "the shop"
+            scheduled = doc.get("scheduled_start") or "your scheduled time"
+            try:
+                scheduled_display = scheduled[:16].replace("T", " ") if "T" in scheduled else scheduled
+            except Exception:
+                scheduled_display = scheduled
+            await sms_svc.send_appointment_reminder(
+                to=cust_full["phone"],
+                customer_name=cust_full.get("name") or "",
+                scheduled_time=scheduled_display,
+                business_name=shop_name,
+            )
+
     return _doc_to_response(doc)
 
 

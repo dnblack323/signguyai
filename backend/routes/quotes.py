@@ -8,6 +8,7 @@ This module contains all routes related to:
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+import os
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -31,6 +32,7 @@ from server import (
     get_current_active_user, has_permission
 )
 from services.email_service import EmailService
+from services.sms_service import SMSService
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
@@ -303,7 +305,37 @@ async def send_quote(
             )
             email_result = {"sent": result.get("success", False), "reason": result.get("error")}
 
-    return {"message": "Quote marked as sent", "email": email_result}
+    # SMS notification
+    sms_result = {"sent": False, "reason": "No customer phone"}
+    if customer_id:
+        if not customer:
+            customer = await db.customers.find_one(
+                {"id": customer_id, "tenant_id": current_user.tenant_id},
+                {"_id": 0, "phone": 1, "name": 1, "company_name": 1}
+            )
+        if customer and customer.get("phone"):
+            # Build share URL if a magic link exists
+            share_url = None
+            link_doc = await db.magic_links.find_one(
+                {"resource_id": quote_id, "resource_type": "quote"},
+                {"_id": 0, "token": 1}
+            )
+            if link_doc:
+                from_env = os.environ.get("REACT_APP_FRONTEND_URL", "")
+                share_url = f"{from_env}/portal/{link_doc['token']}" if from_env else None
+
+            sms_svc = SMSService()
+            customer_name = customer.get("name") or customer.get("company_name") or ""
+            sms_res = await sms_svc.send_quote_notification(
+                to=customer["phone"],
+                customer_name=customer_name,
+                quote_number=quote_number,
+                total=total,
+                share_url=share_url,
+            )
+            sms_result = {"sent": sms_res.get("success", False), "reason": sms_res.get("error")}
+
+    return {"message": "Quote marked as sent", "email": email_result, "sms": sms_result}
 
 
 @router.get("/{quote_id}/pdf")

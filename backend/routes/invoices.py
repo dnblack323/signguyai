@@ -235,21 +235,45 @@ async def send_invoice(
     invoice_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Mark invoice as sent"""
+    """Mark invoice as sent and notify customer via SMS"""
     invoice, collection = await _find_invoice_document(invoice_id, current_user.tenant_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    
+
+    now = datetime.now(timezone.utc).isoformat()
     await collection.update_one(
         {"id": invoice_id, "tenant_id": current_user.tenant_id},
         {"$set": {
             "status": InvoiceStatus.SENT.value,
-            "sent_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "sent_at": now,
+            "updated_at": now
         }}
     )
-    
-    return {"message": "Invoice marked as sent"}
+
+    # SMS notification
+    sms_result = {"sent": False, "reason": "No customer phone"}
+    if invoice.get("customer_id"):
+        customer = await db.customers.find_one(
+            {"id": invoice["customer_id"], "tenant_id": current_user.tenant_id},
+            {"_id": 0, "phone": 1, "name": 1, "company_name": 1}
+        )
+        if customer and customer.get("phone"):
+            from services.sms_service import SMSService
+            invoice_number = invoice.get("invoice_number") or invoice_id[:8].upper()
+            customer_name = customer.get("name") or customer.get("company_name") or ""
+            total = invoice.get("total", 0)
+            due_date = invoice.get("due_date")
+            sms_svc = SMSService()
+            sms_res = await sms_svc.send_invoice_notification(
+                to=customer["phone"],
+                customer_name=customer_name,
+                invoice_number=invoice_number,
+                total=total,
+                due_date=due_date,
+            )
+            sms_result = {"sent": sms_res.get("success", False), "reason": sms_res.get("error")}
+
+    return {"message": "Invoice marked as sent", "sms": sms_result}
 
 
 @router.post("/{invoice_id}/send-to-portal")
