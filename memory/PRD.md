@@ -11,10 +11,15 @@ Full-stack business management app for sign/graphics shops: customer management,
 - **AI Business Assistant** — Phase 5 (saved commands, routines, modes, bulk action previews).
 - **Stripe Connect (platform-owned) + Stripe Connect (tenant onboarding)** — platform billing + tenant payouts.
 
-## Launch Readiness Checklist Status (as of 2026-06-09)
-- Checklists: `/app/memory/LAUNCH_CAT1_CORE_WORKFLOW.md`, `LAUNCH_CAT2_PRODUCTION.md`, `LAUNCH_CAT3_PRICING.md`, `LAUNCH_CAT4_BILLING.md`
+## Launch Readiness Checklist Status (as of 2026-06-10)
+- Checklists CAT1–4: `/app/memory/LAUNCH_CAT1_CORE_WORKFLOW.md`, `LAUNCH_CAT2_PRODUCTION.md`, `LAUNCH_CAT3_PRICING.md`, `LAUNCH_CAT4_BILLING.md`
+- Checklists CAT5–8 (NEW): `/app/memory/LAUNCH_CAT5_DOCUMENTS_FORMS.md`, `LAUNCH_CAT6_WEBSTORES_ECOMMERCE.md`, `LAUNCH_CAT7_WORKFORCE_TEAM.md`, `LAUNCH_CAT8_PORTALS_COMMS.md`
 - Last major batch of P0 fixes applied: 2026-06-09
-- Progress: CAT1 104/507 (21%), CAT2 73/366 (20%), CAT3 116/524 (22%), CAT4 106/547 (19%)
+- CAT5: Documents, Forms, And Business Records (9 sections, 523 lines)
+- CAT6: Webstores And Ecommerce (10 sections, 665 lines)
+- CAT7: Workforce, Team, And Employee Operation (10 sections, 539 lines)
+- CAT8: Portals, Communication, And Engagement (16 sections, 587 lines)
+- Progress CAT1-4: CAT1 104/507 (21%), CAT2 73/366 (20%), CAT3 116/524 (22%), CAT4 106/547 (19%)
 
 ### Fixed in Session 2026-06-09 (Phase B)
 1. Financials RBAC: ensure_financials_manage() + ensure_reporting_access() on all 6 /api/financials/* endpoints

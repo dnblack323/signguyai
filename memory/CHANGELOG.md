@@ -550,3 +550,17 @@
 - CAT2: Production task tenant scoping ✅
 - CAT3: Promo atomic redemption ✅, promotional double-sided N/A ✅
 - CAT4: Financials RBAC ✅, Stripe Connect admin guard ✅, webhook error status ✅, expense receipt hidden ✅
+
+## 2026-06-10 — Launch Readiness Checklist Files Created (CAT5–CAT8)
+### Documentation
+- LAUNCH_CAT5_DOCUMENTS_FORMS.md created (523 lines) — Category 5: Documents, Forms, And Business Records
+  - 9 sections: Document Library, Upload/Download, Templates, AI-Created Docs, Questionnaires, Public Questionnaires, Customer Forms, Document Signatures, Record Retention
+- LAUNCH_CAT6_WEBSTORES_ECOMMERCE.md created (665 lines) — Category 6: Webstores And Ecommerce
+  - 10 sections: Management, Setup Wizard, Public Storefront, Products, Orders, Owner Onboarding, Owner Portal, Questionnaires, Analytics, Payouts
+  - Includes: Exact Recommended Work Order, Launch Decision Gates, Category-Wide Audits
+- LAUNCH_CAT7_WORKFORCE_TEAM.md created (539 lines) — Category 7: Workforce, Team, And Employee Operation
+  - 10 sections: Team Overview, User Management, Roles/Permissions, Payroll, Timesheets, Time Clock, Schedule, Employee Portal, Pay View, Tasks
+- LAUNCH_CAT8_PORTALS_COMMS.md created (587 lines) — Category 8: Portals, Communication, And Engagement
+  - 16 sections: Customer/Employee/Owner/Admin Portals, Messages, Proofs, Quotes, Invoices, Documents, Appointments, Community, Facebook Leads, Meta, Email Templates, Daily Digest, Support
+  - Includes: Saved Test Evidence, Exact Work Order, Category 8 Launch Gates
+- All files extracted verbatim from launch doc.pdf and match format of existing CAT1-4 files
