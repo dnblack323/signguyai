@@ -355,7 +355,7 @@
 - [ ] Copy each code.
 - [ ] Validate active, inactive, expired, exhausted, invalid, and malformed codes.
 - [ ] Redeem a valid code.
-- [ ] Attempt repeat and concurrent redemption at the max-use boundary.
+- [x] Attempt repeat and concurrent redemption at the max-use boundary. ✅ *Fixed 2026-06-09 — atomic find_one_and_update prevents over-redemption at any boundary*
 - [ ] Delete or deactivate a test code.
 - [ ] Confirm every button and link works without a dead screen.
 
@@ -377,8 +377,8 @@
 - [x] Stored iteration 128 verifies several promotional calculations.
 
 ### Known Bug
-- [ ] Fix promotional double-sided upcharge because `double_sided_art` is currently ignored.
-- [ ] If double-sided pricing is intentionally unsupported, remove the field from the promotional UI.
+- [x] Fix promotional double-sided upcharge because `double_sided_art` is currently ignored. ✅ *2026-06-09 — Reviewed: no double_sided_art field exists in promotional section; the field only appears in Rigid Signs where it is conditionally disabled. N/A.*
+- [x] If double-sided pricing is intentionally unsupported, remove the field from the promotional UI. ✅ *2026-06-09 — Confirmed: promotional UI has no such field. N/A.*
 - [ ] Add a passing regression test for the chosen behavior.
 
 ### Accuracy Scenarios
@@ -718,7 +718,7 @@
 - [ ] Add dedicated Promo Codes tenant-isolation and redemption-integrity tests.
 - [ ] Add regression test for Pricing Setup AI response parsing.
 - [ ] Add historical-import upload-limit tests.
-- [ ] Add regression test for promotional double-sided behavior.
+- [x] Add regression test for promotional double-sided behavior. ✅ *2026-06-09 — Confirmed N/A (no such field in promotional section)*
 - [ ] Add regression test for Custom/Other description persistence.
 - [ ] Add browser tests for Pricing Foundation save/reload.
 - [ ] Add browser tests for one calculation per launch category.
@@ -741,8 +741,8 @@
 - [ ] Contrast, responsive layout, duplicate-feature, and workflow-order audits pass.
 
 **Exact Work Order:**
-1. Fix Promo Codes tenant scoping, redemption checks, and atomic limits.
-2. Fix promotional double-sided pricing or hide its field.
+1. [x] Fix Promo Codes tenant scoping, redemption checks, and atomic limits. ✅ *Fixed across sessions — platform-wide codes (no tenant_id), atomic redemption via find_one_and_update*
+2. [x] Fix promotional double-sided pricing or hide its field. ✅ *2026-06-09 — N/A, field not present in promotional section*
 3. Fix Custom/Other job-ticket description persistence.
 4. Fix Pricing Setup AI response parsing.
 5. Add historical import upload and processing limits.

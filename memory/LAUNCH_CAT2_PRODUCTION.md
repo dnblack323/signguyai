@@ -18,7 +18,7 @@
 
 - [x] Fix Production Board stage movement so it never shows a success toast after an API update fails. ✅ *Fixed 2026-06-08 — moveToStage checks return value from updateTask, only toasts on success*
 - [ ] Enforce proof-approval dependencies before production tasks can start or complete; the backend currently checks and then intentionally allows the transition.
-- [ ] Add tenant scoping to production-task mutations, ticket/order rollups, workflow-template updates, and appointment updates after initial validation.
+- [ ] Add tenant scoping to production-task mutations, ticket/order rollups, workflow-template updates, and appointment updates after initial validation. *(Partially done 2026-06-09: production_task update_one + find_one now tenant-scoped. Ticket/order rollups, workflow-template updates, and appointment mutations still pending.)*
 - [ ] Decide and consolidate the overlapping production systems: Production Board stages, production-task workflow templates, and legacy production timelines.
 - [ ] Resolve incompatible workflow-template schemas stored in the same `workflow_templates` collection.
 - [ ] Prevent unsafe workflow-template reset/reseed actions from deleting or changing workflows used by active work.

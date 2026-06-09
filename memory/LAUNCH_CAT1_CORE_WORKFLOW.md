@@ -449,17 +449,17 @@
 ### PO — Confirmed Incomplete And Misleading Surfaces
 - [ ] Do not fall back to placeholder UI after network/auth load failure.
 - [ ] Show a blocking error state and Retry action when order, customer, or wrap item cannot load.
-- [ ] Hide or complete Design Questionnaire delivery; it currently only marks sent and says delivery will come later.
-- [ ] Hide or complete real AI mockup generation.
+- [x] Hide or complete Design Questionnaire delivery; it currently only marks sent and says delivery will come later. ✅ *Fixed 2026-06-09 — questionnaire button disabled with "Phase 2" label*
+- [x] Hide or complete real AI mockup generation. ✅ *Fixed 2026-06-09 — removed from WrapCommandHeader HEADER_ACTIONS*
 - [ ] Hide or complete AI Assistant actions.
-- [ ] Hide or complete Contract Download.
-- [ ] Hide or complete payment-link generation.
+- [x] Hide or complete Contract Download. ✅ *Fixed 2026-06-09 — removed from WrapCommandHeader HEADER_ACTIONS*
+- [x] Hide or complete payment-link generation. ✅ *Fixed 2026-06-09 — removed from WrapCommandHeader HEADER_ACTIONS*
 - [ ] Connect or remove vehicle photo-upload placeholder.
 - [ ] Connect or remove aftercare PDF placeholder; backend PDF capability should be wired consistently if available.
 - [ ] Replace photo-placeholder text fields with actual file/photo relationships where required.
 - [ ] Remove "Last updated just now" placeholder.
-- [ ] Remove or hide any generic phase-one placeholder tables and actions.
-- [ ] Verify every visible command-header action has a real implementation.
+- [x] Remove or hide any generic phase-one placeholder tables and actions. ✅ *Fixed 2026-06-09 — all 8 HEADER_ACTIONS placeholder buttons removed*
+- [x] Verify every visible command-header action has a real implementation. ✅ *Fixed 2026-06-09 — placeholder buttons removed; only real navigation links remain*
 - [ ] Confirm the current source no longer reproduces the historical portal revision-request 500 failure.
 
 ### Wrap Workflow Integrity

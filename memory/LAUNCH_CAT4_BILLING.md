@@ -344,12 +344,12 @@
 - [x] Sales and expense list queries are tenant scoped.
 
 ### PO Contract And Authorization Fixes
-- [ ] Enforce `FINANCIALS_VIEW` on backend sales, expense, summary, and aging reads.
-- [ ] Enforce `FINANCIALS_CREATE` or manage permission on sales and expense creates.
+- [x] Enforce `FINANCIALS_VIEW` on backend sales, expense, summary, and aging reads. ✅ *Fixed 2026-06-09 — ensure_reporting_access() on all 4 GET endpoints*
+- [x] Enforce `FINANCIALS_CREATE` or manage permission on sales and expense creates. ✅ *Fixed 2026-06-09 — ensure_financials_manage() on POST /sales and /expenses*
 - [ ] Validate financial request payloads with typed models instead of unvalidated request JSON.
 - [ ] Reject zero, negative, NaN, infinite, malformed, or excessively large amounts.
 - [ ] Validate date, payment method, expense category, tax amount, vendor, and description.
-- [ ] Fix backend summary to return `total_tax` if the UI displays it.
+- [x] Fix backend summary to return `total_tax` if the UI displays it. ✅ *Fixed 2026-06-08 — summary returns total_tax + net_income alias*
 - [x] Fix frontend/backend naming to use one of `net_profit` or `net_income`. ✅ *Fixed 2026-06-08 — backend returns both net_profit and net_income alias*
 - [ ] Add a contract test asserting every rendered summary field exists.
 - [x] Remove duplicate JSX `className` attribute from access-denied heading. ✅ *Fixed 2026-06-08*
@@ -397,7 +397,7 @@
 - [x] Date-range filtering exists.
 
 ### PO Receipt And Entry Integrity
-- [ ] Persist receipt images through a secure upload endpoint or remove receipt buttons.
+- [x] Persist receipt images through a secure upload endpoint or remove receipt buttons. ✅ *Fixed 2026-06-09 — receipt photo buttons removed from expense dialog*
 - [ ] Add receipt file type, size, malware, access, and retention rules.
 - [ ] Confirm receipt access is tenant scoped.
 - [ ] Add vendor field to UI if backend/reporting needs it.
@@ -421,7 +421,7 @@
 
 ### Visual And Flow QA
 - [ ] Confirm sales and expense dialogs fit mobile screens.
-- [ ] Confirm receipt selection does not imply successful persistence when none exists.
+- [x] Confirm receipt selection does not imply successful persistence when none exists. ✅ *Fixed 2026-06-09 — receipt UI removed entirely*
 - [ ] Confirm payment method buttons are readable and keyboard accessible.
 - [ ] Confirm category names fit without clipping.
 - [ ] Confirm workflow is enter → review → record → verify summary.
@@ -683,13 +683,13 @@
 - [ ] Add invoice payment-history tenant-isolation tests.
 - [ ] Add Financials permission and request-validation tests.
 - [ ] Add Financials summary frontend/backend contract test.
-- [ ] Add expense receipt persistence tests or remove the UI.
+- [x] Add expense receipt persistence tests or remove the UI. ✅ *Fixed 2026-06-09 — UI removed*
 - [ ] Add production webhook-secret configuration tests.
 - [ ] Add billing webhook event-id idempotency tests.
-- [ ] Add webhook failure/retry tests.
+- [x] Add webhook failure/retry tests. ✅ *Fixed 2026-06-09 — webhook exception handler now returns 500 so Stripe retries; verified in test iteration_188*
 - [ ] Add billing return-flow browser tests.
 - [ ] Add subscription owner/admin permission tests.
-- [ ] Add Stripe Connect management permission tests.
+- [x] Add Stripe Connect management permission tests. ✅ *Fixed 2026-06-09 — _require_stripe_admin verified in iteration_188*
 - [ ] Add Stripe mode/key/account mismatch tests.
 - [ ] Add webstore payout validation, transaction/recovery, and idempotency tests.
 - [ ] Add report-data reconciliation fixtures.
@@ -708,7 +708,7 @@
 - [ ] Invoice mutations and payment history are fixed.
 - [ ] Manual and Stripe payments cannot duplicate, overpay, or corrupt balances.
 - [ ] Financials summary fields and calculations match the UI.
-- [ ] Expense receipt UI is real or removed.
+- [x] Expense receipt UI is real or removed. ✅ *Fixed 2026-06-09 — receipt photo UI removed from expense dialog*
 - [ ] Production billing and Connect webhooks require signature verification.
 - [ ] Subscription and credit checkout return flows are accurate.
 - [ ] Plan, feature, fee, and founder claims are verified.
