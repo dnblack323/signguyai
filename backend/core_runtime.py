@@ -148,8 +148,8 @@ async def get_current_active_user(current_user: UserInDB = Depends(get_current_u
 
 
 def has_permission(user: UserInDB, permission: Permission) -> bool:
-    # Platform admins and owners have all permissions
-    if user.role.value in ('owner', 'platform_admin'):
+    # Platform admins, creators, and owners have all permissions
+    if user.role.value in ('owner', 'platform_admin', 'platform_creator'):
         return True
     user_permissions = ROLE_PERMISSIONS.get(user.role, [])
     return permission in user_permissions
