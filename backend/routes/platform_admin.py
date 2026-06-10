@@ -494,6 +494,10 @@ async def delete_tenant(
         "questionnaires", "questionnaire_responses", "onboarding_checklist",
         "wrap_tickets", "wrap_files", "notifications", "ai_audit_log",
         "workflow_templates", "pricing_configuration", "analytics_events",
+        "inventory_items", "inventory_locations", "inventory_lots",
+        "inventory_transactions", "inventory_cycle_counts", "material_requirements",
+        "inventory_shortages", "inventory_vendors", "purchase_orders",
+        "pricing_cost_suggestions",
     ]
     for col in collections:
         try:

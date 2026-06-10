@@ -115,6 +115,19 @@ async def compile_digest_data(tenant_id: str) -> dict:
     unread_count = await db.conversations.count_documents(
         {"tenant_id": tenant_id, "shop_unread_count": {"$gt": 0}}
     )
+    low_stock_count = 0
+    inventory_items = await db.inventory_items.find(
+        {"tenant_id": tenant_id, "is_active": {"$ne": False}, "reorder_point": {"$gt": 0}},
+        {"_id": 0, "id": 1, "reorder_point": 1},
+    ).to_list(10000)
+    if inventory_items:
+        from services.inventory_service import item_balances
+        balances = await item_balances(db, tenant_id, [item["id"] for item in inventory_items])
+        low_stock_count = sum(
+            1 for item in inventory_items
+            if balances.get(item["id"], {}).get("available", 0) <= float(item.get("reorder_point", 0))
+        )
+    inventory_shortages = await db.inventory_shortages.count_documents({"tenant_id": tenant_id, "status": "open"})
 
     # Get tenant info
     tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0, "company_name": 1})
@@ -135,6 +148,8 @@ async def compile_digest_data(tenant_id: str) -> dict:
         "pending_approvals": pending_approvals,
         "yesterday_revenue": yesterday_revenue,
         "unread_messages": unread_count,
+        "low_stock_count": low_stock_count,
+        "inventory_shortages": inventory_shortages,
     }
 
 

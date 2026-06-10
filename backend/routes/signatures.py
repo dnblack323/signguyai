@@ -17,6 +17,7 @@ from server import db, get_current_active_user, logger
 from models import UserInDB
 from services.object_storage import get_object, put_object
 from services.email_service import email_service
+from services.inventory_service import release_order, reserve_order
 
 router = APIRouter(prefix="/signatures", tags=["Signatures"])
 
@@ -258,6 +259,9 @@ async def _apply_signed_status(signature: dict):
 
     if parent_type == "order":
         await db.orders.update_one({"id": parent_id}, {"$set": {"approval_status": "approved", "updated_at": now}})
+        order = await db.orders.find_one({"id": parent_id}, {"_id": 0, "tenant_id": 1})
+        if order and order.get("tenant_id"):
+            await reserve_order(db, order["tenant_id"], parent_id, {"id": "system", "name": "Signature approval"})
     elif parent_type == "proof":
         await db.artwork_proofs.update_one({"id": parent_id}, {"$set": {"status": "approved", "approved_at": now}})
     elif parent_type == "quote":
@@ -275,6 +279,9 @@ async def _apply_declined_status(signature: dict, notes: Optional[str]):
 
     if parent_type == "order":
         await db.orders.update_one({"id": parent_id}, {"$set": {"approval_status": "rejected", "updated_at": now}})
+        order = await db.orders.find_one({"id": parent_id}, {"_id": 0, "tenant_id": 1})
+        if order and order.get("tenant_id"):
+            await release_order(db, order["tenant_id"], parent_id, {"id": "system", "name": "Signature decision"}, "Order approval rejected")
     elif parent_type == "proof":
         await db.artwork_proofs.update_one({"id": parent_id}, {"$set": {"status": "revision_requested", "customer_comment": notes, "updated_at": now}})
     elif parent_type == "quote":
