@@ -725,3 +725,18 @@ Addressed all 4 missing endpoints and 1 security bug discovered in iteration_132
 
 ## Test Credentials
 See `/app/memory/test_credentials.md`.
+
+
+### 2026-06-10 — Inventory Feature Merged from GitHub (CodexInventory branch)
+- Synced `CodexInventory` branch (merged to GitHub main) into Emergent preview manually
+- New backend: `models/inventory.py`, `routes/inventory.py` (990 lines), `services/inventory_service.py`, `migrations/`
+- New frontend: `pages/Inventory.js`, `pages/Purchasing.js`, `components/inventory/JobMaterialsPanel.js`
+- Modified: `models/__init__.py`, `models/auth.py` (6 new permissions), `routes/backup.py` (10 inventory collections), `routes/digest.py` (low_stock_count + inventory_shortages), `server.py` (inventory_router)
+- Modified frontend: `App.js` (routes), `context/AuthContext.js` (permission enums), `ribbon/PrimaryNav.js` (Inventory + Purchasing nav items), `pages/JobTicketDetail.js` (Materials tab), `pages/ProductionBoard.js` (Materials button + updateTask return value)
+- All inventory API endpoints confirmed live: items, vendors, purchase-orders
+
+### 2026-06-10 — Inventory Seed Data + platform_creator Permission Fix
+- Seeded 21 real sign-shop inventory items across 5 categories: vinyl (5), laminate (2), substrate (7), application_tape (2), hardware (5)
+- Each item includes opening lot with on-hand quantity, unit cost, and dimensions
+- Fixed `has_permission()` in `core_runtime.py` — `platform_creator` role now correctly bypasses permission checks (same as owner/platform_admin)
+- Seed script saved at `/app/backend/seed_inventory.py` for future re-seeding

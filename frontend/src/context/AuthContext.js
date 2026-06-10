@@ -80,6 +80,7 @@ export const Permission = {
   SETTINGS_VIEW: 'settings:view',
   SETTINGS_EDIT: 'settings:edit',
 
+  // Inventory and purchasing permissions
   INVENTORY_VIEW: 'inventory:view',
   INVENTORY_PULL: 'inventory:pull',
   INVENTORY_ADJUST: 'inventory:adjust',

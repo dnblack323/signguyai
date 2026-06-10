@@ -232,7 +232,7 @@ class Permission(str, Enum):
     PURCHASING_MANAGE = "purchasing:manage"
     PURCHASING_APPROVE = "purchasing:approve"
     VENDORS_MANAGE = "vendors:manage"
-    
+
     # Platform Admin permissions
     PLATFORM_ADMIN_ACCESS = "platform_admin:access"
     PLATFORM_ADMIN_IMPERSONATE = "platform_admin:impersonate"
