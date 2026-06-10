@@ -8,6 +8,7 @@ This module contains all routes related to:
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+import os
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -30,6 +31,8 @@ from server import (
     db, logger,
     get_current_active_user, has_permission
 )
+from services.email_service import EmailService
+from services.sms_service import SMSService
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
@@ -143,7 +146,7 @@ async def update_quote(
         update_data["total"] = total
     
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await collection.update_one({"id": quote_id}, {"$set": update_data})
+    await collection.update_one({"id": quote_id, "tenant_id": current_user.tenant_id}, {"$set": update_data})
     updated_quote, _collection = await _find_quote_document(quote_id, current_user.tenant_id)
     return updated_quote
 
@@ -160,7 +163,7 @@ async def delete_quote(
     if quote.get("job_id"):
         raise HTTPException(status_code=400, detail="Cannot delete quote that has been converted to job")
     
-    await collection.delete_one({"id": quote_id})
+    await collection.delete_one({"id": quote_id, "tenant_id": current_user.tenant_id})
     return {"message": "Quote deleted"}
 
 
@@ -231,21 +234,108 @@ async def send_quote(
     quote_id: str,
     current_user: UserInDB = Depends(get_current_active_user)
 ):
-    """Mark quote as sent"""
+    """Mark quote as sent and email the customer"""
     quote, collection = await _find_quote_document(quote_id, current_user.tenant_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
     
+    now = datetime.now(timezone.utc).isoformat()
     await collection.update_one(
         {"id": quote_id},
         {"$set": {
             "status": QuoteStatus.SENT.value,
-            "sent_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "sent_at": now,
+            "updated_at": now
         }}
     )
-    
-    return {"message": "Quote marked as sent"}
+
+    # Attempt to email the customer
+    email_result = {"sent": False, "reason": "No customer email"}
+    customer_id = quote.get("customer_id")
+    if customer_id:
+        customer = await db.customers.find_one(
+            {"id": customer_id, "tenant_id": current_user.tenant_id},
+            {"_id": 0, "email": 1, "name": 1, "company_name": 1}
+        )
+        if customer and customer.get("email"):
+            quote_number = quote.get("quote_number") or quote.get("id", "")[:8].upper()
+            total = quote.get("total", 0)
+            customer_name = customer.get("name") or customer.get("company_name") or "Valued Customer"
+            line_items_html = "".join(
+                f"<tr><td style='padding:6px 12px;border-bottom:1px solid #eee'>{item.get('description','')}</td>"
+                f"<td style='padding:6px 12px;border-bottom:1px solid #eee;text-align:right'>{item.get('quantity',1)}</td>"
+                f"<td style='padding:6px 12px;border-bottom:1px solid #eee;text-align:right'>${item.get('unit_price',0):.2f}</td>"
+                f"<td style='padding:6px 12px;border-bottom:1px solid #eee;text-align:right'>${item.get('total',0):.2f}</td></tr>"
+                for item in (quote.get("line_items") or [])
+            )
+            html_content = f"""
+<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#333">
+  <h2 style="color:#1a1a2e">Quote #{quote_number}</h2>
+  <p>Hi {customer_name},</p>
+  <p>Please find your quote details below. Feel free to reply with any questions.</p>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0">
+    <thead>
+      <tr style="background:#f5f5f5">
+        <th style="padding:8px 12px;text-align:left">Description</th>
+        <th style="padding:8px 12px;text-align:right">Qty</th>
+        <th style="padding:8px 12px;text-align:right">Unit Price</th>
+        <th style="padding:8px 12px;text-align:right">Total</th>
+      </tr>
+    </thead>
+    <tbody>{line_items_html}</tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" style="padding:10px 12px;font-weight:bold;text-align:right">Total</td>
+        <td style="padding:10px 12px;font-weight:bold;text-align:right">${total:.2f}</td>
+      </tr>
+    </tfoot>
+  </table>
+  {f'<p style="color:#555"><em>Notes: {quote.get("notes")}</em></p>' if quote.get("notes") else ""}
+  <p style="margin-top:24px;color:#888;font-size:12px">
+    This quote is valid for 30 days. Thank you for your business!
+  </p>
+</div>
+"""
+            email_svc = EmailService()
+            result = await email_svc.send_email(
+                to_email=customer["email"],
+                subject=f"Your Quote #{quote_number} is Ready",
+                html_content=html_content,
+                tenant_id=current_user.tenant_id,
+            )
+            email_result = {"sent": result.get("success", False), "reason": result.get("error")}
+
+    # SMS notification
+    sms_result = {"sent": False, "reason": "No customer phone"}
+    if customer_id:
+        if not customer:
+            customer = await db.customers.find_one(
+                {"id": customer_id, "tenant_id": current_user.tenant_id},
+                {"_id": 0, "phone": 1, "name": 1, "company_name": 1}
+            )
+        if customer and customer.get("phone"):
+            # Build share URL if a magic link exists
+            share_url = None
+            link_doc = await db.magic_links.find_one(
+                {"resource_id": quote_id, "resource_type": "quote"},
+                {"_id": 0, "token": 1}
+            )
+            if link_doc:
+                from_env = os.environ.get("REACT_APP_FRONTEND_URL", "")
+                share_url = f"{from_env}/portal/{link_doc['token']}" if from_env else None
+
+            sms_svc = SMSService()
+            customer_name = customer.get("name") or customer.get("company_name") or ""
+            sms_res = await sms_svc.send_quote_notification(
+                to=customer["phone"],
+                customer_name=customer_name,
+                quote_number=quote_number,
+                total=total,
+                share_url=share_url,
+            )
+            sms_result = {"sent": sms_res.get("success", False), "reason": sms_res.get("error")}
+
+    return {"message": "Quote marked as sent", "email": email_result, "sms": sms_result}
 
 
 @router.get("/{quote_id}/pdf")

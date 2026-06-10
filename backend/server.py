@@ -4532,6 +4532,7 @@ async def delete_tenant_logo(
 from routes.auth import router as auth_router, users_router, admin_router
 from routes.customers import router as customers_router
 from routes.quotes import router as quotes_router
+from routes.magic_links import router as magic_links_router, preview_router as magic_link_preview_router
 from routes.jobs import router as jobs_router, job_items_router, job_notes_router
 from routes.invoices import router as invoices_router
 from routes.employees import employees_router, timeclock_router, payroll_router
@@ -4592,6 +4593,8 @@ api_router.include_router(users_router)
 api_router.include_router(admin_router)
 api_router.include_router(customers_router)
 api_router.include_router(quotes_router)
+api_router.include_router(magic_links_router)
+api_router.include_router(magic_link_preview_router)
 api_router.include_router(jobs_router)
 api_router.include_router(job_items_router)
 api_router.include_router(job_notes_router)

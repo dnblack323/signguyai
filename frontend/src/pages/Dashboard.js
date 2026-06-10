@@ -207,7 +207,7 @@ const LoadingSpinner = () => (
 );
 
 // ─────────────────────────────────────────────
-// Row 1 — Severity Strip (summary-v2)
+// Row 1 — Combined KPI Strip (severity metrics + business overview)
 // ─────────────────────────────────────────────
 const STRIP_METRICS = [
   { key: 'due_today',         label: 'Due Today',       icon: Clock,         href: '/orders'                       },
@@ -228,11 +228,18 @@ const KPI_ACCENT = {
   unpaid_invoices:   { normal: '#9CA3AF', alert: '#DC2626', label: 'Unpaid Invoices' },
 };
 
-const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
+const SeverityStripWidget = ({ data, loading, error, onRetry, dashboardStats }) => {
+  // Business overview cards merged into this strip (no Pending Invoices, Today's Customers instead of Total)
+  const bizCards = [
+    { title: "Today's Customers", value: dashboardStats?.today_customers ?? 0, icon: UserCheck, href: '/customers', accent: '#2F8BFB' },
+    { title: 'Active Orders',     value: dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0, icon: Briefcase, href: '/orders', accent: '#10B981' },
+    { title: "Today's Revenue",   value: formatCurrency(dashboardStats?.today_revenue || 0), icon: TrendingUp, href: '/financials', accent: '#8B5CF6' },
+  ];
+
   if (loading) return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-      {STRIP_METRICS.map(m => (
-        <div key={m.key} className="h-24 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
+      {[...Array(8)].map((_, i) => (
+        <div key={i} className="h-24 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
       ))}
     </div>
   );
@@ -244,16 +251,45 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
   );
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3" data-testid="severity-strip">
-      {STRIP_METRICS.map(({ key, label, icon: Icon, href }) => {
-        const metric  = data?.metrics?.[key] || { count: 0, severity: 'neutral' };
-        const kpi     = KPI_ACCENT[key] || { normal: '#6B7280', alert: '#6B7280', label: key };
-        const hasData = metric.count > 0;
-        const isAlert = hasData && (metric.severity === 'red' || metric.severity === 'amber' || key === 'overdue');
-        const accent  = isAlert ? kpi.alert : kpi.normal;
+    <div>
+      <p className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text)', borderLeft: '3px solid var(--accent)', paddingLeft: '10px' }}>
+        Shop Overview
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3" data-testid="severity-strip">
+        {STRIP_METRICS.map(({ key, label, icon: Icon, href }) => {
+          const metric  = data?.metrics?.[key] || { count: 0, severity: 'neutral' };
+          const kpi     = KPI_ACCENT[key] || { normal: '#6B7280', alert: '#6B7280', label: key };
+          const hasData = metric.count > 0;
+          const isAlert = hasData && (metric.severity === 'red' || metric.severity === 'amber' || key === 'overdue');
+          const accent  = isAlert ? kpi.alert : kpi.normal;
 
-        return (
-          <Link key={key} to={href} data-testid={`severity-${key}`}>
+          return (
+            <Link key={key} to={href} data-testid={`severity-${key}`}>
+              <div
+                className="rounded-xl px-4 py-3 flex flex-col gap-1.5 transition-all hover:shadow-md hover:-translate-y-px"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  border: '1px solid var(--border-light)',
+                  borderTop: `3px solid ${accent}`,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <Icon className="h-3.5 w-3.5" style={{ color: accent }} />
+                  {hasData && isAlert && (
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+                  )}
+                </div>
+                <span className="text-2xl font-bold font-heading leading-none" style={{ color: hasData && isAlert ? accent : 'var(--text)' }}>
+                  {metric.count}
+                </span>
+                <p className="text-xs font-medium leading-tight" style={{ color: 'var(--text-muted)' }}>{kpi.label}</p>
+              </div>
+            </Link>
+          );
+        })}
+        {/* Business Overview cards merged in */}
+        {bizCards.map(({ title, value, icon: Icon, href, accent }) => (
+          <Link key={title} to={href} data-testid={`biz-card-${title.replace(/\s+/g, '-').toLowerCase()}`}>
             <div
               className="rounded-xl px-4 py-3 flex flex-col gap-1.5 transition-all hover:shadow-md hover:-translate-y-px"
               style={{
@@ -264,18 +300,15 @@ const SeverityStripWidget = ({ data, loading, error, onRetry }) => {
             >
               <div className="flex items-center justify-between">
                 <Icon className="h-3.5 w-3.5" style={{ color: accent }} />
-                {hasData && isAlert && (
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
-                )}
               </div>
-              <span className="text-2xl font-bold font-heading leading-none" style={{ color: hasData && isAlert ? accent : 'var(--text)' }}>
-                {metric.count}
+              <span className="text-2xl font-bold font-heading leading-none" style={{ color: 'var(--text)' }}>
+                {value}
               </span>
-              <p className="text-xs font-medium leading-tight" style={{ color: 'var(--text-muted)' }}>{kpi.label}</p>
+              <p className="text-xs font-medium leading-tight" style={{ color: 'var(--text-muted)' }}>{title}</p>
             </div>
           </Link>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 };
@@ -427,7 +460,7 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
         <>
           {scheduled.length > 0 && (
             <div className="mb-2">
-              <p className="text-xs font-medium uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Scheduled Today</p>
+              <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text)' }}>Scheduled Today</p>
               <div className="space-y-1.5">
                 {scheduled.map(emp => (
                   <div key={emp.employee_id} className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`team-status-${emp.employee_id}`}>
@@ -452,7 +485,7 @@ const TeamStatusWidget = ({ teamStatus, lastUpdatedAt, loading, error, onRetry }
           )}
           {unscheduledClockedIn.length > 0 && (
             <div className="mb-2">
-              <p className="text-xs font-medium uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Clocked In (Unscheduled)</p>
+              <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text)' }}>Clocked In (Unscheduled)</p>
               <div className="space-y-1.5">
                 {unscheduledClockedIn.map(emp => (
                   <div key={emp.employee_id} className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`team-status-unscheduled-${emp.employee_id}`}>
@@ -520,7 +553,7 @@ const TodayScheduleCard = ({ dueItems = [], appointments = [], loading, error, o
         <div className="space-y-1.5">
           {dueItems.length > 0 && (
             <>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Due Today</p>
+              <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text)' }}>Due Today</p>
               {dueItems.slice(0, 3).map(item => (
                 <Link key={item.order_item_id} to={item.order_id ? `/orders/${item.order_id}` : '/orders'} data-testid={`schedule-item-${item.order_item_id}`}>
                   <div
@@ -542,7 +575,7 @@ const TodayScheduleCard = ({ dueItems = [], appointments = [], loading, error, o
           )}
           {appointments.length > 0 && (
             <>
-              {dueItems.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider pt-1.5 mb-1" style={{ color: 'var(--text-muted)' }}>Appointments</p>}
+              {dueItems.length > 0 && <p className="text-xs font-bold uppercase tracking-wider pt-1.5 mb-1" style={{ color: 'var(--text)' }}>Appointments</p>}
               {appointments.slice(0, 3).map(appt => (
                 <div key={appt.appointment_id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-2)' }} data-testid={`appt-${appt.appointment_id}`}>
                   <div className="flex-1 min-w-0 mr-2">
@@ -738,7 +771,7 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* At Risk */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>At Risk</p>
+              <p className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text)' }}>At Risk</p>
               {atRisk.length === 0 ? (
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No items at risk right now.</p>
               ) : (
@@ -778,7 +811,7 @@ const ProductionSnapshotWidget = ({ data, loading, error, onRetry }) => {
             </div>
             {/* Bottlenecks */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>Bottlenecks</p>
+              <p className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text)' }}>Bottlenecks</p>
               {bottlenecks.length === 0 ? (
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No bottlenecks right now.</p>
               ) : (
@@ -968,7 +1001,7 @@ const SectionLabel = ({ icon: Icon, iconColor, label, badge, right }) => (
   <div className="flex items-center justify-between mb-2">
     <div className="flex items-center gap-2">
       <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
-      <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text)' }}>{label}</span>
       {badge}
     </div>
     {right}
@@ -1147,7 +1180,7 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
           <div className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Inbox className="h-3.5 w-3.5 text-violet-400" />
-              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Customer Actions</span>
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text)' }}>Customer Actions</span>
             </div>
             <PendingCustomerActionsWidget />
           </div>
@@ -1313,7 +1346,7 @@ const BillingSnapshotCard = ({ data, loading, error, onRetry }) => {
           {/* Top 2 items */}
           {topItems.length > 0 && (
             <div className="mt-1 pt-3 mx-2" style={{ borderTop: '1px solid var(--border-light)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>{topLabel}</p>
+              <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text)' }}>{topLabel}</p>
               <div className="space-y-0.5">
                 {topItems.map((rec, i) => (
                   <Link key={rec.invoice_id || i} to="/invoices">
@@ -1518,8 +1551,6 @@ export default function Dashboard() {
   const [productionSnapshot, setProductionSnapshot] = useState(null);
   const [customerAttention,  setCustomerAttention]  = useState(null);
   const [financialAttention, setFinancialAttention] = useState(null);
-  const [recentAIDocs,       setRecentAIDocs]       = useState([]);
-
   // Per-section loading/error states
   const [loadingSummary,    setLoadingSummary]    = useState(true);
   const [loadingCommand,    setLoadingCommand]    = useState(true);
@@ -1600,9 +1631,6 @@ export default function Dashboard() {
         fetchProductionSnapshot(),
         fetchCustomerAttention(),
         fetchFinancialAttention(),
-        axios.get(`${API}/dashboard/recent-ai-documents`, { headers: getHeaders() })
-          .then(res => setRecentAIDocs(res.data))
-          .catch(err => console.warn('[Dashboard] recent-ai-documents failed', err)),
       ]);
       setLoading(false);
       setGlobalUpdatedAt(new Date());
@@ -1657,8 +1685,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Row 1: KPI Strip — 5 compact cards ── */}
-      <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} />
+      {/* ── Row 1: Combined KPI Strip — 8 cards (5 severity + 3 business overview) ── */}
+      <SeverityStripWidget data={summaryV2} loading={loadingSummary} error={errorSummary} onRetry={fetchSummary} dashboardStats={dashboardStats} />
 
       {/* ── Row 2: Production Snapshot (2-col) + Shop Health (1-col) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1707,19 +1735,6 @@ export default function Dashboard() {
         </div>
         <div>
           <CollapsibleOnboarding />
-        </div>
-      </div>
-
-      {/* ── Row 5: Business Overview (compact 4-col stat row) ── */}
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', borderLeft: '2px solid var(--accent)', paddingLeft: '8px' }}>
-          Business Overview
-        </p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard title="Total Customers"  value={dashboardStats?.total_customers || 0}              icon={Users}      href="/customers"  accentColor="#2F8BFB" />
-          <StatCard title="Active Orders"    value={dashboardStats?.active_orders ?? dashboardStats?.active_jobs ?? 0} icon={Briefcase} href="/orders" accentColor="#10B981" />
-          <StatCard title="Pending Invoices" value={dashboardStats?.pending_invoices || 0}              icon={Receipt}    href="/invoices"   accentColor="#F59E0B" />
-          <StatCard title="Today's Revenue"  value={formatCurrency(dashboardStats?.today_revenue || 0)} icon={TrendingUp} href="/financials" accentColor="#8B5CF6" />
         </div>
       </div>
 

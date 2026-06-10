@@ -1352,7 +1352,7 @@ async def stripe_webhook(request: Request, db = Depends(get_db)):
         print(f"Webhook error: {e}")
         import traceback
         traceback.print_exc()
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
 
 
 def _map_stripe_status(stripe_status: str) -> str:
@@ -1805,10 +1805,23 @@ async def apply_promo_code(
         )
         result["message"] = f"${promo.get('discount_value', 0)} discount applied"
     
-    # Increment usage counter
-    await db.promo_codes.update_one(
-        {"code": code, "is_active": True},
-        {"$inc": {"times_used": 1}}
+    # Atomically increment usage counter — only if max_uses not exceeded
+    # This prevents race conditions where concurrent requests both pass the
+    # "times_used < max_uses" check before either increments the counter.
+    atomic_filter = {
+        "code": code,
+        "is_active": True,
+        "$or": [
+            {"max_uses": None},
+            {"max_uses": {"$exists": False}},
+            {"$expr": {"$lt": ["$times_used", "$max_uses"]}},
+        ],
+    }
+    inc_result = await db.promo_codes.find_one_and_update(
+        atomic_filter,
+        {"$inc": {"times_used": 1}},
     )
+    if inc_result is None:
+        raise HTTPException(status_code=400, detail="This promo code has reached its usage limit")
     
     return result

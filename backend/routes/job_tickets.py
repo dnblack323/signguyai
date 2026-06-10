@@ -1561,7 +1561,7 @@ async def update_job_ticket(ticket_id: str, data: JobTicketUpdate, current_user:
             if snapshot:
                 update_data.update(snapshot)
 
-    await db.job_tickets.update_one({"id": ticket_id}, {"$set": update_data})
+    await db.job_tickets.update_one({"id": ticket_id, "tenant_id": current_user.tenant_id}, {"$set": update_data})
 
     # Update rollups
     await update_order_progress(db, existing["order_id"])
@@ -1578,7 +1578,7 @@ async def delete_job_ticket(ticket_id: str, current_user: UserInDB = Depends(get
     if not existing:
         raise HTTPException(status_code=404, detail="Job ticket not found")
 
-    await db.job_tickets.delete_one({"id": ticket_id})
+    await db.job_tickets.delete_one({"id": ticket_id, "tenant_id": current_user.tenant_id})
     await db.production_tasks.delete_many({"job_ticket_id": ticket_id})
     await update_order_progress(db, existing["order_id"])
     return {"message": "Job ticket and tasks deleted"}

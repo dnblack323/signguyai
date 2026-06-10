@@ -103,7 +103,7 @@ export default function DesignTab({
           icon={ClipboardList}
           testId="design-questionnaire"
           action={
-            <Button size="sm" onClick={onSendQuestionnaire} disabled={busy} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="design-send-questionnaire-btn">
+            <Button size="sm" disabled className="bg-slate-200 text-slate-500 cursor-not-allowed" data-testid="design-send-questionnaire-btn">
               <Send className="h-3.5 w-3.5 mr-1" /> Send Questionnaire
             </Button>
           }
@@ -114,8 +114,8 @@ export default function DesignTab({
             {design.questionnaire_sent_at && <span className="text-[11px] text-slate-500">Sent: {new Date(design.questionnaire_sent_at).toLocaleString()}</span>}
             {design.questionnaire_completed_at && <span className="text-[11px] text-emerald-700">Completed: {new Date(design.questionnaire_completed_at).toLocaleString()}</span>}
           </div>
-          <p className="text-[11px] text-slate-500 mt-2">
-            Customer delivery of the questionnaire link will be connected in a later phase.
+          <p className="text-[11px] text-amber-600 mt-2 font-medium">
+            Questionnaire email delivery coming in Phase 2.
           </p>
         </WrapSectionCard>
 

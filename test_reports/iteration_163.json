@@ -67,7 +67,7 @@
     },
     "T14_production_board_navigation": {
       "status": "PASS",
-      "description": "Clicking quick-production-board navigates to https://ops-command-center-77.preview.emergentagent.com/production-board. Route exists and loads."
+      "description": "Clicking quick-production-board navigates to https://sms-invoices.preview.emergentagent.com/production-board. Route exists and loads."
     },
     "T15_open_calendar_navigation": {
       "status": "PASS",

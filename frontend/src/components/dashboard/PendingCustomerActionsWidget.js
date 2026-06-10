@@ -2,7 +2,7 @@
 // Read-only. Shows every wrap ticket waiting on a customer action and links to
 // the existing internal pages — no message templates, no AI dispatch.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Badge } from '../ui/badge';
@@ -23,20 +23,29 @@ const ACTION_BADGE = {
 };
 
 export default function PendingCustomerActionsWidget() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [state, dispatch] = useReducer(
+    (s, a) => {
+      switch (a.type) {
+        case 'LOADING': return { ...s, loading: true, error: false };
+        case 'LOADED':  return { items: a.items, loading: false, error: false };
+        case 'ERROR':   return { ...s, items: [], loading: false, error: true };
+        default:        return s;
+      }
+    },
+    { items: [], loading: true, error: false },
+  );
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(() => {
+    dispatch({ type: 'LOADING' });
     axios
       .get(`${API}/wrap/pending-customer-actions`, { headers: hdr() })
-      .then((res) => {
-        if (!cancelled) setItems(res.data?.items || []);
-      })
-      .catch(() => { if (!cancelled) setItems([]); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .then((res) => dispatch({ type: 'LOADED', items: res.data?.items || [] }))
+      .catch(() => dispatch({ type: 'ERROR' }));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const { items, loading, error } = state;
 
   return (
     <div
@@ -53,6 +62,13 @@ export default function PendingCustomerActionsWidget() {
         {loading ? (
           <div className="flex items-center justify-center py-6" style={{ color: 'var(--text-muted)' }} data-testid="pending-actions-loading">
             <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…
+          </div>
+        ) : error ? (
+          <div className="py-4 flex flex-col items-center gap-2" data-testid="pending-actions-error">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Couldn&apos;t load pending actions.</p>
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={load} data-testid="pending-actions-retry">
+              Retry
+            </Button>
           </div>
         ) : items.length === 0 ? (
           <p className="text-sm italic" style={{ color: 'var(--text-muted)' }} data-testid="pending-actions-empty">

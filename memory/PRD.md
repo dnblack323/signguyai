@@ -11,6 +11,32 @@ Full-stack business management app for sign/graphics shops: customer management,
 - **AI Business Assistant** — Phase 5 (saved commands, routines, modes, bulk action previews).
 - **Stripe Connect (platform-owned) + Stripe Connect (tenant onboarding)** — platform billing + tenant payouts.
 
+## Launch Readiness Checklist Status (as of 2026-06-10)
+- Checklists CAT1–4: `/app/memory/LAUNCH_CAT1_CORE_WORKFLOW.md`, `LAUNCH_CAT2_PRODUCTION.md`, `LAUNCH_CAT3_PRICING.md`, `LAUNCH_CAT4_BILLING.md`
+- Checklists CAT5–8 (NEW): `/app/memory/LAUNCH_CAT5_DOCUMENTS_FORMS.md`, `LAUNCH_CAT6_WEBSTORES_ECOMMERCE.md`, `LAUNCH_CAT7_WORKFORCE_TEAM.md`, `LAUNCH_CAT8_PORTALS_COMMS.md`
+- Last major batch of P0 fixes applied: 2026-06-09
+- CAT5: Documents, Forms, And Business Records (9 sections, 523 lines)
+- CAT6: Webstores And Ecommerce (10 sections, 665 lines)
+- CAT7: Workforce, Team, And Employee Operation (10 sections, 539 lines)
+- CAT8: Portals, Communication, And Engagement (16 sections, 587 lines)
+- Progress CAT1-4: CAT1 104/507 (21%), CAT2 73/366 (20%), CAT3 116/524 (22%), CAT4 106/547 (19%)
+
+### Fixed in Session 2026-06-09 (Phase B)
+1. Financials RBAC: ensure_financials_manage() + ensure_reporting_access() on all 6 /api/financials/* endpoints
+2. Stripe Connect: _require_stripe_admin() on create-account, refresh-link, disconnect, dashboard-link
+3. Billing webhook: HTTPException(500) on failure — Stripe will now retry
+4. Promo code atomic redemption: find_one_and_update with $expr prevents max_uses race condition
+5. Production tasks: tenant_id added to update_one + final find_one
+6. Expense receipt UI: Hidden from expense dialog until object storage is integrated
+7. Wrap CC: Placeholder header action buttons removed (Phase 2)
+8. Wrap CC Design tab: Questionnaire button disabled with Phase 2 label
+
+### Remaining Launch Blockers (P0/P1)
+- SendGrid email blocked (user needs to provide SG.* API key from app.sendgrid.com)
+- Stripe webhook signature required in production (currently allows unsigned fallback)
+- Live clickthrough E2E scenarios (Category A-D) — manual QA needed
+- CAT2: Workflow template schema inconsistency; overlapping production systems decision
+
 ## Architecture — Stripe Service Layer
 As of 2026-04-25, all Stripe business logic is centralised in `backend/services/stripe_service.py`:
 - Platform fee schedule, `get_stripe_mode()`, `get_tenant_tier()`

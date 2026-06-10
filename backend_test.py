@@ -10,7 +10,7 @@ import sys
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://ops-command-center-77.preview.emergentagent.com/api"
+BASE_URL = "https://sms-invoices.preview.emergentagent.com/api"
 LOGIN_EMAIL = "signguypa@gmail.com"
 LOGIN_PASSWORD = "Billnel323"
 
