@@ -60,6 +60,16 @@ BACKUP_COLLECTIONS = [
     "sales_entries",
     "payments",
     "payment_transactions",
+    "inventory_items",
+    "inventory_locations",
+    "inventory_lots",
+    "inventory_transactions",
+    "inventory_cycle_counts",
+    "material_requirements",
+    "inventory_shortages",
+    "inventory_vendors",
+    "purchase_orders",
+    "pricing_cost_suggestions",
 ]
 
 # Compatibility aliases expected by legacy checklist naming.

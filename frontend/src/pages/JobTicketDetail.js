@@ -21,6 +21,7 @@ import DrawingModal from './DrawingModal';
 import DrawingPreviewModal from './DrawingPreviewModal';
 import { getAuthToken } from '../lib/authStorage';
 import { useSetPageContext } from '../context/PageContext';
+import JobMaterialsPanel from '../components/inventory/JobMaterialsPanel';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
@@ -255,6 +256,7 @@ export default function JobTicketDetail() {
           {[
             { id: 'specs', label: 'Specs' },
             { id: 'production', label: `Production (${tasks.length})` },
+            { id: 'materials', label: 'Materials' },
             { id: 'drawings', label: `Drawings (${ticketDrawings.length})` },
             { id: 'artwork', label: 'Artwork / Files' },
             { id: 'notes', label: 'Notes' },
@@ -307,6 +309,8 @@ export default function JobTicketDetail() {
           <LivePricingPanel ticketId={ticketId} ticketData={ticket} onPriceSaved={() => load()} />
         </div>
       )}
+
+      {tab === 'materials' && <JobMaterialsPanel ticketId={ticketId} onChanged={load} />}
 
       {/* PRODUCTION TAB */}
       {tab === 'production' && (

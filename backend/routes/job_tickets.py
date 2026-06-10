@@ -18,6 +18,7 @@ from services.workflow_engine import (
     generate_production_tasks, seed_default_templates,
     update_ticket_progress, update_order_progress, log_activity
 )
+from services.inventory_service import release_requirement, reserve_requirement
 
 router = APIRouter(prefix="/job-tickets", tags=["Job Tickets"])
 
@@ -1563,6 +1564,39 @@ async def update_job_ticket(ticket_id: str, data: JobTicketUpdate, current_user:
 
     await db.job_tickets.update_one({"id": ticket_id, "tenant_id": current_user.tenant_id}, {"$set": update_data})
 
+    # Generated requirements track quantity changes proportionally. Spec changes
+    # are marked for review because material/dimension substitutions require a
+    # human decision rather than a silent inventory mutation.
+    if any(field in update_data for field in {"quantity", "specs", "item_category"}):
+        requirements = await db.material_requirements.find(
+            {"job_ticket_id": ticket_id, "tenant_id": current_user.tenant_id, "source": "generated"},
+            {"_id": 0},
+        ).to_list(1000)
+        actor = {"id": current_user.id, "name": current_user.full_name or ""}
+        order = await db.orders.find_one(
+            {"id": existing["order_id"], "tenant_id": current_user.tenant_id}, {"_id": 0, "status": 1, "approval_status": 1}
+        )
+        approved = bool(order and (order.get("status") == "approved" or order.get("approval_status") == "approved"))
+        for requirement in requirements:
+            if requirement.get("reserved_quantity", 0) > 0:
+                await release_requirement(db, requirement, actor, "Job ticket changed")
+            requirement = await db.material_requirements.find_one(
+                {"id": requirement["id"], "tenant_id": current_user.tenant_id}, {"_id": 0}
+            )
+            if "quantity" in update_data and float(existing.get("quantity", 0) or 0) > 0:
+                ratio = float(update_data["quantity"]) / float(existing["quantity"])
+                requirement["required_quantity"] = round(float(requirement.get("required_quantity", 0)) * ratio, 4)
+            requirement["status"] = "needs_review" if any(field in update_data for field in {"specs", "item_category"}) else "pending"
+            await db.material_requirements.update_one(
+                {"id": requirement["id"], "tenant_id": current_user.tenant_id},
+                {"$set": {"required_quantity": requirement["required_quantity"], "status": requirement["status"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+            )
+            if approved and requirement["status"] == "pending":
+                requirement = await db.material_requirements.find_one(
+                    {"id": requirement["id"], "tenant_id": current_user.tenant_id}, {"_id": 0}
+                )
+                await reserve_requirement(db, requirement, actor)
+
     # Update rollups
     await update_order_progress(db, existing["order_id"])
 
@@ -1578,6 +1612,19 @@ async def delete_job_ticket(ticket_id: str, current_user: UserInDB = Depends(get
     if not existing:
         raise HTTPException(status_code=404, detail="Job ticket not found")
 
+    requirements = await db.material_requirements.find(
+        {"job_ticket_id": ticket_id, "tenant_id": current_user.tenant_id, "reserved_quantity": {"$gt": 0}},
+        {"_id": 0},
+    ).to_list(1000)
+    for requirement in requirements:
+        await release_requirement(
+            db, requirement, {"id": current_user.id, "name": current_user.full_name or ""}, "Job ticket deleted"
+        )
+    await db.material_requirements.delete_many({"job_ticket_id": ticket_id, "tenant_id": current_user.tenant_id})
+    await db.inventory_shortages.update_many(
+        {"job_ticket_id": ticket_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"status": "cancelled", "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
     await db.job_tickets.delete_one({"id": ticket_id, "tenant_id": current_user.tenant_id})
     await db.production_tasks.delete_many({"job_ticket_id": ticket_id})
     await update_order_progress(db, existing["order_id"])

@@ -79,3 +79,13 @@ from .credits import (
     CreditBalanceResponse, PurchaseCreditPackRequest, PurchaseCreditPackResponse,
     PromoCode, PromoCodeUsage
 )
+
+# Inventory and purchasing models
+from .inventory import (
+    TrackingMethod, InventoryTransactionType, InventoryAlias,
+    InventoryItemInput, InventoryItem, InventoryLocationInput, InventoryLocation,
+    InventoryLotInput, InventoryLot, MaterialRequirementInput,
+    InventoryAdjustmentInput, InventoryTransferInput, CycleCountLine, CycleCountInput, MaterialPullInput,
+    VendorInput, PurchaseOrderLineInput, PurchaseOrderInput,
+    PurchaseOrderReceiveLine, PurchaseOrderReceiveInput,
+)
