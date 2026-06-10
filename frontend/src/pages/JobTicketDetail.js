@@ -21,6 +21,7 @@ import DrawingModal from './DrawingModal';
 import DrawingPreviewModal from './DrawingPreviewModal';
 import { getAuthToken } from '../lib/authStorage';
 import { useSetPageContext } from '../context/PageContext';
+import JobMaterialsPanel from '../components/inventory/JobMaterialsPanel';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const hdr = () => ({ Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' });
@@ -527,6 +528,10 @@ export default function JobTicketDetail() {
       {previewDrawing && (
         <DrawingPreviewModal drawing={previewDrawing} onClose={() => setPreviewDrawing(null)} onDeleted={load} isAdmin />
       )}
+
+      {/* MATERIALS TAB */}
+      {tab === 'materials' && <JobMaterialsPanel ticketId={ticketId} onChanged={load} />}
+
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
         <DialogContent className="sm:max-w-[760px]">
           <DialogHeader><DialogTitle>{previewFile?.label || 'Artwork Preview'}</DialogTitle></DialogHeader>

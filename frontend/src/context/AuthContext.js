@@ -79,6 +79,14 @@ export const Permission = {
   // Settings permissions
   SETTINGS_VIEW: 'settings:view',
   SETTINGS_EDIT: 'settings:edit',
+
+  // Inventory and purchasing permissions
+  INVENTORY_VIEW: 'inventory:view',
+  INVENTORY_PULL: 'inventory:pull',
+  INVENTORY_ADJUST: 'inventory:adjust',
+  PURCHASING_MANAGE: 'purchasing:manage',
+  PURCHASING_APPROVE: 'purchasing:approve',
+  VENDORS_MANAGE: 'vendors:manage',
 };
 
 const PERMISSION_ALIASES = {

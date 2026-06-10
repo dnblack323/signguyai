@@ -55,6 +55,8 @@ import JobTicketDetail from "./pages/JobTicketDetail";
 import ProductionBoard from "./pages/ProductionBoard";
 import WorkflowTemplateManager from "./pages/WorkflowTemplateManager";
 import MaterialsAdmin from "./pages/MaterialsAdmin";
+import Inventory from "./pages/Inventory";
+import Purchasing from "./pages/Purchasing";
 import CompanySettings from "./pages/CompanySettings";
 import ProductionSettings from "./pages/settings/ProductionSettings";
 import BackupRestore from "./pages/settings/BackupRestore";
@@ -263,6 +265,8 @@ function ProtectedRoutes() {
           <Route path="/pricing-foundation" element={<PricingFoundation />} />
           <Route path="/pricing-settings" element={<PricingSettings />} />
           <Route path="/materials-admin" element={<MaterialsAdmin />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/purchasing" element={<Purchasing />} />
           <Route path="/materials" element={<Navigate to="/pricing-foundation" replace />} />
           <Route path="/billing" element={<BillingManagement />} />
           <Route path="/questionnaires" element={<Questionnaires />} />

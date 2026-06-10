@@ -699,3 +699,12 @@ Addressed all 4 missing endpoints and 1 security bug discovered in iteration_132
 
 ## Test Credentials
 See `/app/memory/test_credentials.md`.
+
+
+### 2026-06-10 — Inventory Feature Merged from GitHub (CodexInventory branch)
+- Synced `CodexInventory` branch (merged to GitHub main) into Emergent preview manually
+- New backend: `models/inventory.py`, `routes/inventory.py` (990 lines), `services/inventory_service.py`, `migrations/`
+- New frontend: `pages/Inventory.js`, `pages/Purchasing.js`, `components/inventory/JobMaterialsPanel.js`
+- Modified: `models/__init__.py`, `models/auth.py` (6 new permissions), `routes/backup.py` (10 inventory collections), `routes/digest.py` (low_stock_count + inventory_shortages), `server.py` (inventory_router)
+- Modified frontend: `App.js` (routes), `context/AuthContext.js` (permission enums), `ribbon/PrimaryNav.js` (Inventory + Purchasing nav items), `pages/JobTicketDetail.js` (Materials tab), `pages/ProductionBoard.js` (Materials button + updateTask return value)
+- All inventory API endpoints confirmed live: items, vendors, purchase-orders

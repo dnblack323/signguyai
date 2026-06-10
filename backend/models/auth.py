@@ -224,7 +224,15 @@ class Permission(str, Enum):
     PRODUCTS_VIEW = "products:view"
     PRODUCTS_CREATE = "products:create"
     PRODUCTS_MANAGE = "products:manage"
-    
+
+    # Inventory and purchasing permissions
+    INVENTORY_VIEW = "inventory:view"
+    INVENTORY_PULL = "inventory:pull"
+    INVENTORY_ADJUST = "inventory:adjust"
+    PURCHASING_MANAGE = "purchasing:manage"
+    PURCHASING_APPROVE = "purchasing:approve"
+    VENDORS_MANAGE = "vendors:manage"
+
     # Platform Admin permissions
     PLATFORM_ADMIN_ACCESS = "platform_admin:access"
     PLATFORM_ADMIN_IMPERSONATE = "platform_admin:impersonate"
@@ -247,6 +255,8 @@ ROLE_PERMISSIONS = {
         Permission.SETTINGS_VIEW,
         Permission.WEBSTORES_VIEW, Permission.WEBSTORES_CREATE, Permission.WEBSTORES_MANAGE,
         Permission.PRODUCTS_VIEW, Permission.PRODUCTS_CREATE, Permission.PRODUCTS_MANAGE,
+        Permission.INVENTORY_VIEW, Permission.INVENTORY_PULL, Permission.INVENTORY_ADJUST,
+        Permission.PURCHASING_MANAGE, Permission.VENDORS_MANAGE,
     ],
     UserRole.STAFF: [
         Permission.CUSTOMERS_VIEW, Permission.CUSTOMERS_CREATE, Permission.CUSTOMERS_EDIT,
@@ -257,6 +267,7 @@ ROLE_PERMISSIONS = {
         Permission.EMPLOYEES_VIEW,
         Permission.WEBSTORES_VIEW,
         Permission.PRODUCTS_VIEW,
+        Permission.INVENTORY_VIEW, Permission.INVENTORY_PULL,
     ],
     # Webstore owners have NO tenant-side permissions — their access is gated
     # at the dedicated /api/owner-portal routes via a role check.

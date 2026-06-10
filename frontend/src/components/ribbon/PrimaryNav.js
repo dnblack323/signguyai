@@ -5,7 +5,8 @@ import {
   Store, Sparkles, BarChart3, Settings, MessageCircle,
   Clock, DollarSign, FileCheck, Package, Tag, Calendar,
   ClipboardList, BookOpen, HelpCircle, UserCog, Wallet, Send,
-  Shield, Wrench, Mail, FolderOpen, Clipboard, Facebook
+  Shield, Wrench, Mail, FolderOpen, Clipboard, Facebook,
+  Boxes, ShoppingCart
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -32,6 +33,8 @@ export const tabSubItems = {
     { label: 'All Orders', icon: Package, path: '/orders' },
     { label: 'Production Board', icon: Wrench, path: '/production-board' },
     { label: 'Approvals', icon: FileCheck, path: '/approvals' },
+    { label: 'Inventory', icon: Boxes, path: '/inventory' },
+    { label: 'Purchasing', icon: ShoppingCart, path: '/purchasing' },
   ],
   billing: [
     { label: 'Invoices', icon: Receipt, path: '/invoices' },

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Wrench, Clock, User, CheckCircle, Pause, Play,
+  Wrench, Clock, User, CheckCircle, Pause, Play, Package,
   Loader2, Settings, ArrowRight, Filter, Eye, EyeOff, Layers,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -66,13 +66,18 @@ export default function ProductionBoard() {
     try {
       await axios.put(`${API}/production-tasks/${taskId}`, updates, { headers: hdr() });
       await load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Update failed'); }
-    finally { setTaskLoading(''); }
+      return true;
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Update failed');
+      return false;
+    } finally {
+      setTaskLoading('');
+    }
   };
 
   const moveToStage = async (taskId, stageKey) => {
-    await updateTask(taskId, { production_stage: stageKey });
-    toast.success(`Moved to ${fmt(stageKey)}`);
+    const ok = await updateTask(taskId, { production_stage: stageKey });
+    if (ok) toast.success(`Moved to ${fmt(stageKey)}`);
   };
 
   const handleDragStart = (e, task) => {
@@ -309,6 +314,11 @@ export default function ProductionBoard() {
                               {!rollupByTicket && stages.findIndex(s => s.key === stage.key) < stages.length - 1 && task.status !== 'complete' && (
                                 <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-blue-600 ml-auto" onClick={() => moveToStage(task.id, stages[stages.findIndex(s => s.key === stage.key) + 1].key)} disabled={taskLoading === task.id}>
                                   <ArrowRight className="w-3 h-3 mr-0.5" />Next
+                                </Button>
+                              )}
+                              {(task.ticket_id || task.job_ticket_id) && (
+                                <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-blue-600" onClick={() => navigate(`/job-tickets/${task.ticket_id || task.job_ticket_id}?tab=materials`)}>
+                                  <Package className="w-3 h-3 mr-0.5" />Materials
                                 </Button>
                               )}
                             </div>
