@@ -1,5 +1,115 @@
 # SignGuy AI — Rebuild Specification
 > **Purpose:** Greenfield rebuild brief. Everything the original app does, every final decision made, and what to know on Day 1 to avoid workarounds. Use this as the starting spec.
+> **Version:** 2.0 — Updated with 15 conflict resolutions from Conflict Resolution Worksheet (2026-06-10)
+
+---
+
+## ⚠️ GOVERNANCE RULES (Read Before Writing Any Code)
+
+These rules govern every decision during the rebuild. When in doubt, stop and re-read these.
+
+### Rule 1 — Day 1 Spec is the Source of Truth
+This document overrides all other planning docs, roadmaps, and staged release plans for architecture and approved behavior decisions. Exceptions are allowed only for: security, payment handling, tenant isolation, and deterministic math (payroll, inventory, money).
+
+### Rule 2 — Protected Behavior Cannot Be Simplified
+Any behavior, calculation, workflow step, field name, or UI label that already works in the current app and has been approved by the owner is **locked**. Architecture can change. Approved outcomes cannot — without explicit written approval. When in doubt, preserve the current behavior exactly and flag it for review.
+
+### Rule 3 — Webstores Are a Core Loop, Not a Later Phase
+Webstores are not deferred. They are one of the four core value loops. Build webstore structure alongside orders. A protected Webstore Behavior Spec must be approved before coding webstore-specific logic.
+
+### Rule 4 — Money Is Always Integer Cents
+Every monetary amount in the database and API is stored and transmitted as **integer cents** (e.g., `4999` = $49.99). Convert to dollars only at display time using the shared money helpers. The only exceptions are rates and percentages (tax_rate, markup_percent, labor_rate_per_hour, cost_per_sqft) which remain decimal.
+
+### Rule 5 — Routes Are Thin. Services Are Thick.
+A route handler does exactly three things: parse the request, call a service function, return the response. No business logic, no direct DB calls, no computations in route files. Services own DB access and all business logic.
+
+---
+
+## Canonical Status Enums
+Define these once. Use them everywhere. No synonyms, no shortcuts.
+
+```python
+# Orders
+ORDER_STATUS = "draft|confirmed|in_production|ready|delivered|cancelled|on_hold|void"
+
+# Job Tickets
+TICKET_STATUS = "not_started|in_progress|paused|completed|blocked|cancelled"
+
+# Production Tasks
+TASK_STATUS = "not_started|in_progress|paused|completed|blocked"
+#              ^^^ Always "completed" — NEVER "complete" ^^^
+
+# Invoices
+INVOICE_STATUS = "draft|sent|viewed|partial|paid|overdue|void|written_off"
+
+# Quotes
+QUOTE_STATUS = "draft|sent|viewed|accepted|declined|expired|converted"
+
+# Proofs
+PROOF_STATUS = "draft|sent|approved|revision_requested|expired"
+
+# Purchase Orders
+PO_STATUS = "draft|sent|acknowledged|partial|received|cancelled"
+
+# Webstores
+WEBSTORE_STATUS = "pending|active|completed|closed|disabled"
+
+# Timeclock
+TIMECLOCK_STATUS = "active|completed|edited"
+```
+**During migration only:** Accept both `"complete"` and `"completed"` in API inputs, normalize to `"completed"` before saving.
+
+---
+
+## Protected Behaviors List
+These behaviors are locked. They cannot be renamed, restructured, or removed without explicit owner approval.
+
+| # | Behavior | Why It's Protected |
+|---|---|---|
+| 1 | Webstore checkout creates a canonical Order + LineItems + JobTickets automatically | Core automation that saves manual data entry |
+| 2 | Order status is owned by domain services only — never raw-edited via API | Prevents data corruption |
+| 3 | Proof approval uses unauthenticated signed-token URL (no customer login required) | Customer UX that's already communicated |
+| 4 | Payment link uses signed token — invoice ID never exposed in URL | Security requirement |
+| 5 | Payroll runs are immutable once finalized | Accounting integrity |
+| 6 | Timeclock entries are append-only (corrections = new records, not edits) | Audit trail integrity |
+| 7 | Inventory balance is always computed from ledger transactions — never mutated directly | Financial accuracy |
+| 8 | Quote pricing is snapshot-frozen at creation — doesn't change if Foundation rates change | Contract integrity |
+| 9 | Tenant data is fully isolated — every query scoped to tenant_id | Security |
+| 10 | platform_creator role can only be assigned via PLATFORM_CREATOR_EMAIL env var at startup | Security |
+| 11 | Webstore product catalog is separate from shop inventory items | Architecture boundary |
+| 12 | B2B store requires order approval before production begins | Business workflow |
+| 13 | Fundraiser totals (donations, profit allocation) are computed server-side, never trusted from frontend | Financial integrity |
+| 14 | Store slug is globally unique across all tenants | URL integrity |
+| 15 | Backup restore uses snapshot-and-rollback — partial failure restores original data | Data safety |
+
+---
+
+## Money Helpers (Build Day 1, Use Everywhere)
+
+### Backend — `utils/money.py`
+```python
+def to_cents(dollars: float | int | str) -> int:
+    """Convert dollar amount to integer cents. Always round half-up."""
+    from decimal import Decimal, ROUND_HALF_UP
+    return int(Decimal(str(dollars)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) * 100)
+
+def to_dollars(cents: int) -> float:
+    """Convert integer cents to float dollars for display."""
+    return cents / 100
+
+def cents_display(cents: int, currency: str = "USD") -> str:
+    """Format cents as currency string: 4999 → '$49.99'"""
+    return f"${cents / 100:,.2f}"
+```
+
+### Frontend — `lib/money.js`
+```javascript
+export const toCents = (dollars) => Math.round(parseFloat(dollars) * 100);
+export const toDollars = (cents) => (cents / 100).toFixed(2);
+export const formatMoney = (cents) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+```
+
+**Rule:** All API requests send cents as integers. All API responses return cents as integers. `formatMoney()` is the only place dollars appear in the UI.
 
 ---
 
@@ -92,10 +202,14 @@ backend/
     inventory.py
     webstores.py
     ...
-  services/        # Business logic called by routes
+  services/        # Business logic AND all DB calls — routes never touch DB directly
     inventory_service.py   # Ledger math, balance calculations
     stripe_service.py      # All Stripe calls
     email_service.py       # All SendGrid calls
+    order_service.py       # Order status transitions, ticket creation
+    ...
+  utils/
+    money.py       # to_cents(), to_dollars(), cents_display()
     ...
   core_runtime.py  # DB connection, auth helpers, has_permission()
   server.py        # App init, router registration only — no route logic
@@ -118,7 +232,8 @@ frontend/src/
   lib/
     api.js         # Axios instance with base URL + auth header
     authStorage.js # Token read/write
-    utils.js       # cn(), formatDate(), formatCurrency()
+    money.js       # toCents(), toDollars(), formatMoney() — use everywhere
+    utils.js       # cn(), formatDate()
 ```
 
 ### Absolute rules
@@ -126,7 +241,7 @@ frontend/src/
 - Frontend ONLY uses `process.env.REACT_APP_BACKEND_URL` — never hardcode
 - Backend ONLY uses `os.environ['MONGO_URL']` and `os.environ['DB_NAME']` — no defaults
 - Zero business logic in `server.py` — it is a registration file only
-- Zero direct DB calls in `routes/` files — all DB work goes through service functions or inline using the `db` singleton from `core_runtime`
+- **Routes do exactly three things: parse request → call service → return response. No DB calls, no computations, no business logic inside route handlers. All of that lives in `services/`.**
 
 ---
 
@@ -234,21 +349,23 @@ Order
 {
   order_number: "ORD-0042",      # tenant-scoped counter
   customer_id: uuid,
-  status: "quote|confirmed|in_production|ready|delivered|cancelled",
+  status: "draft|confirmed|in_production|ready|delivered|cancelled|on_hold|void",
   order_type: "walk_in|phone|email|webstore|quote_converted",
   source: "internal|webstore",
   is_webstore_order: bool,
   webstore_order_id: uuid | None,
   webstore_name: str | None,
   due_date: iso_string,
-  deposit_amount: float,
-  subtotal: float,
-  tax_rate: float,
-  tax_amount: float,
-  total: float,
-  balance_due: float,
+  deposit_amount_cents: int,     # e.g. 5000 = $50.00
+  subtotal_cents: int,
+  tax_rate: float,               # e.g. 0.08 = 8% — decimal, not cents
+  tax_amount_cents: int,
+  total_cents: int,
+  balance_due_cents: int,        # computed: total_cents - sum(payments)
   notes: str,
   special_instructions: str,
+  status_updated_at: iso_string,  # set every time status changes
+  status_updated_by_id: uuid,     # who/what changed it
 }
 ```
 
@@ -259,13 +376,14 @@ Order
   product_type: "yard_sign|banner|vehicle_wrap|...",
   description: str,
   quantity: int,
-  unit_price: float,
-  line_total: float,
+  unit_price_cents: int,         # e.g. 2500 = $25.00
+  line_total_cents: int,         # unit_price_cents × quantity
   width_inches: float | None,
   height_inches: float | None,
   material: str,
   turnaround: str,
   artwork_status: "not_received|received|approved|sent_for_approval",
+  production_required: bool,     # False for fees, discounts, shipping — no JobTicket created
 }
 ```
 
@@ -296,7 +414,8 @@ Order
   ticket_id: uuid,
   task_name: str,             # "Print", "Cut", "Laminate", "Install"
   production_stage: str,
-  status: "not_started|in_progress|paused|complete|blocked",
+  status: "not_started|in_progress|paused|completed|blocked",
+  #                                              ^^^ "completed" always — never "complete"
   assigned_to_id: uuid | None,
   estimated_minutes: int,
   actual_minutes: int,
@@ -305,8 +424,8 @@ Order
 ```
 
 ### Key rules
-- Order status is derived from its line items' statuses — never set it manually
-- Ticket is created automatically when a line item is created — they always exist 1:1
+- **Order status is owned by `order_service` only** — no route handler sets it directly. Manual overrides (cancel, on_hold, void) require an audit reason and go through the service. Every status change writes `status_updated_at` + `status_updated_by_id`.
+- **JobTicket is created only when `production_required: true`** on the LineItem — fees, discounts, rush charges, and shipping do NOT get tickets
 - `ticket_number` uses the same counter system as order numbers
 - Webstore orders set `is_webstore_order: true` and `webstore_order_id` at creation — never retrofitted
 
@@ -381,9 +500,9 @@ Order
   status: "draft|sent|viewed|accepted|declined|expired|converted",
   expires_at: iso_string,
   line_items: [QuoteLineItem],  # same structure as OrderLineItem
-  subtotal: float,
-  tax_rate: float,
-  total: float,
+  subtotal_cents: int,
+  tax_rate: float,               # decimal, not cents
+  total_cents: int,
   notes: str,
   converted_order_id: uuid | None,   # set when accepted + converted
   pricing_snapshot: {},              # frozen pricing config at time of quote
@@ -407,13 +526,14 @@ Order
   status: "draft|sent|viewed|partial|paid|overdue|void|written_off",
   due_date: iso_string,
   line_items: [InvoiceLineItem],
-  subtotal: float,
-  tax_amount: float,
-  total: float,
-  amount_paid: float,
-  balance_due: float,          # computed: total - amount_paid
+  subtotal_cents: int,
+  tax_rate: float,               # decimal, not cents
+  tax_amount_cents: int,
+  total_cents: int,
+  amount_paid_cents: int,        # sum of all payment_transactions for this invoice
+  balance_due_cents: int,        # computed: total_cents - amount_paid_cents — NEVER stored as mutable field
   stripe_payment_intent_id: str | None,
-  payment_link_token: str,     # for unauthenticated customer payment
+  payment_link_token: str,       # for unauthenticated customer payment
   sent_at: iso_string | None,
   paid_at: iso_string | None,
 }
@@ -486,10 +606,12 @@ vehicle_graphics:
 ```
 
 **Know from day 1:**
-- Foundation and Calculator are two separate UI sections — Foundation is in Settings, Calculator is its own tool
-- All formulas are pure functions — `calculatePrice(inputs, foundationConfig) → price` — testable, no side effects
-- Calculator should work with and without a customer logged in (estimator tool for phone quotes)
+- **Foundation lives in Settings → Pricing** — it is a configuration page, not a standalone module
+- **Calculator is globally accessible** — it has its own page AND is embedded inside New Quote and New Order Item flows
+- All formulas are pure functions — `calculatePrice(inputs, foundationConfig) → price_cents` — testable, no side effects
+- Calculator works with and without a customer logged in (phone quote tool)
 - Quantity breaks are per-category, not global
+- Pricing rates (cost_per_sqft, labor_rate_per_hour, setup_fee, minimum_price) are **stored as floats/decimals** — they are rates, not money amounts. Final computed prices are converted to cents before storing.
 
 ---
 
@@ -550,19 +672,26 @@ store_type: "b2b" | "fundraiser" | "creator"
 }
 ```
 
-### Checkout flow
+### Checkout flow — WebstoreProduct → Canonical Order
 ```
 Public route: /store/{store_slug}
-1. Customer browses → adds to cart (localStorage)
+1. Customer browses → adds to cart (localStorage — no DB cart)
 2. Checkout → customer enters contact info + payment
 3. Stripe charge (or Stripe Connect for creator stores)
-4. WebstoreOrder created
-5. Bridge function creates MainOrder automatically
-   - Sets is_webstore_order: true
-   - Sets webstore_order_id, webstore_name
-   - Creates line items from cart
-   - Creates job tickets from line items
+4. WebstoreOrder created (e-commerce record, owned by webstore domain)
+5. Bridge function creates canonical shop records:
+   a. Customer record (matched by email, created if new)
+   b. Order (is_webstore_order: true, webstore_order_id linked)
+   c. OrderItem per cart item (production_required: true for physical products)
+      - Maps WebstoreProduct.pricing_config → unit_price_cents
+      - Maps WebstoreProduct.product_type → OrderItem.product_type
+   d. JobTicket per OrderItem where production_required: true
+   e. ProductionTasks per JobTicket (default tasks from stage config)
 6. Shop sees new order in Orders list with "Webstore" badge
+
+IMPORTANT: WebstoreProduct is the e-commerce catalog.
+OrderItem is the production record. They are different things.
+The bridge maps one to the other at checkout — they are never merged or shared.
 ```
 
 **Know from day 1:**
@@ -617,9 +746,11 @@ inventory_value = sum(qty × unit_cost for lot in lots)
 If `available < required_quantity`, create an `InventoryShortage` record and link it to the requirement. Shortages surface in the dashboard "Action Required" card and can be converted into a PO line item.
 
 **Know from day 1:**
+- **Build the inventory shell early** — models, permissions, routes (returning empty lists), and the `inventory_items` collection must exist before the dashboard digest runs or it will error. Full ledger functionality (lot tracking, reservations, shortages) comes after core is stable.
 - `InventoryItem.pricing_material_key` links to a Pricing Foundation material key — this is how cost flows from purchasing to pricing automatically
 - Roll tracking: when a roll is partially consumed, create a new "remnant" lot from what's left
 - Cycle count adjusts the lot's `quantity_on_hand` and inserts a `cycle_count_adjustment` transaction
+- All monetary values stored as **integer cents** (unit_cost_cents, inventory_value_cents)
 
 ---
 
@@ -862,6 +993,7 @@ CreditTransaction:
 ```
 
 **Know from day 1:**
+- **Build the AI Hub shell early** — the app is called SignGuy *AI*, the AI identity should be visible from day 1. Build the hub page, tool list, and navigation early. Activate AI-mutating actions (generation, credit deduction) after core workflows are stable.
 - Check credit balance BEFORE making the LLM call — fail fast with 402 if insufficient
 - All tools share the same document output model — build it once
 - `linked_to_id` + `linked_to_type` from day 1 so AI docs can be attached to any entity
@@ -907,6 +1039,7 @@ EMAIL_TEMPLATES = {
 ```
 
 **Know from day 1:**
+- **Build portal route boundaries and auth early** — `/portal/...` routes, portal JWT (separate from staff JWT), and the "You don't have access" screens should exist from the start. Activate portal features (proof approval, invoice payment, webstore owner view) as their dependencies land.
 - `shop_unread_count` on every conversation — this drives the dashboard badge and digest count
 - Meta webhook verification must be set up before any message can be received — do this first
 - Communication logs go on BOTH customer record AND order record when linked
@@ -1000,22 +1133,31 @@ Consolidates in priority order:
 5. AI-generated suggestions (nudges)
 
 ### Digest API (`GET /api/digest`)
-Returns all dashboard data in ONE call:
+Returns all dashboard data in ONE call. Runs all queries in parallel (`asyncio.gather`).
 ```python
 {
-  revenue_today: float,
-  revenue_mtd: float,
+  # Revenue — all as integer cents
+  revenue_today_cents: int,
+  revenue_mtd_cents: int,
+  yesterday_revenue_cents: int,
+
+  # Counts
   active_orders: int,
   pending_quotes: int,
-  outstanding_ar: float,
+  outstanding_ar_cents: int,
   pending_approvals: int,      # proofs + order approvals
   overdue_invoices: int,
   unread_messages: int,
   low_stock_count: int,
   inventory_shortages: int,
-  yesterday_revenue: float,
+
+  # Module state — NEVER return null counts for inactive modules
+  # Return 0 counts + list the active modules explicitly
+  # Frontend uses modules_active to decide what to show
+  modules_active: ["inventory", "webstores", "ai_tools", "payroll", ...],
 }
 ```
+**Rule:** Always return `0` for inactive module counts. Include `modules_active` array so the frontend knows which module cards to render. Never return `null` for a count — frontend treats null and 0 differently and it causes bugs.
 
 **Know from day 1:**
 - One API call for all dashboard data — never make 6 separate calls on dashboard load
@@ -1040,8 +1182,9 @@ Webstores        → global store settings, platform fee config
 
 **Know from day 1:**
 - Production stage config lives in settings, not hardcoded — build this before the kanban board
-- Pricing Foundation is a Settings sub-page, not a standalone app section
-- All settings stored in one `tenant_settings` document per tenant — one read on app load, cached in context
+- Pricing Foundation is a Settings sub-page (`/settings/pricing`), not a standalone app section
+- **Frontend always gets ONE merged settings object** from `GET /api/settings` — a single read, cached in AuthContext. Backend may store settings in domain-specific sub-documents or collections, but the merge function (`get_merged_settings(tenant_id)`) is one explicit function that combines them before returning. Never let routes call multiple `find_one`s for settings independently.
+- The merge function is defined in `services/settings_service.py` and called by every settings route — build it day 1.
 
 ---
 
@@ -1329,4 +1472,5 @@ MongoDB:  localhost:27017
 ---
 
 *Generated: 2026-06-10 | SignGuy AI Rebuild Reference*
-*Version: 1.0 — Based on full production app feature set*
+*Version: 2.0 — 15 conflict resolutions applied from Conflict Resolution Worksheet*
+*Use alongside FEATURE_RELEASE_MAP.md for staged release planning*
