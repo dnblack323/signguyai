@@ -607,3 +607,184 @@ Customer record
 
 *Generated: 2026-06-10 | Audit of production codebase*
 *backend/routes/webstores.py (3,776 lines) + stripe_connect.py (1,549) + webstore_owners.py (931) + portal.py (2,195)*
+
+
+---
+
+## 22. Rebuild Suggestions & Things to Watch Out For
+
+> **Purpose:** Hard-won lessons from the current implementation. Apply these from Day 1 in the greenfield rebuild to avoid repeating the same traps.
+
+---
+
+### 22.1 Money — Store Everything as Integer Cents
+
+**Current problem:** All financial fields (`total_sales`, `commission_amount`, `payout_owed`, etc.) are stored as `float`. Floating-point accumulation errors compound over hundreds of orders.
+
+**Rebuild rule:**
+- Store **all money as integer cents** in MongoDB (`amount_cents: int`).
+- Only convert to display dollars at the serialization layer (divide by 100 before sending to the API consumer).
+- Enforce this with a strict `Money` Pydantic type that refuses float inputs.
+- Running totals (`payout_owed_cents`, `total_sales_cents`) increment/decrement atomically via MongoDB `$inc` — never do math in Python and write back.
+
+```python
+# RIGHT
+await db.webstores_v2.update_one(
+    {"id": webstore_id},
+    {"$inc": {"payout_owed_cents": commission_cents}}
+)
+
+# WRONG (current behavior)
+store["payout_owed"] += commission_amount  # float drift
+await db.webstores_v2.replace_one({"id": webstore_id}, store)
+```
+
+---
+
+### 22.2 Stripe Connect — Know the Account State Machine
+
+Stripe Connect is the #1 source of silent failures. The current code checks `charges_enabled` and `payouts_enabled`, but there are more states to handle:
+
+| Stripe field | Meaning | What to do |
+|---|---|---|
+| `charges_enabled: false` | Account cannot accept payments | Block store from going live |
+| `payouts_enabled: false` | Account can accept but cannot receive payouts | Allow sales, warn owner, hold funds |
+| `details_submitted: false` | Onboarding incomplete | Show "Complete Stripe Setup" CTA |
+| `requirements.currently_due` | Stripe needs more info | Show warning, refresh link |
+| `requirements.past_due` | Account will be restricted | Urgent banner to owner |
+| `capabilities.transfers: inactive` | Platform transfers blocked | Cannot auto-transfer commission |
+
+**Rebuild rule:**
+- Refresh account status from Stripe on **every** admin-progress page load (not just cached DB values).
+- Store `requirements_currently_due`, `requirements_past_due`, `capabilities` as structured fields — not just the three booleans.
+- Show a "Stripe Account Health" widget in the owner portal that reflects real-time state.
+- Never assume `charges_enabled = true` means everything is working. Check `capabilities.card_payments` explicitly.
+
+---
+
+### 22.3 The Store Slug is a One-Way Door
+
+**Current behavior:** `store_slug` is set at creation and there is a code comment that it "never changes." But there is no DB-level enforcement — only an application-level guard in the `PUT /webstores/v2/{id}` route.
+
+**Rebuild rule:**
+- Mark `store_slug` as **immutable** in the Pydantic model (no setter after creation).
+- Add a MongoDB unique index on `store_slug` (currently missing — relies on application code).
+- Never expose a rename/slug-change endpoint. If the customer insists, require creating a new store.
+- Redirect old slugs to new slugs via a `slug_redirects` collection if you ever do allow migrations.
+
+---
+
+### 22.4 The 15-Stage Pipeline is Computed, Not Stored — Protect That Invariant
+
+**Current behavior:** Stage completion is derived live from data (e.g., "has products = stage 5 complete"). This is correct. But admin stamp timestamps (`preview_ready_at`, etc.) can be set in any order, causing the stage walker to skip steps.
+
+**Rebuild rule:**
+- Stage stamps must be **validated in sequence** before accepting them. Do not allow `production_started_at` to be set before `owner_approved_at`.
+- The five admin stamps should be an **ordered state machine** with explicit transitions. Reject out-of-order stamps with a 422 error.
+- Store the full computed stage snapshot in a `stage_snapshot_at` field (ISO timestamp of last computation) so you can debug stale UI without re-running the walker.
+
+---
+
+### 22.5 Idempotency Keys Must Have an Expiry
+
+**Current behavior:** The `idempotency_key` field on orders prevents duplicate Stripe webhook events from creating duplicate orders. But there is no TTL on idempotency key uniqueness — a key collision from a year ago would still block a new order.
+
+**Rebuild rule:**
+- Enforce idempotency within a 1-hour window (already partially documented in edge cases).
+- Create a TTL index on `idempotency_key` with a 2-hour window.
+- Treat expired keys as non-existent (allow the order to proceed).
+
+---
+
+### 22.6 Financial Counters Will Drift — Plan for Reconciliation
+
+**Current behavior:** `total_sales`, `total_orders`, `total_profit`, `payout_owed` are incremented/decremented on order events. On refunds and cancellations, the counters are reversed. But the reversal logic has an edge case: if an order transitions `cancelled → refunded` (or any re-transition), the counter can be decremented twice.
+
+**Rebuild rule:**
+- Use `payout_recorded_at` as the authoritative flag — not order status alone.
+- Add a `reconcile_counters` job that re-aggregates from `webstore_orders_v2` nightly and corrects drift.
+- Never trust `webstore.total_sales` for financial reporting. Always re-aggregate live. The cached counter is only for display.
+
+---
+
+### 22.7 Owner Portal Auth is a Separate System — Keep It Isolated
+
+**Current behavior:** Owner portal users are a completely separate auth system from shop staff users. They share no session, no JWT, no role logic. This is correct and intentional.
+
+**Rebuild rule:**
+- Keep this separation strictly. Never merge portal users with staff users into a single `users` collection.
+- Portal tokens must have a **short TTL** (24 hours) and must be rotatable (invalidate all sessions when the owner's email changes).
+- Portal invite tokens (magic links) must be **single-use and expire in 48 hours**. Add a `used_at` timestamp; reject re-use.
+- The portal has read-only access to financial data. Never add a route that lets the portal owner modify `locked_settings` — those belong to the shop admin only.
+
+---
+
+### 22.8 Questionnaire "Apply Safe Answers" Has Scope Drift Risk
+
+**Current behavior:** The `apply-questionnaire` route maps 40+ questionnaire answers to store fields. The mapping is hard-coded in Python. As new store fields are added, there is no mechanism to ensure the mapping stays current.
+
+**Rebuild rule:**
+- Define the questionnaire-to-field mapping in a **declarative config file** (JSON/YAML), not in-line code.
+- Wrap every field write in a per-field validation: "Is this field safe for owners to set?" Never touch `locked_settings` fields from questionnaire data.
+- Add a dry-run mode: `POST /apply-questionnaire?dry_run=true` returns the diff without committing it. Let admins preview before applying.
+
+---
+
+### 22.9 The Bridge to Canonical Orders is Fragile
+
+**Current behavior:** `_ensure_main_order_bridge` creates `Order`, `OrderItem`, `JobTicket`, and `ProductionTask` records from a webstore order. This function is called inside the Stripe webhook handler. If any part fails, the webstore order is still committed but the bridge records are missing.
+
+**Rebuild rule:**
+- Make the bridge **idempotent**: check for existing bridge records before creating new ones. The current `is_webstore_order: true + webstore_order_id` link partially does this, but doesn't protect against partial creation.
+- Run the bridge in a **background task** after the webhook responds with 200. Never hold the Stripe webhook open for more than 2 seconds.
+- Add a `bridge_status: pending | success | failed` field to the webstore order. A cron job retries `failed` bridges every 15 minutes.
+
+---
+
+### 22.10 Store Type Separation — Four Store Types Should Be Four Clear Code Paths
+
+**Current behavior:** Store type differences are scattered across the codebase as `if store_type == "fundraiser"` branches. The event store has the most complexity (embedded fundraiser, deadlines, auto-close) and is the most fragile.
+
+**Rebuild rule:**
+- Use **composition over branching**: define a `StoreStrategy` base class with `fundraiser_strategy`, `event_strategy`, `creator_strategy`, `business_strategy` subclasses.
+- Each strategy defines: checkout additions (donations?), payout behavior (commission?), lifecycle hooks (auto-close?), owner portal tabs.
+- Load the strategy at request time based on `store_type`. Zero `if store_type == ...` in the core routes.
+
+---
+
+### 22.11 Multi-Tenant Data Isolation — Paranoid Checks Everywhere
+
+**Current behavior:** Almost every query includes `{"tenant_id": current_user.tenant_id}`. Almost. There are edge cases (especially in helper functions) where the `tenant_id` filter is missing because the route already validated ownership.
+
+**Rebuild rule:**
+- Use a **tenant-scoped DB wrapper**: `TenantDB(db, tenant_id)` that automatically appends `{"tenant_id": tenant_id}` to every query. Never call `db.collection.find(...)` directly in route handlers.
+- Write a test that confirms every collection query includes a `tenant_id` filter. This should be a CI gate.
+- The only exceptions: `tenants` collection (looked up by ID alone), `webstore_stage_events` (append-only, no tenant filter needed for writes), and public storefront endpoints (explicitly unauthenticated).
+
+---
+
+### 22.12 Public Storefront Data Exposure — What Must Never Leak
+
+Always verify the public storefront serializer excludes:
+- `locked_settings` (cost, margin, profit split)
+- `tenant_id` (reveals sign shop identity)
+- `payout_owed`, `payout_paid`
+- `owner_stripe_account_id`
+- Any `*_at` admin timestamps beyond `order_deadline` and event dates
+
+**Rebuild rule:** Use a dedicated `PublicStorefrontResponse` Pydantic model with **explicit field inclusion** (allowlist), not exclusion (denylist). If you use exclusion, new fields added to the model will automatically leak.
+
+---
+
+### 22.13 Auto-Transfer Failure Handling
+
+**Current behavior:** When an order moves to `completed`, `_maybe_auto_transfer_owner_commission` fires and creates a Stripe Transfer. If the transfer fails (e.g., owner account restricted), the exception is swallowed and the payout is silently not sent.
+
+**Rebuild rule:**
+- Log every failed transfer attempt to a `failed_transfers` collection with `order_id`, `webstore_id`, `amount_cents`, `error_code`, `error_message`, `attempted_at`.
+- Expose a `GET /admin/failed-transfers` endpoint so the shop admin can see and manually retry.
+- Never silently swallow a Stripe error in a webhook handler.
+
+---
+
+*Rebuild notes generated: 2026-06-10*
