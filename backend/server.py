@@ -4586,6 +4586,7 @@ from routes.email_deliverability import (
     router as email_deliverability_router,
     sendgrid_webhook_router,
 )
+from routes.sms import router as sms_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -4670,6 +4671,7 @@ api_router.include_router(platform_admin_router)  # Platform Admin for tenant im
 api_router.include_router(platform_settings_public_router)  # Public banner + maintenance reads
 api_router.include_router(platform_settings_admin_router)  # Platform Admin banner + maintenance writes
 api_router.include_router(email_deliverability_router)  # Email deliverability endpoints
+api_router.include_router(sms_router)  # SMS via Twilio
 api_router.include_router(sendgrid_webhook_router)  # Public SendGrid event webhook
 
 # Backup & Restore
