@@ -8,7 +8,7 @@ import json
 import uuid
 from datetime import datetime, timezone, timedelta
 
-API_URL = "https://action-central-35.preview.emergentagent.com"
+API_URL = "https://sms-email-hub.preview.emergentagent.com"
 ADMIN_EMAIL = "thesigntistslab@gmail.com"
 ADMIN_PASSWORD = "password123"
 

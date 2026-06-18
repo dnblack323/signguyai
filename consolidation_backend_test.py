@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 # Production URL from review request
-BASE_URL = "https://action-central-35.preview.emergentagent.com"
+BASE_URL = "https://sms-email-hub.preview.emergentagent.com"
 
 # Production credentials from review request
 TEST_EMAIL = "signguypa@gmail.com"

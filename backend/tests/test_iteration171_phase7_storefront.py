@@ -9,7 +9,7 @@ import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://action-central-35.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sms-email-hub.preview.emergentagent.com").rstrip("/")
 STORE_ID = "fc0bad7e-9040-477e-93b9-a3f0b1a2df90"
 MONGO_URL = "mongodb://localhost:27017"
 DB_NAME = "signguy_ai"

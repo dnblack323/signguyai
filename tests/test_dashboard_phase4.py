@@ -12,7 +12,7 @@ Coverage matrix:
   8. Guardrail checks            — no .catch(()=>{}) in source, no /jobs/:id links
 
 Run:
-  export REACT_APP_BACKEND_URL=https://action-central-35.preview.emergentagent.com
+  export REACT_APP_BACKEND_URL=https://sms-email-hub.preview.emergentagent.com
   pytest tests/test_dashboard_phase4.py -v --tb=short
 
 Playwright intercepts backend API calls and returns controlled fixture data,
@@ -28,7 +28,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from playwright.sync_api import sync_playwright, Page, Route, expect
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://action-central-35.preview.emergentagent.com")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sms-email-hub.preview.emergentagent.com")
 ADMIN_EMAIL    = "thesigntistslab@gmail.com"
 ADMIN_PASSWORD = "password123"
 
