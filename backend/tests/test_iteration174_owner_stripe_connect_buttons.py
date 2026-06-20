@@ -167,7 +167,7 @@ class TestOwnerInviteQuick:
             f"{BASE}/api/webstore-owners/{TEST_STORE_ID}/invite/quick",
             json={
                 "email": "TEST_owner_invite@example.com",
-                "public_url": "https://sms-email-hub.preview.emergentagent.com",
+                "public_url": "https://legal-refresh-10.preview.emergentagent.com",
             },
             headers=admin_headers,
             timeout=30,
