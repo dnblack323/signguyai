@@ -127,6 +127,7 @@ import FoundersEditionPricing from "./pages/FoundersEditionPricing";
 import WhyFounderPage from "./pages/WhyFounderPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import SupportPage from "./pages/SupportPage";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
@@ -310,6 +311,7 @@ function App() {
                 <Route path="/why-founder" element={<WhyFounderPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/support" element={<SupportPage />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/data-deletion" element={<DataDeletion />} />

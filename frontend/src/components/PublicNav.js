@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 // Legacy nav config saved at: /src/config/legacyNavConfig.js
 const navLinks = [
   { href: '/features', label: 'Features' },
+  { href: '/about', label: 'About' },
   { href: '/why-founder', label: 'Why Be a Founder' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/docs', label: 'Docs' },
@@ -110,7 +111,7 @@ export function PublicNav() {
 
 export function PublicFooter() {
   return (
-    <footer className="bg-[#0a0a0a] border-t border-white/10 py-12 px-6">
+    <footer className="bg-[#0a0a0a] border-t border-white/10 py-10 px-6" data-testid="public-global-footer">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           {/* Product */}
@@ -118,6 +119,7 @@ export function PublicFooter() {
             <h4 className="text-white font-semibold mb-4">Product</h4>
             <ul className="space-y-2">
               <li><Link to="/features" className="text-gray-400 hover:text-white text-sm">Features</Link></li>
+              <li><Link to="/about" className="text-gray-400 hover:text-white text-sm">About SignGuy AI</Link></li>
               <li><Link to="/pricing-plans" className="text-gray-400 hover:text-white text-sm">Pricing</Link></li>
             </ul>
           </div>
@@ -146,20 +148,31 @@ export function PublicFooter() {
             <ul className="space-y-2">
               <li><Link to="/privacy" className="text-gray-400 hover:text-white text-sm">Privacy Policy</Link></li>
               <li><Link to="/terms" className="text-gray-400 hover:text-white text-sm">Terms of Service</Link></li>
+              <li><Link to="/contact" className="text-gray-400 hover:text-white text-sm">Contact</Link></li>
+              <li><Link to="/support" className="text-gray-400 hover:text-white text-sm">Support</Link></li>
               <li><Link to="/data-deletion" className="text-gray-400 hover:text-white text-sm">Data Deletion</Link></li>
             </ul>
           </div>
         </div>
         
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-white/10 pt-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <img 
             src="https://customer-assets.emergentagent.com/job_10abf0c0-fdcf-4656-8194-dcbb0dcb1efc/artifacts/k3asaz65_sgai%20long.png" 
             alt="SignGuy AI" 
             className="h-8 w-auto" 
           />
-          <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} SignGuy AI. All rights reserved.
-          </p>
+          <div className="text-left md:text-right" data-testid="footer-legal-identity-block">
+            <p className="text-gray-400 text-xs md:text-sm">
+              SignGuy AI is operated by SignTists Lab, a sole proprietorship owned by Donnell Nicole Black.
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 justify-start md:justify-end text-xs">
+              <Link to="/privacy" className="text-gray-500 hover:text-white">Privacy Policy</Link>
+              <Link to="/terms" className="text-gray-500 hover:text-white">Terms of Service</Link>
+              <Link to="/contact" className="text-gray-500 hover:text-white">Contact</Link>
+              <Link to="/support" className="text-gray-500 hover:text-white">Support</Link>
+            </div>
+            <p className="text-gray-600 text-xs mt-1.5">© {new Date().getFullYear()} SignGuy AI. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </footer>

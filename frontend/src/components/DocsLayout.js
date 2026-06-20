@@ -9,6 +9,7 @@ import {
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
+import { PublicFooter } from './PublicNav';
 
 const docsNavigation = [
   {
@@ -71,7 +72,7 @@ export default function DocsLayout() {
     setMobileMenuOpen(false);
   };
 
-  const SidebarContent = () => (
+  const renderSidebarContent = () => (
     <nav className="space-y-6">
       {docsNavigation.map((section) => (
         <div key={section.title}>
@@ -115,7 +116,7 @@ export default function DocsLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-gray-800 bg-[#0a0a0f]/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
@@ -175,11 +176,11 @@ export default function DocsLayout() {
         />
       )}
 
-      <div className="flex">
+      <div className="flex flex-1">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:block sticky top-[73px] h-[calc(100vh-73px)] w-64 border-r border-gray-800 bg-[#0a0a0f]">
           <ScrollArea className="h-full py-6 px-4">
-            <SidebarContent />
+            {renderSidebarContent()}
           </ScrollArea>
         </aside>
 
@@ -190,7 +191,7 @@ export default function DocsLayout() {
           }`}
         >
           <ScrollArea className="h-full py-6 px-4">
-            <SidebarContent />
+            {renderSidebarContent()}
           </ScrollArea>
         </aside>
 
@@ -201,6 +202,7 @@ export default function DocsLayout() {
           </div>
         </main>
       </div>
+      <PublicFooter />
     </div>
   );
 }
