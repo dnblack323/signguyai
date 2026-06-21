@@ -1,0 +1,541 @@
+
+
+===== PAGE 1 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+SignGuyAI Clean Rebuild Master Plan 
+Conflict-Resolved Accepted Version 
+Prepared for the SignGuyAI rebuild. This version accepts the conflict-resolution decisions and treats Emergent's "Know from 
+Day 1" guidance as the highest-priority implementation guidance where conflicts exist. 
+ 
+1. Executive Decision Summary 
+This document replaces the mixed rebuild notes with one accepted plan. The current main app remains the approved product-
+behavior reference. The rebuild may replace code, collections, route names, and component structure, but it must preserve 
+approved features, fields, defaults, calculations, workflows, and design behavior unless an explicit written change is approved. 
+ The final app shell must exist from the beginning: Home / Global Command Center, Operations, Business, Productivity, AI 
+Hub, Settings, notifications, global search, global + Create, and contextual Office-style ribbon. 
+ Emergent's "Know from Day 1" rebuild guidance is accepted as authoritative implementation guidance where it conflicts 
+with the broader early roadmap notes. 
+ Webstores are a protected approved area. They are not automatically delayed to a late release. Existing approved 
+webstore behavior should be rebuilt early unless a specific feature depends on unfinished infrastructure such as 
+production Stripe Connect, inventory reservations, or external integrations. 
+ Canonical shared models must be used for tasks, notes/comments, messages, calendar events, notifications, files, 
+activity timelines, and audit events. Modules must not invent duplicate versions of these concepts. 
+ Money must be stored as integer cents. Quantities must use explicit units. Authoritative calculations must live in 
+deterministic backend services, not AI and not the frontend. 
+ Routes must stay thin. Domain services and repositories own business logic and database access. server.py is only app 
+initialization and router registration. 
+ Every protected area gets a written behavior specification before rebuilding. That is not optional. This is how we avoid 
+accidentally replacing approved behavior with something cleaner but worse, because apparently humans keep doing that. 
+2. Accepted Conflict Resolutions 
+# Conflict Accepted Resolution 
+1 Money fields Use integer cents for all money amounts. Float examples in model snippets are superseded. 
+Percentages may use basis points or decimals where appropriate, but stored money uses 
+*_cents fields. 
+2 Route/database access Routes are request/response glue only. Business logic lives in services. Database access lives 
+in repositories or service-layer data helpers. Do not use inline DB calls in production route 
+handlers. 
+3 Webstore timing Webstores are protected approved behavior and should be rebuilt early. Only infrastructure-
+dependent pieces are gated. Do not treat Release 6 deferral language as a reason to postpone 
+the approved webstore module wholesale. 
+4 AI timing AI Hub exists from the beginning as a product/support/help shell. Active AI tools, credits, and 
+mutating actions wait until deterministic workflows and guardrails are stable. 
+5 Pricing Foundation 
+location 
+Pricing Foundation lives in Settings > Pricing. Pricing Calculator is a standalone tool, global 
+quick action, and embedded inside quote/order item workflows. 
+6 Order status Order status is service-derived from order items/job tickets except allowed lifecycle 
+exceptions such as Cancelled, On Hold, or Archived. Users do not freely edit status strings. 
+7 JobTicket creation OrderItem has production_required. Physical/production items create JobTickets. Fees, 
+deposits, delivery, design-only charges, and other non-production items do not. 
+8 Status vocabulary Use completed, not complete, as the finished status value across canonical statuses unless 
+
+===== PAGE 2 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+preserving a legacy imported value only for migration compatibility. 
+9 Dashboard future 
+modules 
+Dashboard cards for unavailable modules show disabled/setup/coming-soon states with 
+explicit module status. Do not return fake zero counts that make inactive modules look active. 
+10 Settings storage Frontend may receive one merged settings object at app load, but backend storage may be 
+split by domain to preserve clean boundaries. 
+11 Current main reference Current main defines approved behavior, not required architecture. Old route names, giant 
+files, and legacy collections are migration inputs, not new design requirements. 
+ 
+3. Priority Rules for Emergent and Future Agents 
+1. User-approved protected behavior wins over generic rebuild simplification. 
+2. The "Know from Day 1" implementation guidance wins over Early Plan roadmap text when the two conflict. 
+3. The final app surface exists early, but unavailable modules must clearly state their status and must not pretend to work. 
+4. Canonical architecture wins over legacy implementation details. 
+5. Deterministic services own pricing, inventory, payroll, accounting, taxes, payments, and permissions. 
+6. AI may draft, explain, suggest, or prepare reviewed actions only after guardrails exist. AI must not silently mutate money, 
+inventory, approvals, refunds, supplier orders, or selling prices. 
+7. Public portals and token pages are separate security boundaries with allowlisted APIs and explicit visibility rules. 
+4. Final App Surface from the Beginning 
+The rebuild must not hide the final product structure until later. Every major workspace and module must exist early as a 
+working feature, read-only dashboard, setup placeholder, clearly labeled coming-soon page, feature-flagged preview, or shell 
+documenting target behavior. 
+Area Required Surface 
+Home / Global Command 
+Center 
+Cross-workspace dashboard, action required, today schedule, open orders, production 
+alerts, pending approvals, unpaid invoices, daily sales, tasks due, low inventory status, AI 
+suggestions/status, recent activity. 
+Operations Customers, quotes, orders, order items, job tickets, production board, schedule, 
+proofs/approvals, documents/artwork, wrap command center, webstores, customer portal 
+shell, mobile/field work. 
+Business Billing, invoices, payments, daily sales, finance dashboard, expenses, sales tax, deductions, 
+inventory, purchasing, payroll, reports. 
+Productivity Tasks, Kanban, team messages, notes, checklists, reminders, announcements, unified 
+calendar. 
+AI Hub AI business assistant shell, AI tools shell, prompt library, onboarding, documentation, help 
+center, bug reports, feature requests, community shell, roadmap, release notes. 
+Settings General, production, pricing, billing, notifications, integrations, team, webstores, 
+permissions, feature flags, plan entitlements. 
+ 
+5. Global App Shell Requirements 
+ Global Dashboard / Command Center available from every workspace. 
+ Global Search with registry-based searchable record types, permission filters, result previews, and navigation targets. 
+ Global + Create with permission-filtered actions: New Customer, New Quote, New Order, New Order Item, New Task, New 
+Invoice, Upload File, Schedule Appointment, Create Webstore, Ask AI. 
+ Notifications center using the canonical notification engine. 
+ Workspace switcher and permission-filtered navigation. 
+ Contextual Office-style ribbon reused consistently across Dashboard, Webstores, Orders, Documents, Team, and future 
+modules. 
+
+===== PAGE 3 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+ Customizable quick toolbar for the most-used actions. 
+ Contextual help tied to the current module/page. 
+ User profile, tenant settings, and role/permission-controlled actions. 
+6. Canonical Architecture and Domain Rules 
+6.1 Modular Monolith 
+Build one deployable frontend and one deployable backend, but enforce domain boundaries. This is not a microservices 
+project. It is a modular monolith with clean seams so the codebase does not become a giant junk drawer with login buttons. 
+backend/ 
+  models/          # Pydantic/domain schemas only 
+  routes/          # thin route handlers only 
+  services/        # business rules and workflows 
+  repositories/    # database access 
+  integrations/    # Stripe, SendGrid, Meta, object storage, LLM providers 
+  shared/          # money, units, dates, auth helpers, errors, audit, notifications 
+  server.py        # app init and router registration only 
+ 
+frontend/src/ 
+  pages/           # route-level pages kept focused 
+  components/      # reusable UI components 
+  modules/         # domain-specific components 
+  ribbon/          # shared Office-style ribbon pattern 
+  context/         # auth, tenant, settings, page context 
+  lib/             # api client, formatters, utilities 
+Domain Owns 
+Identity Tenants, users, roles, permissions, sessions, invitations, impersonation audit. 
+CRM Customers, contacts, notes, customer files, customer activity. 
+Pricing Pricing Foundation, category rules, calculators, snapshots, manual overrides. 
+Sales Quotes, orders, order items, commercial totals, deposits, discounts. 
+Production Job tickets, production stages, production tasks, proofs, production schedule. 
+Billing Invoices, payments, refunds, payment links, payment history. 
+Workforce Employees, schedules, timeclock, payroll worksheets, job time. 
+Inventory Items, lots, locations, ledger, reservations, shortages, purchasing. 
+Portals Customer, employee, webstore owner, partner/B2B, public token pages. 
+Ecommerce Webstores, products, storefront orders, cart/checkout, payouts. 
+Communications Email, SMS, templates, conversations, delivery events. 
+AI AI Hub, prompt library, drafts, reviewed actions, credits, audit. 
+Platform Plans, subscriptions, tenant support, platform admin, analytics. 
+ 
+7. Canonical Shared Models 
+Model Accepted Requirement 
+Task Title, description, status, priority, due date, assigned user/team, source_type, source_id, 
+tenant_id, checklist, reminders, audit fields. Powers task lists, Kanban, production assignments, 
+calendars, dashboard alerts. 
+Note/Comment One typed-link model attachable to customer, order, order item, job ticket, invoice, task, 
+employee, webstore, inventory item. Supports internal, customer-visible, portal-visible, and 
+private visibility. 
+Message/Conversation Shared infrastructure, but separate contexts: customer communications in Operations, internal 
+team communications in Productivity, platform/community support in AI Hub. 
+CalendarEvent One typed event system for shop schedule, installs, pickups, appointments, employee shifts, 
+
+===== PAGE 4 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+order due dates, production due dates, tasks, time off. 
+Notification One canonical engine for in-app, email, SMS, digest, portal, and system alerts. Deduplicated, 
+retryable, preference-aware, and auditable. 
+File/Asset One object-storage and version system with typed links, visibility rules, signed URLs, proof 
+versions, artwork, templates, documents, before/after photos. 
+AuditEvent and 
+ActivityTimeline 
+Immutable audit events for security and investigation; filtered user-facing timelines on 
+customers, orders, order items, job tickets, invoices, webstores, employees, inventory items, 
+tasks. 
+ 
+8. Data Model Principles 
+ Every tenant-scoped collection includes tenant_id and required tenant indexes. 
+ Every record has a stable uuid id and never exposes raw MongoDB _id in API responses. 
+ Use datetime.now(timezone.utc).isoformat() or a consistent timezone-safe equivalent. Do not use naive datetimes. 
+ Human-readable numbers use tenant-scoped atomic counters: ORD-0001, INV-0001, QUO-0001, TKT-0001, PO-0001. 
+ Money fields use integer cents. Examples: subtotal_cents, tax_amount_cents, total_cents, unit_price_cents, 
+amount_paid_cents. 
+ Quantities include explicit units and dimensions where relevant: sq_ft, linear_ft, inch, roll_length_inches, 
+sheet_width_inches, etc. 
+ Important mutations create audit events and user-facing activity events where appropriate. 
+9. Orders, Order Items, and Job Tickets 
+Use one canonical Order model. Do not rebuild a separate legacy Job model. Commercial work and production execution are 
+related but not the same thing. 
+Order 
+└── OrderItem (1 or more commercial line items) 
+    └── JobTicket (created only when production_required = true) 
+        └── ProductionTask / Canonical Task links as needed 
+9.1 Order 
+ Order stores customer_id, order_number, source, order_type, due date, notes, special instructions, totals, deposit, tax, 
+balance display, and activity. 
+ Order totals are calculated by backend services from order items, discounts, taxes, deposits, and payments. 
+ Order.status is service-derived from order item/job ticket state, except approved lifecycle exceptions such as On Hold, 
+Cancelled, Archived. 
+ Webstore orders set is_webstore_order, webstore_order_id, and webstore_name at creation. Do not retrofit these later. 
+9.2 OrderItem 
+ OrderItem owns sold/commercial specifications: product type, description, quantity, dimensions, material choice, unit 
+price, line total, pricing snapshot, artwork status, and override reason where applicable. 
+ OrderItem includes production_required: true/false. Physical production items default true. Fees, deposits, delivery 
+charges, design-only charges, and administrative items default false. 
+ OrderItem pricing snapshots freeze the pricing foundation/config used at quote or order time so later changes do not 
+rewrite history. 
+9.3 JobTicket 
+ JobTicket owns production execution: stage, priority, assignee, production notes, install notes, packaging notes, rework 
+notes, artwork files, proof status, material requirements, and activity. 
+ A JobTicket is generated automatically when a production_required OrderItem is created or converted from quote to order. 
+
+===== PAGE 5 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+ JobTicket tabs: Overview, Artwork, Proofs, Materials, Notes, Activity. 
+ Production stages are tenant-configurable in Settings > Production. Do not hardcode them in the board. 
+10. Customers, Quotes, Pricing, and Invoices 
+10.1 Customers 
+ Customer records include display name, company name, email, phone, billing/shipping addresses, customer type, tax 
+exemption, preferred contact method, tags, notes, files, and active/archive state. 
+ Customer lifetime value is computed on read from paid invoices. Do not store it as a mutable field. 
+ Customer portal routes are separate public/portal flows with explicit allowlists, not internal APIs with a prettier login 
+screen. 
+10.2 Quotes 
+ Quotes include quote number, customer, status, expiration, line items, subtotal, tax, total, notes, pricing snapshot, and 
+converted_order_id. 
+ Quote to Order conversion is idempotent and creates OrderItems and JobTickets for production_required items. 
+ Public quote acceptance uses signed token links with expiration and audit/activity events. 
+10.3 Pricing Foundation and Calculator 
+ Pricing Foundation lives in Settings > Pricing and stores category defaults, materials, labor, markup, overhead, waste, 
+minimums, and quantity breaks. 
+ Pricing Calculator is its own tool and also appears as a global quick action and inside quote/order item workflows. 
+ All formulas are pure deterministic functions: calculatePrice(inputs, foundationConfig) returns a breakdown and price with 
+no side effects. 
+ Calculator should work with or without a selected customer for fast phone quoting. 
+ Quantity breaks are per-category, not global. 
+ Manual price overrides require a reason and create an audit event. 
+10.4 Invoices and Payments 
+ Invoices are immutable billed snapshots generated from orders or manually created where allowed. 
+ Invoice balance is computed from total_cents minus sum of payment transactions. Do not store balance as a free-edit 
+mutable field. 
+ Partial payments and refunds are stored in payment_transactions. 
+ Public payment links use signed or random stored tokens, not exposed invoice IDs. 
+ Overdue status is computed from due date and payment state; scheduler sends reminders but does not blindly mutate 
+status without service rules. 
+11. Webstores - Protected Approved Behavior 
+Webstores are mostly already how the product should work. Therefore, the rebuild must preserve the approved webstore 
+behavior and rebuild it early enough to avoid losing functionality. The old plan language that delayed active webstores is 
+superseded by this accepted decision. 
+11.1 Accepted Scope 
+ Webstores appear in Operations from the beginning as a real module, not merely a fake placeholder. 
+ Store types: b2b, fundraiser, creator/event-oriented modes as approved from the current app behavior. 
+ Store setup, branding/theme, images, products/catalog, forms/questionnaires, owner invite/onboarding, store progress, 
+and analytics must preserve approved behavior. 
+ Public storefront route uses /store/{store_slug}. Store slug is globally unique. 
+
+===== PAGE 6 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+ Cart stays localStorage until checkout is confirmed. Do not create a cart table unless an approved future requirement 
+demands saved carts. 
+ Public storefront APIs are unauthenticated and isolated from internal APIs with explicit allowlists. 
+ Webstore products are ecommerce catalog records. They are not the same as shop inventory items or Pricing Foundation 
+materials, but they may reference pricing templates or production templates. 
+ Checkout creates WebstoreOrder, then a bridge creates canonical Order, OrderItems, and JobTickets for 
+production_required purchased items. 
+ Shop Orders list shows webstore orders with a Webstore badge and source data from creation. 
+ Stripe Connect onboarding must exist before creator/store payout features go live. 
+11.2 What May Be Gated Without Delaying Webstores 
+ Live Stripe Connect payouts may be gated until webhook signing, onboarding status, reconciliation, refunds, disputes, and 
+disconnected account recovery are tested. 
+ Inventory reservation from webstore orders may wait until inventory is active and ledger-safe. 
+ Meta/Facebook and SMS messaging attached to stores may wait until the communications infrastructure is active. 
+ Supplier API or live vendor integrations are not required for webstores to function. 
+ Any unfinished area must show explicit disabled/setup status instead of pretending it works. 
+11.3 Webstore Acceptance Tests 
+ Create each approved store type. 
+ Verify required setup fields, owner invite, questionnaire/forms, product images, product variants, publishing state, and 
+slug uniqueness. 
+ Visit public storefront unauthenticated. 
+ Add products to cart and confirm cart persists locally until checkout. 
+ Checkout creates WebstoreOrder and canonical shop Order with OrderItems and JobTickets. 
+ Internal users see correct webstore badges, source links, and order details. 
+ Webstore owner portal cannot see internal costs, supplier data, other tenants, or unrelated shop records. 
+12. Production, Documents, Artwork, and Wrap Command Center 
+ Production Board supports configurable tenant stages and at least rollup view by JobTicket. Task-level view may deepen 
+later using canonical tasks. 
+ Production cards show ticket name, ticket number, priority, stage, assignee, due date, rollup progress, and a Materials 
+deep link where enabled. 
+ Proof workflow: upload artwork, generate/send proof, public approval/revision token page, status update, activity event, 
+shop notification, versioning. 
+ Document library supports categories, files linked to customers/orders/job tickets, questionnaires/forms, and explicit 
+visibility rules. 
+ Artwork workflow includes customer-uploaded art, proof versions, image markup, measurements, approval comments, 
+design notes, file versioning, asset library, templates, before/after photos. 
+ Wrap Command Center is protected. Destination includes vehicle records, measurements, area/side records, artwork 
+zones, damage/pre-install photos, install checklist, proof approvals, material estimate, production stages, install 
+scheduling, customer signature, before/after photos, warranty/care instructions. 
+ Mobile/field workflows must be responsive from the beginning: camera upload, install checklist, customer signature, 
+before/after photos, address access, completion notes, pickup/install confirmation. 
+13. Team, Timeclock, Schedule, and Payroll 
+ Team schedule, timeclock, and payroll rules are protected behavior areas and must be specified before rebuild. 
+
+===== PAGE 7 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+ Employee scheduling should support multi-employee day/week scheduling from one board, not one employee profile at a 
+time. 
+ Timeclock entries are append-only. Corrections create edited/correction records with manager, reason, original values, 
+and audit trail. 
+ Payroll runs are snapshots. Once finalized, rates and hours are frozen even if employee records later change. 
+ Pay period settings live in Settings > Team. Weekly Sat-Fri baseline and Friday payday may be defaulted for Donnell's 
+tenant but must remain configurable. 
+ Overtime rules must be configurable, with default weekly overtime after 40 hours at 1.5x. 
+ Employee portal cannot expose owner-only financial/admin settings. 
+14. Inventory and Purchasing 
+Inventory and purchasing are protected behavior, but the accepted sequencing keeps them after Orders, JobTickets, Pricing, 
+Production, Tasks, Notifications, and Activity are stable. Webstores do not need to wait for inventory unless using stocked-
+product reservations. 
+ InventoryItem is the catalog record. InventoryLot is the physical batch. InventoryTransaction is the immutable ledger. 
+ Tracking methods include quantity, roll, sheet, remnant, pack, board/case as needed. 
+ Balances are computed from ledger/lots: on hand, reserved, available, incoming, shortages, value. 
+ Never mutate quantity_on_hand directly without a transaction record. 
+ Material requirements link JobTickets to InventoryItems and can become reserved, pulled, consumed, shortage, returned, 
+or waste. 
+ Shortages surface in Action Required and can become draft purchase order lines. 
+ PO receipt creates inventory lots, receipt transactions, updates incoming/on-hand status, and resolves linked shortages. 
+ Supplier APIs, live comparison, automatic ordering, AI purchasing recommendations, and webstore inventory reservations 
+are later dependencies, not MVP blockers. 
+15. Portals, Communications, and Notifications 
+ Each portal is a separate security boundary: Customer Portal, Employee Portal, Webstore Owner Portal, Partner/B2B 
+Portal, Public Token Pages, Platform Admin Portal. 
+ Customer/order communications belong in Operations. Team/internal messages belong in Productivity. Platform 
+support/community messages belong in AI Hub. 
+ Email templates should be defined centrally for proofs, invoices, overdue invoices, payment received, order confirmed, 
+order ready, quote sent, quote accepted, webstore events, and portal invites. 
+ Notification triggers include proofs, quotes, invoices, orders, tasks, inventory, appointments, webstores, payroll, AI review, 
+and platform events. 
+ Notifications must be deduplicated, retryable, preference-aware, auditable, and tied to delivery events. 
+ Public token pages must have signed/random tokens, expiry, rate limits, and purpose-specific APIs. 
+16. AI Hub and Automation 
+ AI Hub exists from the beginning for product identity, help, documentation, prompt library, bug reports, feature requests, 
+roadmap, and release notes. 
+ Active AI tools wait until deterministic workflows and guardrails are ready. 
+ AI can draft emails/texts/product descriptions/documents, summarize, explain, and suggest only inside permission-
+filtered context. 
+ Mutating actions require explicit review with preview, sources, assumptions, affected records, and predicted impact. 
+ AI cannot directly approve purchase orders, alter inventory, submit supplier orders, issue refunds, change selling prices, 
+bypass permissions, or block manual workflows. 
+
+===== PAGE 8 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+ AI credit charging must be idempotent and tied to completed actions, not failed attempts. 
+17. Dashboard, Ribbon, and UI System 
+17.1 Dashboard Layout 
+[Contextual Ribbon: 12 action buttons grouped as Create | Customer | Workflow] 
+[KPI Strip: Revenue | Orders | Quotes | AR | Unread] 
+[Action Required - 2 columns] [Production Snapshot - 1 column] 
+[Billing Snapshot] [Shop Health] [Onboarding] 
+[Reserved states for inventory, AI, webstores, payroll, and other future modules] 
+ Dashboard uses one digest endpoint for core data rather than many scattered calls. 
+ Unavailable modules return explicit disabled/setup/coming-soon state, not fake zeros. 
+ Action Required consolidates proofs awaiting approval, orders awaiting customer approval, overdue invoices, low 
+stock/shortages when active, and AI suggestions/review items when active. 
+17.2 Ribbon Actions 
+Ribbon Group Actions 
+Create New Order, New Quote, New Customer, Pricing Calc 
+Customer Send Proof, Request Approval, Send Document, New Invoice 
+Workflow Send Email, New Task, Schedule Install, Open Calendar 
+ 
+17.3 UI Rules 
+ Use the same Office-style ribbon dimensions and button pattern across modules. 
+ Cards use white surface, light border, rounded corners, subtle shadow, and 3px top accent border. Avoid large colored 
+card backgrounds. 
+ Use lucide-react icons only, not emoji icons. 
+ Use Sonner for toasts. 
+ Keep pages focused. Do not create multi-thousand-line page components. 
+ Every page must have loading, empty, error, success, confirmation, and permission-denied states. 
+18. Revised Release Plan 
+This release plan keeps the final app surface visible early, preserves approved webstore behavior early, and delays only 
+features that truly depend on unfinished infrastructure. Planning every tiny Release 8 endpoint now would be fake precision, 
+and fake precision is just procrastination wearing a tie. 
+Release 0 - Foundation and Protected Specifications 
+Internal foundation. Extract protected specs, final route map, permission matrix, canonical models, repository structure, 
+tenant auth, migrations, indexes, audit/activity, canonical shared services, object storage, email/SMS abstraction, jobs, 
+idempotency, feature flags, utilities, error contracts, logs, health checks, deterministic fixtures, CI, preview/staging/prod 
+environments. 
+Release 1 - Structured Pilot Core + Final Surface 
+Global shell, four workspaces, settings, permissions, dashboard, search, + Create, notifications, help, AI Hub shell, 
+customers, pricing foundation/calculator, quotes, orders, order items, job tickets, production board, proofs, document library, 
+invoices/manual payments, basic reports, productivity basics, and early preserved Webstores module. 
+
+===== PAGE 9 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+Release 1W - Webstores Preservation Track 
+Can run parallel to Release 1 if needed. Preserve approved webstore setup, store types, product/catalog behavior, storefront, 
+owner invite/progress, questionnaires/forms, public store route, cart localStorage, checkout/order sync where payment 
+infrastructure is ready, and canonical order/job-ticket bridge. 
+Release 2 - Production Operations and Commercial Core 
+Deeper pricing categories/forms, workflow templates, advanced task views, unified calendar, appointment confirmations, 
+production timeline, advanced proofs/artwork/signatures, Wrap Command Center, mobile installer workflow, job-time 
+profitability, daily digest, email templates, Customer Portal lite, commercial launch hardening. 
+Release 3 - Workforce, Productivity, and Financial Control 
+Employee records/portal, timeclock, breaks, corrections, job time, shifts, time off, payroll worksheet, payroll 
+adjustments/signoff/export/history, full tasks/Kanban/checklists/reminders/recurring workflows, internal messages, 
+sales/expenses, daily sales, taxes, deductions, finance dashboard, reports. 
+Release 4 - Inventory and Purchasing 
+Protected inventory behavior: items, categories, aliases, pricing links, locations, bins, lots, rolls, sheets, packs, remnants, unit 
+conversions, ledger, reservations, shortages, job material requirements, pulls, consumption, returns, waste, vendors, 
+shortage-driven POs, receiving, cost suggestions. 
+Release 5 - Customer Experience and Communications 
+Full Customer Portal, Partner/B2B Portal, dynamic questionnaires, public forms, enhanced document/artwork library, 
+customer communications hub, email templates, deliverability, SMS, Meta/Facebook leads/messages, notification 
+preferences, appointment workflows. 
+Release 6 - Ecommerce Expansion 
+This is no longer the first active webstore release. It expands webstores after core is stable: advanced catalog/variants, 
+analytics, payouts, disputes, refunds, reconciliation, webstore-owner portal depth, optional stocked/made-to-order inventory 
+modes. 
+Release 7 - AI and Automation 
+Active AI Business Assistant, permission-filtered context, read-only Q&A, reviewed action drafts, pricing/service-description 
+assistance, email/text/product/marketing/document/image/voice tools, production/reporting/webstore/Facebook assistance, 
+credits, preferences, history, entitlements, AI audit trail. 
+Release 8 - SaaS Platform, Growth, and Ecosystem 
+Plans, trials, founders offers, coupons, upgrades, subscription billing, dunning, plan entitlements, platform admin, tenant 
+support, impersonation audit, platform analytics, marketing site, full docs/help/community, expanded onboarding, 
+backup/restore management, supplier integrations. 
+19. Release 0 Detailed Requirements 
+ Protected specs approved for Pricing Foundation, categories, quizzes, defaults, onboarding, ribbons, dashboards, 
+webstores, team/payroll, inventory, wraps, document library/questionnaires, portals, AI guardrails. 
+ Final route map and workspace/module hierarchy approved. 
+ Permission/navigation matrix approved by role and portal. 
+ Canonical data models and shared services created. 
+ Tenant isolation and permission tests pass before feature work scales. 
+ Migrations can roll forward and back. 
+ Demo tenant and deterministic fixtures exist for repeatable testing. 
+ CI includes unit, API integration, tenant-isolation, permission, and browser smoke tests. 
+
+===== PAGE 10 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+20. Release 1 Detailed Requirements 
+Identity and Setup 
+ Owner login/logout/password reset/sessions 
+ Tenant isolation 
+ Owner/admin/staff roles 
+ User invitations and deactivation 
+ Company, tax, payment terms, numbering, timezone settings 
+ Setup wizard and onboarding checklist 
+Customers 
+ Create/edit/archive/search/filter/import/export 
+ Contacts, addresses, notes, tax exemption, files 
+ Order/invoice history and activity timeline 
+Pricing 
+ Minimal Pricing Foundation 
+ Deterministic calculator 
+ Digital print, rigid signs, banners, apparel, services, custom categories 
+ Pricing snapshots 
+ Audited manual overrides 
+Quotes, Orders, Production 
+ Quotes and quote-to-order conversion 
+ Direct order creation 
+ Quick and detailed order items 
+ Order lists, statuses, due dates, notes, files, activity 
+ Job tickets for production_required items 
+ Production Board with configurable statuses 
+ Assignment, priority, production notes, basic job time 
+Proofs/Documents/Artwork 
+ Proof request and public approve/reject page 
+ Approval history 
+ Document library linked to customers and orders 
+ Basic drawing upload, image markup, annotation 
+ File versions and visibility rules 
+Invoices/Dashboard 
+ Invoice creation from orders 
+ Invoice statuses, totals, balances, manual payments/refunds 
+ Printable/downloadable and emailed invoices 
+ Payment and activity history 
+ Global Command Center with live core cards and reserved future cards 
+ Basic sales, outstanding invoice, order-status reports 
+Productivity and AI Hub Shells 
+ Minimal tasks 
+ Notes/comments 
+
+===== PAGE 11 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+ Reminders 
+ Announcements 
+ Unified calendar shell 
+ Team messages shell 
+ AI Hub shell 
+ Prompt Library shell 
+ Documentation and Help Center shell 
+ Bug report and feature request submission 
+ My Requests 
+ Release Notes and Roadmap pages 
+Webstores Preservation 
+ Approved store types and setup preserved 
+ Store owner invite/progress preserved 
+ Product/catalog/image behavior preserved 
+ Questionnaires/forms preserved 
+ Public storefront and cart behavior preserved where payment dependencies are ready 
+ Order sync into canonical orders/job tickets 
+ Disabled states only where specific dependencies are not ready 
+21. Acceptance Test Strategy 
+Test Area Acceptance Requirement 
+Tenant Isolation A second tenant cannot read, search, mutate, download, or infer another tenant's records. 
+Permissions Navigation, ribbon actions, quick create, fields, records, portals, and mutations obey 
+role/permission rules. 
+Money Quote totals, order totals, invoice totals, payments, refunds, deposits, discounts, and taxes 
+reconcile in cents under retry conditions. 
+Quote to Order Accepted quote converts once, creates correct order items and job tickets, stores pricing 
+snapshots, and logs activity. 
+Production Production board reflects configurable stages and job ticket state without manually editing 
+derived order status. 
+Proofs Proof token links expire, approve/reject correctly, create activity and notifications, and preserve 
+proof versions. 
+Webstores Store setup, storefront, cart, checkout/order bridge, owner visibility, and portal security match 
+approved behavior. 
+Portals Public/portal APIs expose only allowlisted records and fields. Internal notes/costs never leak. 
+Files Uploads validate type/size, store through object storage abstraction, create versions, and 
+enforce visibility/signed URLs. 
+Dashboard Digest endpoint returns real active data and explicit disabled/setup states for inactive modules. 
+Backup/Restore Tenant backup and restore verified in a separate environment. 
+ 
+22. Protected Specification Checklist 
+ Pricing Foundation: fields, labels, defaults, formulas, assumptions, validation, overrides, tests. 
+ Product/item categories: category names, progressive forms, required/optional fields, calculations, order item behavior. 
+ Onboarding setup: steps, completion rules, skip rules, default settings, guided setup states. 
+ Office-style ribbon: groups, actions, dimensions, icons, labels, permission filtering, module variants. 
+ Dashboard layouts: card order, spans, KPI strip, Action Required, reserved cards, empty states, digest API. 
+ Webstore setup and store types: every approved field, flow, owner portal behavior, storefront behavior, order sync. 
+
+===== PAGE 12 =====
+SignGuyAI Clean Rebuild Master Plan - Accepted Version 
+ Team schedule/timeclock/payroll: schedule workflow, pay period, payday, corrections, advances/payments/carryover if 
+approved, exports. 
+ Inventory/purchasing: ledger, lots, rolls/sheets/remnants, shortages, POs, receiving, cost suggestions. 
+ Wrap Command Center: vehicle, measurements, photos, artwork zones, install, signatures, warranty/care. 
+ Document library/questionnaires: categories, attachments, forms, sending to portal/email, visibility. 
+ Portals: customer, employee, webstore owner, partner/B2B, token pages, allowlists. 
+ AI guardrails: permissions, review, audit, prohibited actions, fallback behavior. 
+23. Required Next Planning Sequence 
+8. Approve this accepted master plan as the controlling rebuild plan. 
+9. Create protected behavior specs, starting with Webstores, Pricing Foundation, Dashboard/Ribbon, Orders/Order 
+Items/JobTickets, and Document Library. 
+10. Define final route map and permission/navigation matrix. 
+11. Define canonical data models and migration inputs from current main. 
+12. Create Release 0 implementation prompt for Emergent. 
+13. Create Release 1 + Release 1W implementation prompt and acceptance tests. 
+14. Run a migration/fixture plan from current app demo data and approved behavior. 
+15. Only then start broad implementation. Build vertical slices with tests instead of porting giant files wholesale. 

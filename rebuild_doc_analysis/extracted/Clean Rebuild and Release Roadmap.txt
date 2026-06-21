@@ -1,0 +1,3502 @@
+
+
+===== PAGE 1 =====
+ 
+ 
+ 
+# SignGuyAI Clean Rebuild and Release Roadmap 
+ 
+## Authoritative Direction 
+ 
+The current `main` application is the product-behavior reference. The rebuild may replace its code and 
+data structure, but it must preserve approved features, ﬁelds, defaults, calculations, workﬂows, and 
+design behavior. 
+ 
+The rebuild will use staged releases, but it will **not** hide the future app structure until later releases. 
+The ﬁnal navigation, workspaces, routes, permissions, data ownership, and page patterns must be 
+established at the beginning. Later releases deepen those stable surfaces. 
+ 
+## Final App Surface Rule 
+ 
+Every major ﬁnal workspace and module must exist from Release 1 in one of these states: 
+ 
+- Working minimal feature 
+- Read-only dashboard 
+- Setup placeholder 
+- Clearly labeled coming-soon page 
+- Feature-ﬂagged internal preview 
+- Module shell documenting its target behavior 
+ 
+This prevents repeated navigation rewrites, route churn, permission rewrites, and layout restructuring. 
+ 
+Placeholder modules must never pretend to work. They must clearly show their status, planned 
+capability, and dependencies. 
+ 
+## Final User-Facing Structure 
+ 
+Backend code should be organized by technical business domains. Users should experience the product 
+through four connected workspaces beneath one global command center. 
+ 
+### Global App Shell 
+ 
+Available from every workspace: 
+ 
+- Global Dashboard / Command Center 
+- Global Search 
+- Global `+ Create` 
+- Notiﬁcations center 
+- Workspace switcher 
+- Contextual oƯice-style ribbon 
+- Customizable quick toolbar 
+- Contextual help 
+- User proﬁle and settings 
+
+===== PAGE 2 =====
+- Permission-ﬁltered navigation and actions 
+ 
+### Workspace 1: Operations 
+ 
+Owns customer work from inquiry through production and completion. 
+ 
+- Customers 
+- Quotes 
+- Orders 
+- Order Items 
+- Job Tickets 
+- Production Board 
+- Schedule 
+- Proofs and Approvals 
+- Documents and Artwork 
+- Wrap Command Center 
+- Webstores shell 
+- Customer Portal shell 
+- Mobile / Field Work 
+ 
+### Workspace 2: Business 
+ 
+Owns money, workforce administration, purchasing, and business performance. 
+ 
+- Billing 
+- Invoices 
+- Payments 
+- Daily Sales 
+- Finance Dashboard 
+- Expenses 
+- Sales Tax 
+- Deductions 
+- Inventory shell 
+- Purchasing shell 
+- Payroll shell 
+- Reports 
+ 
+### Workspace 3: Productivity 
+ 
+Owns internal coordination across all other workspaces. 
+ 
+- Tasks 
+- Kanban 
+- Team Messages 
+- Notes 
+- Checklists 
+- Reminders 
+- Announcements 
+- Uniﬁed Calendar 
+
+===== PAGE 3 =====
+-Admin portal for all admin communication 
+ 
+### Workspace 4: AI Hub 
+ 
+Owns assistance, support, learning, product feedback, and future AI tools. 
+ 
+- AI Business Assistant shell 
+- AI Tools shell 
+- Prompt Library 
+- Onboarding 
+- Documentation 
+- Help Center 
+- Bug Reports 
+- Feature Requests 
+- Community shell 
+- Product Roadmap 
+- Release Notes 
+ 
+## Global Command Center 
+ 
+The Dashboard is the cross-workspace command center, not merely a report page. 
+ 
+Release 1 must reserve stable dashboard regions for: 
+ 
+- Action Required 
+- Today's Schedule 
+- Open Orders 
+- Production Alerts 
+- Pending Approvals 
+- Unpaid Invoices 
+- Daily Sales 
+- Tasks Due 
+- Low Inventory Alerts 
+- AI Suggestions 
+ 
+Cards for unavailable modules may show setup, coming-soon, or disabled states. Their placement and 
+data contracts should remain stable as modules deepen. 
+ 
+## Global Search 
+ 
+Global Search must use a registry-based architecture so each module can register searchable record 
+types, labels, permissions, result previews, and navigation targets. 
+ 
+Release 1 searchable records: 
+ 
+- Customers 
+- Orders 
+- Quotes 
+- Invoices 
+
+===== PAGE 4 =====
+- Documents 
+ 
+Final searchable records: 
+ 
+- Contacts 
+- Order Items 
+- Job Tickets 
+- Payments 
+- Tasks 
+- Proofs 
+- Webstores 
+- Employees 
+- Inventory Items 
+- Messages 
+- Help Documentation 
+- AI Outputs 
+ 
+Search results must always respect tenant, role, record, portal, and ﬁnancial-ﬁeld permissions. 
+ 
+## Global Create 
+ 
+The global `+ Create` system must exist in Release 1 and be permission-ﬁltered. 
+ 
+Target actions: 
+ 
+- New Customer 
+- New Quote 
+- New Order 
+- New Order Item 
+- New Task 
+- New Invoice 
+- Upload File 
+- Schedule Appointment 
+- Create Webstore 
+- Ask AI 
+ 
+Unavailable actions may be disabled with an explanation until their release. 
+ 
+## Canonical Shared Concepts 
+ 
+The following are platform primitives. Individual modules must not create competing implementations. 
+ 
+### Tasks 
+ 
+The canonical task model begins in the foundation: 
+ 
+- Title 
+- Description 
+- Status 
+
+===== PAGE 5 =====
+- Priority 
+- Due date 
+- Assigned user/team 
+- Source type 
+- Source ID 
+- Tenant ID 
+- Checklist 
+- Reminder rules 
+- Created/updated/completed audit ﬁelds 
+ 
+Tasks power personal lists, Kanban, production work, assignments, calendars, and dashboard alerts. 
+ 
+### Notes and Comments 
+ 
+Use one typed-link note/comment model attachable to: 
+ 
+- Customer 
+- Order 
+- Order Item 
+- Job Ticket 
+- Invoice 
+- Task 
+- Employee 
+- Webstore 
+- Inventory Item 
+ 
+Notes must support visibility rules such as internal, customer-visible, portal-visible, and private. 
+ 
+### Messages and Conversations 
+ 
+Keep three explicitly separated communication contexts: 
+ 
+- Customer communications in Operations 
+- Internal team communications in Productivity 
+- Platform support and community communications in AI Hub 
+ 
+All use shared communication infrastructure but have separate permissions, visibility, and UI contexts. 
+ 
+### Calendar and Schedule 
+ 
+Use one typed event system rather than unrelated calendars. 
+ 
+The uniﬁed calendar ultimately includes: 
+ 
+- Shop schedule 
+- Install schedule 
+- Pickup schedule 
+- Appointments 
+- Employee shifts 
+
+===== PAGE 6 =====
+- Order due dates 
+- Production due dates 
+- Task due dates 
+- Time oƯ 
+ 
+### Notiﬁcations 
+ 
+Use one canonical notiﬁcation engine supporting: 
+ 
+- In-app notiﬁcation 
+- Email notiﬁcation 
+- SMS notiﬁcation 
+- Digest notiﬁcation 
+- Portal notiﬁcation 
+- System alert 
+ 
+Triggers include proofs, quotes, invoices, orders, tasks, inventory, appointments, webstores, payroll, AI 
+review, and platform events. Delivery must be deduplicated, retryable, preference-aware, and auditable. 
+ 
+### Audit Events and Activity Timelines 
+ 
+Immutable audit events support security and system investigation. A ﬁltered user-facing activity timeline 
+uses the same event backbone. 
+ 
+Activity timelines appear on: 
+ 
+- Customer 
+- Order 
+- Order Item 
+- Job Ticket 
+- Invoice 
+- Webstore 
+- Employee 
+- Inventory Item 
+- Task 
+ 
+### Files, Documents, and Artwork 
+ 
+Use one object-storage and ﬁle-version system with typed links and explicit visibility. 
+ 
+The ﬁnal artwork workﬂow includes: 
+ 
+- Artwork upload 
+- Customer-uploaded artwork 
+- Proof versions 
+- Image markup 
+-drawings 
+- Measurements 
+- Approval comments 
+
+===== PAGE 7 =====
+- Design notes 
+- File versioning 
+- Asset library 
+- Template ﬁles 
+- Before/after photos 
+ 
+## Portals and Public Surfaces 
+ 
+Each portal is a separate security boundary with allowlisted data and purpose-speciﬁc APIs: 
+ 
+- Customer Portal 
+- Employee Portal 
+- Webstore Owner Portal 
+- Partner / B2B Portal 
+- Public Token Pages 
+- Platform Admin Portal 
+ 
+### Partner / B2B Portal Destination 
+ 
+- Place orders 
+- View order status 
+- Upload ﬁles and details 
+- View invoices and statements 
+- Access approved partner pricing 
+- View webstore links 
+- Submit forms 
+- Access partner documents 
+- View approved commission or discount information 
+ 
+## Mobile and Field Work Destination 
+ 
+Internal workﬂows must be responsive from the beginning. The ﬁnal ﬁeld workﬂow includes: 
+ 
+- Mobile installer view 
+- Camera upload 
+- Install checklist 
+- Customer signature 
+- Before/after photos 
+- Location and address quick access 
+- Completion notes 
+- Pickup and installation conﬁrmation 
+ 
+## Protected Speciﬁcation Areas 
+ 
+Before rebuilding any protected area, extract its current approved behavior into a written speciﬁcation. 
+The current code may be discarded, but approved product behavior cannot be simpliﬁed, renamed, 
+removed, or restructured without explicit approval. 
+ 
+Protected areas: 
+
+===== PAGE 8 =====
+ 
+- Pricing Foundation 
+- Product and item categories 
+- Pricing quizzes and progressive forms 
+- Pricing defaults and calculation assumptions 
+- Onboarding setup 
+- OƯice-style ribbon navigation 
+- Dashboard layouts 
+- Webstore setup and store types 
+- Team schedule, timeclock, and payroll rules 
+- Inventory and purchasing behavior 
+- Wrap Command Center 
+- Document library and questionnaires 
+- Customer, employee, webstore-owner, and partner portals 
+- AI assistant guardrails and action review rules 
+ 
+Each protected speciﬁcation must record: 
+ 
+- Approved user outcomes 
+- Fields, labels, defaults, and validation 
+- Calculations and assumptions 
+- Roles and permissions 
+- Workﬂow states and transitions 
+- Notiﬁcations and side eƯects 
+- Error and recovery behavior 
+- Existing acceptance tests 
+- Explicitly approved changes 
+ 
+## Clean Architecture Rules 
+ 
+1. Build a modular monolith with one deployable frontend and backend and enforced domain 
+boundaries. 
+2. Use one canonical `Order`; do not recreate a separate legacy `Job`. 
+3. Use `OrderItem` for commercial line items and `JobTicket` for production execution. 
+4. Use canonical tasks, notes, messages, calendar events, notiﬁcations, ﬁles, and activity events. 
+6. Put all tenant-scoped access behind shared authorization helpers. 
+7. Keep deterministic pricing, inventory, payroll, and accounting calculations outside AI. 
+8. Add external integrations only after their manual workﬂow works. 
+9. Keep every portal isolated from internal APIs and internal cost data. 
+10. Use feature ﬂags and staged tenant rollouts for every major capability. 
+11. Require migrations, rollback plans, monitoring, and acceptance tests for every release. 
+12. Do not recreate giant route modules or multi-thousand-line page components. 
+ 
+## Release 0: Foundation and Protected Specifications 
+ 
+### Goal 
+ 
+Create the stable technical foundation and preserve approved behavior before implementation begins. 
+ 
+
+===== PAGE 9 =====
+### Deliverables 
+ 
+- Protected speciﬁcations for every protected area 
+- Final route map for the Global Shell and four workspaces 
+- Final permission/navigation matrix by role and portal 
+- Canonical domain and shared-concept data models 
+- Repository structure organized by domain 
+- Tenant-scoping and authorization middleware 
+- Database migrations and indexes 
+- Audit events and activity timeline service 
+- Canonical tasks, notes, messages, calendar, notiﬁcations, and ﬁles 
+- Object storage abstraction 
+- Email/SMS abstraction and delivery events 
+- Background jobs and scheduler 
+- Idempotency service 
+- Shared money, quantity, unit, date, and timezone utilities 
+- Error contracts, logging, health checks, metrics, and alerting 
+- Demo tenant and deterministic ﬁxtures 
+- CI with unit, API integration, tenant-isolation, and browser smoke tests 
+- Local, preview, staging, and production environments 
+ 
+### Exit Criteria 
+ 
+- Protected speciﬁcations are approved. 
+- Final workspace, route, and permission maps are approved. 
+- Shared concepts cannot be bypassed by feature modules. 
+- Tenant and permission isolation tests pass. 
+- Deployments and migrations can roll forward and back. 
+ 
+## Release 1: Structured Pilot MVP 
+ 
+### Goal 
+ 
+Deliver a dependable core shop workﬂow inside the ﬁnal application structure. 
+ 
+### Final Surface Requirements 
+ 
+- Global App Shell and four workspaces exist. 
+- Every destination module has a working minimal page, read-only view, setup placeholder, or clearly 
+labeled coming-soon page. 
+- Permission-ﬁltered workspace, module, ribbon, quick-create, and record access rules work. 
+- Global Dashboard, Search, Create, Notiﬁcations, Help, Proﬁle, and Settings exist. 
+- AI Hub exists as a product/support shell without unsafe AI actions. 
+ 
+### Working Core Features 
+ 
+#### Identity and Setup 
+ 
+- Owner login, logout, password reset, and sessions 
+
+===== PAGE 10 =====
+- Strict tenant isolation 
+- Owner, admin, and staƯ roles 
+- User invitations and deactivation 
+- Basic company, tax, payment terms, numbering, and timezone settings 
+- Setup wizard and onboarding checklist 
+ 
+#### Customers 
+ 
+- Create, edit, archive, search, ﬁlter, import, and export 
+- Contacts, addresses, notes, tax exemption, and ﬁles 
+- Customer order/invoice history and activity timeline 
+ 
+#### Pricing 
+ 
+- Minimal Pricing Foundation 
+- Deterministic calculator 
+- Digital print, rigid signs, banners, apparel, services, and custom categories 
+- Pricing snapshots 
+- Audited manual price overrides 
+ 
+#### Quotes, Orders, and Production 
+ 
+- Quotes and quote-to-order conversion 
+- Direct order creation 
+- Quick and detailed order items 
+- Order list, ﬁlters, statuses, due dates, notes, ﬁles, and activity 
+- Job tickets generated from production items 
+- Production Board with conﬁgurable statuses 
+- StaƯ assignment, priority, production notes, and basic job time 
+- Minimal canonical tasks and task list 
+- Quick camera/ﬁle upload 
+ 
+#### Proofs, Documents, and Artwork 
+ 
+- Proof request and public approve/reject page 
+- Approval history 
+- Document library linked to customers and orders 
+- Basic drawing upload, image markup, and annotation 
+- File versions and visibility rules 
+ 
+#### Invoices and Dashboard 
+ 
+- Invoice creation from orders 
+- Invoice statuses, totals, balances, and manual payments/refunds 
+- Printable/downloadable and emailed invoices 
+- Payment and activity history 
+- Global Command Center with live core cards and reserved future cards 
+- Basic sales, outstanding invoice, and order-status reports 
+ 
+
+===== PAGE 11 =====
+#### Productivity and AI Hub Shells 
+ 
+- Minimal tasks 
+- Notes/comments 
+- Reminders 
+- Announcements 
+- Uniﬁed calendar shell 
+- Team messages shell 
+- AI Hub shell 
+- Prompt Library shell 
+- Documentation and Help Center shell 
+- Contextual help from core pages 
+- Bug report and feature request submission 
+- My Requests 
+- Release Notes and Roadmap pages 
+ 
+### Explicitly Deferred Behavior 
+ 
+- Advanced workforce/payroll behavior 
+- Active inventory and purchasing behavior 
+- Full customer, employee, webstore-owner, and partner portals 
+- Active webstores and Stripe Connect 
+- Meta/Facebook and SMS 
+- Active AI tools, credits, or autonomous actions 
+- Advanced Wrap Command Center behavior 
+- Advanced productivity and schedule behavior 
+ 
+### Exit Criteria 
+ 
+- A pilot shop can complete customer-to-paid-order workﬂows without database intervention. 
+- The complete ﬁnal app structure does not require navigation restructuring for future releases. 
+- Every placeholder accurately communicates status and cannot mutate unavailable systems. 
+- Core totals and conversions remain consistent under retries. 
+- Tenant, permission, portal, and ﬁnancial-ﬁeld access tests pass. 
+- Backup export and restore are veriﬁed. 
+ 
+## Release 2: Production Operations and Commercial Core 
+ 
+### Goal 
+ 
+Deepen production, scheduling, artwork, portal, and commercial-readiness capabilities. 
+ 
+### Features 
+ 
+- Remaining pricing categories and progressive forms 
+- Pricing setup and historical import 
+- Workﬂow templates 
+- Production tasks using canonical tasks 
+- Kanban and advanced task views 
+
+===== PAGE 12 =====
+- Uniﬁed schedule/calendar with production, installs, pickups, appointments, and due dates 
+- Appointment conﬁrmations 
+- Production timeline 
+- Advanced proofs, artwork versions, drawings, markup, and signatures 
+- Full Wrap Command Center destination workﬂow: 
+  - Vehicle records and measurements 
+  - Area/side records and artwork zones 
+  - Damage and pre-install photos 
+  - Install checklist 
+  - Proof approvals 
+  - Material estimate 
+  - Production stages 
+  - Install scheduling 
+  - Customer signature 
+  - Before/after photos 
+  - Warranty and care instructions 
+- Mobile installer/ﬁeld workﬂow 
+- Job-time and labor-proﬁtability reporting 
+- Daily digest and operational notiﬁcations 
+- Email templates and delivery tracking 
+- Customer Portal lite 
+- Production and proﬁtability reports 
+ 
+### Commercial Launch Gate 
+ 
+- Production email and webhook conﬁguration 
+- Payment webhook signature veriﬁcation 
+- Backup/restore drills 
+- Tenant, RBAC, and portal security tests 
+- Error tracking, uptime monitoring, and support runbooks 
+- Privacy, terms, data retention, and security documentation 
+- Live critical-ﬂow browser tests 
+- SaaS subscription billing or documented manual provisioning 
+ 
+## Release 3: Workforce, Productivity, and Financial Control 
+ 
+### Goal 
+ 
+Deepen the Business and Productivity workspaces. 
+ 
+### Features 
+ 
+- Employee records and Employee Portal 
+- Timeclock, breaks, corrections, job time, and audit history 
+- Employee shifts, time oƯ, and schedule views 
+- Payroll worksheet, adjustments, signoƯ, export, and history 
+- Full tasks, Kanban, checklists, reminders, recurring workﬂows, and announcements 
+- Internal team messages and conversations 
+- Sales and expense entries 
+
+===== PAGE 13 =====
+- Daily sales, ﬁnance dashboard, sales tax, and deductions 
+- Proﬁt and margin analytics 
+- Labor-cost and job-proﬁtability reporting 
+- Advanced operational and ﬁnancial reports 
+ 
+## Release 4: Emergent Inventory and Purchasing 
+ 
+### Goal 
+ 
+Activate the protected Emergent inventory and purchasing behavior after Orders, Job Tickets, Pricing, 
+Production, Tasks, Notiﬁcations, and Activity are stable. 
+ 
+### Features 
+ 
+- Inventory items, aliases, categories, and Pricing Foundation links 
+- Locations, bins, lots, rolls, sheets, boards, packs, cases, and remnants 
+- Unit conversions and dimension-aware availability 
+- On-hand, reserved, available, incoming, and shortage quantities 
+- Immutable ledger, activity timelines, adjustments, transfers, alerts, and cycle counts 
+- Job material requirements, reservations, shortages, pulls, consumption, waste, returns, and remnants 
+- Actual material job cost 
+- Basic vendors 
+- Shortage-driven draft POs 
+- Approval, sent status, partial receiving, damaged/missing/substituted/backordered handling 
+- Reviewable received-cost suggestions 
+- Inventory dashboard alerts and canonical notiﬁcations 
+ 
+### Deferred 
+ 
+- Supplier APIs and live comparison 
+- Automatic ordering 
+- AI purchasing recommendations 
+- Webstore inventory reservations 
+ 
+## Release 5: Customer Experience and Communications 
+ 
+### Goal 
+ 
+Deepen external communications and activate complete portal experiences. 
+ 
+### Features 
+ 
+- Full Customer Portal 
+- Partner / B2B Portal 
+- Dynamic questionnaires and public tokenized forms 
+- Enhanced document/artwork library and asset library 
+- Customer communications hub 
+- Reusable email templates 
+- Delivery events, bounce handling, and deliverability dashboard 
+
+===== PAGE 14 =====
+- SMS reminders 
+- Meta/Facebook connection, leads inbox, and messaging 
+- Customer notiﬁcation preferences 
+- Full appointment workﬂows 
+ 
+## Release 6: Webstores and Ecommerce 
+ 
+### Goal 
+ 
+Activate ecommerce after canonical orders, customers, payments, production, portals, inventory, and 
+support controls are stable. 
+ 
+### Features 
+ 
+- Product catalog and variants 
+- Webstore setup, branding, products, pricing, publishing, progress, and analytics 
+- Public storefront, cart, checkout, conﬁrmation, and history 
+- Fundraiser and B2B store modes 
+- Webstore-order synchronization into canonical orders/job tickets 
+- Webstore Owner Portal 
+- Stripe Connect onboarding, checkout, transfers, payouts, refunds, disputes, and reconciliation 
+- Optional stocked-product and made-to-order inventory modes 
+ 
+## Release 7: AI and Automation 
+ 
+### Goal 
+ 
+Activate AI within the already-established AI Hub and stable deterministic workﬂows. 
+ 
+### Features 
+ 
+- AI Business Assistant with permission-ﬁltered context 
+- Read-only questions and explanations 
+- Reviewed action drafts with previews and conﬁrmation 
+- Pricing and service-description assistance 
+- Email, text, product-description, marketing, document, image, and optional voice tools 
+- Production, reporting, webstore, and Facebook assistance 
+- Prompt Library 
+- Preferences, credits, history, limits, and entitlements 
+- Inventory substitution, reorder, anomaly, and PO draft recommendations 
+- AI audit trail 
+ 
+### Guardrails 
+ 
+- AI cannot directly approve POs, alter inventory, submit supplier orders, issue refunds, or change selling 
+prices. 
+- Deterministic services validate proposed actions. 
+- Mutating actions require explicit review. 
+- AI failures never block manual workﬂows. 
+
+===== PAGE 15 =====
+ 
+## Release 8: SaaS Platform, Growth, and Ecosystem 
+ 
+### Goal 
+ 
+Operate SignGuyAI as a scalable SaaS platform and complete its public ecosystem. 
+ 
+### Features 
+ 
+- Plans, trials, founders oƯers, coupons, upgrades, and subscription billing 
+- Dunning and plan entitlements 
+- Platform Admin Portal, tenant support, controlled impersonation, and audit 
+- Platform analytics and settings 
+- Marketing website 
+- Full documentation and Help Center 
+- Full Community 
+- Expanded onboarding 
+- Tenant backup/restore management 
+- Supplier comparison integrations: 
+  - S&S Activewear API 
+  - PromoStandards / PSRESTful 
+  - CSV/feed imports 
+  - Authorized supplier feeds 
+ 
+## Permission and Navigation Requirements 
+ 
+Permissions must control: 
+ 
+- Visible workspaces 
+- Visible modules 
+- Ribbon and quick-create actions 
+- Record access 
+- Field-level ﬁnancial visibility 
+- Portal allowlists 
+- Mutating actions 
+ 
+Example: production staƯ may see `Operations > Production` and `Productivity > My Tasks`, but not 
+Business ﬁnance, payroll, tax rules, supplier costs, or owner settings. 
+ 
+## EƯicient Rebuild Method 
+ 
+For every protected area or feature: 
+ 
+1. Approve the behavior speciﬁcation. 
+2. Deﬁne user outcomes and permissions. 
+3. Deﬁne canonical data ownership and shared concepts. 
+4. Deﬁne API contracts and audit/activity events. 
+5. Implement deterministic domain services. 
+6. Implement focused, reusable UI. 
+
+===== PAGE 16 =====
+7. Add unit, integration, tenant-isolation, permission, and browser workﬂow tests. 
+8. Add observability and recovery behavior. 
+9. Release behind a feature ﬂag to internal and pilot tenants. 
+ 
+## Required Next Planning Sequence 
+ 
+1. Complete and approve protected behavior speciﬁcations. 
+2. Deﬁne the ﬁnal four-workspace route, navigation, and permission matrix. 
+3. Deﬁne canonical shared models and domain boundaries. 
+4. Produce the detailed Release 0 implementation plan. 
+5. Produce the detailed Release 1 feature and acceptance-test plan. 
+6. Deﬁne migration from the current app. 
+7. Plan later releases immediately before their dependencies are ready. 
+ 
+## Required Notes Traceability 
+ 
+| Required correction | Where incorporated | 
+|---|---| 
+| Four-workspace navigation model | Final User-Facing Structure | 
+| Global dashboard / command center | Global Command Center and Release 1 | 
+| Global search | Global Search and Release 1 | 
+| Global `+ Create` | Global Create and Release 1 | 
+| Productivity present early | Productivity workspace, canonical tasks, and Release 1 | 
+| Separate internal/customer/platform messages | Messages and Conversations | 
+| Canonical notes/comments | Notes and Comments | 
+| Uniﬁed shop schedule/calendar | Calendar and Schedule | 
+| AI Hub present from the beginning | AI Hub workspace and Release 1 shells | 
+| Early help, docs, onboarding, feedback, roadmap, and release notes | AI Hub and Release 1 | 
+| Detailed navigation permissions | Permission and Navigation Requirements | 
+| Explicit portal security boundaries | Portals and Public Surfaces | 
+| Partner / B2B portal destination | Partner / B2B Portal Destination | 
+| Complete wrap destination | Release 2 Wrap Command Center scope | 
+| Explicit artwork workﬂow | Files, Documents, and Artwork | 
+| Mobile installer / ﬁeld workﬂow | Mobile and Field Work Destination | 
+| Canonical notiﬁcations | Notiﬁcations | 
+| User-facing activity timelines | Audit Events and Activity Timelines | 
+| Minimal presence of every ﬁnal module from Release 1 | Final App Surface Rule and Release 1 | 
+| Protected approved behaviors | Protected Speciﬁcation Areas and Release 0 | 
+ 
+ 
+Action: ﬁle_editor create /app/memory/REBUILD_SPEC.md --ﬁle-text "# SignGuy AI — Rebuild 
+Speciﬁcation 
+> **Purpose:** Greenﬁeld rebuild brief. Everything the original app does, every ﬁnal decision made, and 
+what to know on Day 1 to avoid workarounds. Use this as the starting spec. 
+ 
+--- 
+ 
+## Table of Contents 
+1. [App Overview](#1-app-overview) 
+
+===== PAGE 17 =====
+2. [Tech Stack Decision](#2-tech-stack-decision) 
+3. [Architecture — Day 1 Rules](#3-architecture--day-1-rules) 
+4. [Database Schema Principles](#4-database-schema-principles) 
+5. [Auth & Multi-Tenancy](#5-auth--multi-tenancy) 
+6. [Orders — The 4-Layer Hierarchy](#6-orders--the-4-layer-hierarchy) 
+7. [Job Tickets (Production Unit)](#7-job-tickets-production-unit) 
+8. [Customers (CRM)](#8-customers-crm) 
+9. [Quotes](#9-quotes) 
+10. [Invoices & Billing](#10-invoices--billing) 
+11. [Pricing Foundation + Calculator](#11-pricing-foundation--calculator) 
+12. [Webstores](#12-webstores) 
+13. [Inventory & Materials](#13-inventory--materials) 
+14. [Purchasing (POs & Vendors)](#14-purchasing-pos--vendors) 
+15. [Production Board](#15-production-board) 
+16. [Artwork Proofs](#16-artwork-proofs) 
+17. [Team, Timeclock & Payroll](#17-team-timeclock--payroll) 
+18. [AI Tools](#18-ai-tools) 
+19. [Communications & Meta Messenger](#19-communications--meta-messenger) 
+20. [Payments & Stripe](#20-payments--stripe) 
+21. [Reports & Analytics](#21-reports--analytics) 
+22. [Dashboard](#22-dashboard) 
+23. [Settings](#23-settings) 
+24. [Platform Admin](#24-platform-admin) 
+25. [UI/UX System](#25-uiux-system) 
+26. [API Design Rules](#26-api-design-rules) 
+27. [File & Asset Storage](#27-ﬁle--asset-storage) 
+28. [Notiﬁcation & Digest System](#28-notiﬁcation--digest-system) 
+29. [Feature Flags & Tier Gating](#29-feature-ﬂags--tier-gating) 
+30. [Deployment & Environments](#30-deployment--environments) 
+ 
+--- 
+ 
+## 1. App Overview 
+ 
+**SignGuy AI** is a multi-tenant SaaS operating system for sign shops. One account = one sign shop 
+(tenant). A single platform owner (platform_creator) manages all tenants. 
+ 
+**Core value loops:** 
+- Take a customer job → produce it → invoice it → get paid 
+- Run a webstore → customers self-order → auto-enters production queue 
+- Price jobs accurately using conﬁgured material + labor costs 
+- Track materials from purchase order → stock → job consumption 
+ 
+**User types:** 
+| Role | Who | What they see | 
+|---|---|---| 
+| `platform_creator` | You (the SaaS owner) | Everything across all tenants | 
+| `platform_admin` | Your support staƯ | All tenants, no billing | 
+| `owner` | Sign shop owner | Full access to their tenant | 
+
+===== PAGE 18 =====
+| `admin` | Shop manager | Full operational access, no billing settings | 
+| `staƯ` | Employees | Assigned work, timeclock, limited views | 
+ 
+--- 
+ 
+## 2. Tech Stack Decision 
+ 
+| Layer | Choice | Why | 
+|---|---|---| 
+| Frontend | React + Tailwind CSS + Shadcn/UI | Component library already built, CSS variables for 
+theming | 
+| Backend | FastAPI (Python) | Async, clean routing, Pydantic validation | 
+| Database | MongoDB (Motor async) | Flexible schemas per tenant, no migrations for new ﬁelds | 
+| Auth | JWT (HS256) | Stateless, works across preview + production | 
+| Payments | Stripe (direct) + Stripe Connect (webstores) | Two separate integrations | 
+| Email | SendGrid | Transactional templates | 
+| AI | Emergent LLM Key → OpenAI / Claude / Gemini | Single key, no per-model API key management | 
+| File Storage | Object storage (S3-compatible) | Artwork ﬁles, proof PDFs, generated documents | 
+| Process Manager | Supervisor | Frontend :3000, Backend :8001 | 
+ 
+--- 
+ 
+## 3. Architecture — Day 1 Rules 
+ 
+### Backend structure 
+``` 
+backend/ 
+  models/          # Pydantic models only — no business logic 
+    __init__.py    # Re-exports everything 
+    auth.py        # User, UserRole, Permission, ROLE_PERMISSIONS 
+    base.py        # BaseDocument with id, tenant_id, created_at, updated_at 
+    inventory.py   # Inventory models 
+    ... 
+  routes/          # One ﬁle per feature domain 
+    auth.py 
+    orders.py 
+    job_tickets.py 
+    inventory.py 
+    webstores.py 
+    ... 
+  services/        # Business logic called by routes 
+    inventory_service.py   # Ledger math, balance calculations 
+    stripe_service.py      # All Stripe calls 
+    email_service.py       # All SendGrid calls 
+    ... 
+  core_runtime.py  # DB connection, auth helpers, has_permission() 
+  server.py        # App init, router registration only — no route logic 
+``` 
+ 
+
+===== PAGE 19 =====
+### Frontend structure 
+``` 
+frontend/src/ 
+  pages/           # One ﬁle per page/route 
+  components/ 
+    ui/            # Shadcn primitives — never modify 
+    ribbon/        # PrimaryNav, ActionToolbar, DashboardRibbon, WebstoresRibbon 
+    dashboard/     # Dashboard widget components 
+    inventory/     # Inventory-speciﬁc components 
+    orders/        # Order-speciﬁc components 
+    ... 
+  context/ 
+    AuthContext.js    # User, permissions, tenant 
+    PageContext.js    # Page title, breadcrumbs 
+  lib/ 
+    api.js         # Axios instance with base URL + auth header 
+    authStorage.js # Token read/write 
+    utils.js       # cn(), formatDate(), formatCurrency() 
+``` 
+ 
+### Absolute rules 
+- Every backend route preﬁxed `/api/` 
+- Frontend ONLY uses `process.env.REACT_APP_BACKEND_URL` — never hardcode 
+- Backend ONLY uses `os.environ['MONGO_URL']` and `os.environ['DB_NAME']` — no defaults 
+- Zero business logic in `server.py` — it is a registration ﬁle only 
+- Zero direct DB calls in `routes/` ﬁles — all DB work goes through service functions or inline using the 
+`db` singleton from `core_runtime` 
+ 
+--- 
+ 
+## 4. Database Schema Principles 
+ 
+### BaseDocument (every collection inherits this) 
+```python 
+class BaseDocument(BaseModel): 
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())) 
+    tenant_id: str 
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat()) 
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat()) 
+``` 
+ 
+### PyObjectId rule 
+- Never return raw MongoDB `_id` in API responses 
+- All docs stored with `id` (uuid string) alongside `_id` 
+- Always query by `id`, never `_id` 
+- Always project `{\"_id\": 0}` in ﬁnd queries 
+ 
+### Timestamps 
+- Always `datetime.now(timezone.utc).isoformat()` — never `datetime.utcnow()` 
+
+===== PAGE 20 =====
+- Store as ISO string in MongoDB, parse on frontend with `new Date()` 
+ 
+### Indexes — create on ﬁrst migration 
+Every collection needs at minimum: 
+``` 
+{ tenant_id: 1 }                          # base isolation index 
+{ tenant_id: 1, created_at: -1 }          # time-ordered listing 
+{ tenant_id: 1, <primary_lookup_ﬁeld>: 1 } # domain-speciﬁc 
+``` 
+ 
+### Counter documents (for human-readable IDs) 
+```python 
+# Orders: ORD-0001, Invoices: INV-0001, POs: PO-0001 
+# One counter doc per tenant per type 
+{ tenant_id, counter_type: \"order\" , last_number: 42 } 
+# Use ﬁndOneAndUpdate with $inc — atomic, no race conditions 
+``` 
+ 
+--- 
+ 
+## 5. Auth & Multi-Tenancy 
+ 
+### Permission system 
+```python 
+class Permission(str, Enum): 
+    # Orders 
+    ORDERS_VIEW = \"orders:view\" 
+    ORDERS_CREATE = \"orders:create\" 
+    ORDERS_EDIT = \"orders:edit\" 
+    ORDERS_DELETE = \"orders:delete\" 
+    # ... 60+ permissions across all domains 
+ 
+class ROLE_PERMISSIONS: 
+    owner: list(Permission)   # ALL permissions 
+    admin: [all except billing/settings:delete] 
+    staƯ: [view-only + timeclock + assigned work] 
+ 
+def has_permission(user: UserInDB, permission: Permission) -> bool: 
+    # platform_creator, platform_admin, owner get everything 
+    if user.role.value in ('owner' , 'platform_admin' , 'platform_creator'): 
+        return True 
+    return permission in ROLE_PERMISSIONS.get(user.role, []) 
+``` 
+ 
+### JWT payload 
+```json 
+{ 
+  \"user_id\": \"uuid\" , 
+  \"tenant_id\": \"uuid\" , 
+
+===== PAGE 21 =====
+  \"role\": \"owner\" , 
+  \"email\": \"user@example.com\" , 
+  \"exp\": 1234567890 
+} 
+``` 
+Frontend reads role from token — no separate permissions API call needed. 
+ 
+### platform_creator setup 
+```python 
+# In server startup: 
+PLATFORM_CREATOR_EMAIL = os.environ.get('PLATFORM_CREATOR_EMAIL') 
+# On startup, ﬁnd user with that email and set role = 'platform_creator' 
+# This is the only way to get this role — cannot be set via UI 
+``` 
+ 
+### Tenant isolation 
+- Every DB query includes `{\"tenant_id\": current_user.tenant_id}` 
+- Every route dependency: `current_user: UserInDB = Depends(get_current_active_user)` 
+- Impersonation (platform admin only): override tenant_id via request header `X-Impersonate-Tenant` 
+ 
+--- 
+ 
+## 6. Orders — The 4-Layer Hierarchy 
+ 
+``` 
+Order 
+└── LineItem (1 or more) 
+    └── JobTicket (1 per line item) 
+        └── ProductionTask (1 or more per ticket) 
+``` 
+ 
+### Order 
+```python 
+{ 
+  order_number: \"ORD-0042\" ,      # tenant-scoped counter 
+  customer_id: uuid, 
+  status: \"quote|conﬁrmed|in_production|ready|delivered|cancelled\" , 
+  order_type: \"walk_in|phone|email|webstore|quote_converted\" , 
+  source: \"internal|webstore\" , 
+  is_webstore_order: bool, 
+  webstore_order_id: uuid | None, 
+  webstore_name: str | None, 
+  due_date: iso_string, 
+  deposit_amount: ﬂoat, 
+  subtotal: ﬂoat, 
+  tax_rate: ﬂoat, 
+  tax_amount: ﬂoat, 
+  total: ﬂoat, 
+  balance_due: ﬂoat, 
+
+===== PAGE 22 =====
+  notes: str, 
+  special_instructions: str, 
+} 
+``` 
+ 
+### LineItem 
+```python 
+{ 
+  order_id: uuid, 
+  product_type: \"yard_sign|banner|vehicle_wrap|...\" , 
+  description: str, 
+  quantity: int, 
+  unit_price: ﬂoat, 
+  line_total: ﬂoat, 
+  width_inches: ﬂoat | None, 
+  height_inches: ﬂoat | None, 
+  material: str, 
+  turnaround: str, 
+  artwork_status: \"not_received|received|approved|sent_for_approval\" , 
+} 
+``` 
+ 
+### JobTicket 
+```python 
+{ 
+  order_id: uuid, 
+  line_item_id: uuid, 
+  ticket_number: \"TKT-0042\" , 
+  ticket_name: str,          # \"12x18 Yard Sign × 50 — Smith Campaign\" 
+  production_stage: str,      # key from tenant's stage conﬁg 
+  ticket_priority: \"low|normal|high|rush\" , 
+  assigned_to_id: uuid | None, 
+  due_date: iso_string, 
+  artwork_ﬁles: [FileRef], 
+  proof_status: \"not_sent|sent|approved|revision_requested\" , 
+  special_instructions: str, 
+  production_notes: str, 
+  install_notes: str, 
+  packaging_notes: str, 
+  rework_notes: str, 
+} 
+``` 
+ 
+### ProductionTask 
+```python 
+{ 
+  ticket_id: uuid, 
+  task_name: str,             # \"Print\" , \"Cut\" , \"Laminate\" , \"Install\" 
+  production_stage: str, 
+
+===== PAGE 23 =====
+  status: \"not_started|in_progress|paused|complete|blocked\" , 
+  assigned_to_id: uuid | None, 
+  estimated_minutes: int, 
+  actual_minutes: int, 
+  sort_order: int, 
+} 
+``` 
+ 
+### Key rules 
+- Order status is derived from its line items' statuses — never set it manually 
+- Ticket is created automatically when a line item is created — they always exist 1:1 
+- `ticket_number` uses the same counter system as order numbers 
+- Webstore orders set `is_webstore_order: true` and `webstore_order_id` at creation — never retroﬁtted 
+ 
+--- 
+ 
+## 7. Job Tickets (Production Unit) 
+ 
+### Tabs (in order) 
+1. **Overview** — status, stage, priority, assignee, due date, linked order 
+2. **Artwork** — ﬁle uploads (design ﬁles, customer-provided art) 
+3. **Proofs** — proof PDFs sent to customer, approval status 
+4. **Materials** — material requirements linked to inventory items 
+5. **Notes** — special instructions, production notes, install notes, packaging notes 
+6. **Activity** — append-only event log 
+ 
+### Material Requirements 
+```python 
+{ 
+  ticket_id: uuid, 
+  inventory_item_id: uuid, 
+  required_quantity: ﬂoat, 
+  unit: str, 
+  required_width_inches: ﬂoat | None, 
+  required_length_inches: ﬂoat | None, 
+  status: \"open|reserved|pulled|consumed|shortage\" , 
+  shortage_ids: [uuid],       # links to inventory_shortages if unfulﬁlled 
+} 
+``` 
+ 
+### Production stage ﬂow 
+- Stages are tenant-conﬁgurable strings: `[\"prepress\" , \"printing\" , \"ﬁnishing\" , \"ready\" , \"delivered\"]` 
+- Stage key is stored on both the ticket AND each production task 
+- Changing ticket stage does NOT auto-change task stages — they're independent 
+ 
+--- 
+ 
+## 8. Customers (CRM) 
+ 
+
+===== PAGE 24 =====
+```python 
+{ 
+  display_name: str, 
+  company_name: str, 
+  email: str, 
+  phone: str, 
+  billing_address: Address, 
+  shipping_address: Address, 
+  customer_type: \"individual|business|nonproﬁt\" , 
+  tax_exempt: bool, 
+  tax_id: str, 
+  preferred_contact: \"email|phone|text\" , 
+  stripe_customer_id: str | None, 
+  notes: str, 
+  tags: [str], 
+  is_active: bool, 
+} 
+``` 
+ 
+**Know from day 1:** 
+- `stripe_customer_id` goes on the customer at creation if you're using Stripe — don't add it later 
+- Customers need a `lifetime_value` computed ﬁeld (sum of paid invoices) — compute on read, don't 
+store 
+- Tags enable ﬁltering: \"wholesale\" , \"VIP\" , \"net30\" — store as a string array 
+- Customer portal (self-service proof approval, order status) is a separate unauthenticated ﬂow — design 
+routes accordingly 
+ 
+--- 
+ 
+## 9. Quotes 
+ 
+```python 
+{ 
+  quote_number: \"QUO-0012\" , 
+  customer_id: uuid, 
+  status: \"draft|sent|viewed|accepted|declined|expired|converted\" , 
+  expires_at: iso_string, 
+  line_items: [QuoteLineItem],  # same structure as OrderLineItem 
+  subtotal: ﬂoat, 
+  tax_rate: ﬂoat, 
+  total: ﬂoat, 
+  notes: str, 
+  converted_order_id: uuid | None,   # set when accepted + converted 
+  pricing_snapshot: {},              # frozen pricing conﬁg at time of quote 
+} 
+``` 
+ 
+**Know from day 1:** 
+- Quote → Order conversion copies line items, creates tickets automatically 
+
+===== PAGE 25 =====
+- `pricing_snapshot` captures the pricing foundation conﬁg at quote time — prices shouldn't change 
+retroactively 
+- Quote acceptance can be via email link (unauthenticated customer action) — design the accept 
+endpoint as public 
+ 
+--- 
+ 
+## 10. Invoices & Billing 
+ 
+```python 
+{ 
+  invoice_number: \"INV-0088\" , 
+  order_id: uuid, 
+  customer_id: uuid, 
+  status: \"draft|sent|viewed|partial|paid|overdue|void|written_oƯ\" , 
+  due_date: iso_string, 
+  line_items: [InvoiceLineItem], 
+  subtotal: ﬂoat, 
+  tax_amount: ﬂoat, 
+  total: ﬂoat, 
+  amount_paid: ﬂoat, 
+  balance_due: ﬂoat,          # computed: total - amount_paid 
+  stripe_payment_intent_id: str | None, 
+  payment_link_token: str,     # for unauthenticated customer payment 
+  sent_at: iso_string | None, 
+  paid_at: iso_string | None, 
+} 
+``` 
+ 
+**Know from day 1:** 
+- `balance_due` is always computed — never stored as a mutable ﬁeld 
+- Payment link token must be a signed JWT or random UUID stored in the invoice — never expose invoice 
+ID in the payment URL 
+- Partial payments: `payment_transactions` table holds each payment, invoice `amount_paid` = sum of 
+those 
+- Overdue status is computed at read time from `due_date` — a scheduled job emails reminders but 
+doesn't change status 
+ 
+--- 
+ 
+## 11. Pricing Foundation + Calculator 
+ 
+### Foundation (admin conﬁg — one doc per tenant) 
+```python 
+pricing_defaults = { 
+  tenant_id: uuid, 
+  categories: { 
+    \"yard_signs\": { 
+      materials: [ 
+
+===== PAGE 26 =====
+        { key: \"corrugated_4mm\" , name: \"4mm Coroplast\" , cost_per_sqft: 0.45 }, 
+        { key: \"corrugated_10mm\" , name: \"10mm Coroplast\" , cost_per_sqft: 0.85 }, 
+      ], 
+      sizes: [ 
+        { label: \"18×24\" , width: 18, height: 24 }, 
+        { label: \"24×36\" , width: 24, height: 36 }, 
+      ], 
+      labor_rate_per_hour: 65.00, 
+      setup_fee: 25.00, 
+      overhead_percent: 15, 
+      markup_percent: 40, 
+      waste_percent: 8, 
+      minimum_price: 12.00, 
+      quantity_breaks: [ 
+        { min_qty: 1, multiplier: 1.0 }, 
+        { min_qty: 10, multiplier: 0.9 }, 
+        { min_qty: 50, multiplier: 0.75 }, 
+      ], 
+    }, 
+    \"banners\": { ... }, 
+    \"rigid_signs\": { ... }, 
+    \"cut_vinyl\": { ... }, 
+    \"vehicle_graphics\": { ... }, 
+    \"digital_print\": { ... }, 
+  } 
+} 
+``` 
+ 
+### Calculator formulas by category 
+``` 
+yard_signs / rigid_signs / banners: 
+  sqft = (width × height) / 144 
+  material_cost = sqft × material.cost_per_sqft 
+  print_time_hrs = sqft / print_speed_sqft_per_hr 
+  labor_cost = print_time_hrs × labor_rate 
+  base_cost = material_cost + labor_cost + setup_fee 
+  with_overhead = base_cost × (1 + overhead_percent/100) 
+  unit_price = (with_overhead × (1 + markup_percent/100)) × quantity_break_multiplier 
+  ﬁnal_price = max(unit_price, minimum_price) × quantity 
+ 
+cut_vinyl: 
+  priced per linear foot × width 
+  substrate is separate line item if applicable 
+ 
+vehicle_graphics: 
+  priced per panel (hood, roof, doors, full wrap) 
+  each panel has a sqft factor from the vehicle proﬁle 
+``` 
+ 
+
+===== PAGE 27 =====
+**Know from day 1:** 
+- Foundation and Calculator are two separate UI sections — Foundation is in Settings, Calculator is its 
+own tool 
+- All formulas are pure functions — `calculatePrice(inputs, foundationConﬁg) → price` — testable, no 
+side eƯects 
+- Calculator should work with and without a customer logged in (estimator tool for phone quotes) 
+- Quantity breaks are per-category, not global 
+ 
+--- 
+ 
+## 12. Webstores 
+ 
+### Store types 
+```python 
+store_type: \"b2b\" | \"fundraiser\" | \"creator\" 
+``` 
+ 
+### B2B Store 
+```python 
+{ 
+  store_type: \"b2b\" , 
+  approved_buyers: [{ email, name, spending_limit }], 
+  requires_approval: bool,        # PO-style order approval before production 
+  payment_terms: \"net15|net30|prepaid\" , 
+  product_catalog: [WebstoreProduct], 
+  custom_domain: str | None, 
+  is_active: bool, 
+} 
+``` 
+ 
+### Fundraiser Store 
+```python 
+{ 
+  store_type: \"fundraiser\" , 
+  goal_amount: ﬂoat, 
+  deadline: iso_string, 
+  organizer_name: str, 
+  fundraiser_split_percent: ﬂoat,    # % goes to fundraiser, rest to shop 
+  team_members: [{ name, email, personal_link_slug }], 
+  product_catalog: [WebstoreProduct], 
+} 
+``` 
+ 
+### Creator Store 
+```python 
+{ 
+  store_type: \"creator\" , 
+  creator_name: str, 
+  stripe_connect_account_id: str,    # required — payout destination 
+
+===== PAGE 28 =====
+  commission_percent: ﬂoat,         # platform takes this % 
+  product_catalog: [WebstoreProduct], 
+} 
+``` 
+ 
+### WebstoreProduct 
+```python 
+{ 
+  name: str, 
+  description: str, 
+  product_type: \"yard_sign|banner|tshirt|digital|...\" , 
+  pricing_conﬁg: {},        # snapshot of pricing for this product 
+  image_urls: [str], 
+  variants: [{ label, sku, price, stock_qty }], 
+  is_active: bool, 
+} 
+``` 
+ 
+### Checkout ﬂow 
+``` 
+Public route: /store/{store_slug} 
+1. Customer browses → adds to cart (localStorage) 
+2. Checkout → customer enters contact info + payment 
+3. Stripe charge (or Stripe Connect for creator stores) 
+4. WebstoreOrder created 
+5. Bridge function creates MainOrder automatically 
+   - Sets is_webstore_order: true 
+   - Sets webstore_order_id, webstore_name 
+   - Creates line items from cart 
+   - Creates job tickets from line items 
+6. Shop sees new order in Orders list with \"Webstore\" badge 
+``` 
+ 
+**Know from day 1:** 
+- Cart is localStorage only until checkout conﬁrmed — no cart table in DB 
+- Public storefront routes are **completely unauthenticated** — separate Express/FastAPI router with no 
+auth middleware 
+- `store_slug` is unique globally (not just per tenant) — check on creation 
+- Stripe Connect: shop must complete Connect onboarding before creator stores go live — build the 
+onboarding ﬂow ﬁrst 
+- Webstore products ≠ shop products/materials — they are entirely separate catalogs 
+ 
+--- 
+ 
+## 13. Inventory & Materials 
+ 
+### Data model 
+``` 
+InventoryItem       (the catalog record — \"Cast Vinyl 54-inch Roll\") 
+
+===== PAGE 29 =====
+└── InventoryLot    (a physical batch — \"Roll #3, received 2025-06-01, 1500ft remaining\") 
+    └── InventoryTransaction  (ledger entries — receipts, pulls, waste, adjustments) 
+``` 
+ 
+### TrackingMethod 
+```python 
+\"quantity\"   # simple count (hardware, grommets) 
+\"roll\"       # width_inches + remaining_length_inches 
+\"sheet\"      # sheet_width_inches × sheet_height_inches × quantity 
+\"remnant\"    # oƯ-cut piece with speciﬁc dimensions 
+\"pack\"       # quantity in pack_size units 
+``` 
+ 
+### Balance calculation (always computed from ledger) 
+```python 
+on_hand    = sum(quantity_on_hand for lot in lots where is_active) 
+reserved   = sum(reserved_quantity for lot in lots) 
+available  = on_hand - reserved 
+inventory_value = sum(qty × unit_cost for lot in lots) 
+``` 
+**Never mutate `quantity_on_hand` directly** — always insert a transaction, then update the lot. 
+ 
+### Material requirements → job ticket link 
+```python 
+{ 
+  ticket_id: uuid, 
+  inventory_item_id: uuid, 
+  required_quantity: ﬂoat, 
+  required_width_inches: ﬂoat | None, 
+  required_length_inches: ﬂoat | None, 
+  status: \"open|reserved|pulled|consumed|shortage\" , 
+} 
+``` 
+ 
+### Shortage handling 
+If `available < required_quantity`, create an `InventoryShortage` record and link it to the requirement. 
+Shortages surface in the dashboard \"Action Required\" card and can be converted into a PO line item. 
+ 
+**Know from day 1:** 
+- `InventoryItem.pricing_material_key` links to a Pricing Foundation material key — this is how cost ﬂows 
+from purchasing to pricing automatically 
+- Roll tracking: when a roll is partially consumed, create a new \"remnant\" lot from what's left 
+- Cycle count adjusts the lot's `quantity_on_hand` and inserts a `cycle_count_adjustment` transaction 
+ 
+--- 
+ 
+## 14. Purchasing (POs & Vendors) 
+ 
+### Vendor 
+
+===== PAGE 30 =====
+```python 
+{ 
+  name: str, 
+  website: str, 
+  account_number: str, 
+  contact_name: str, 
+  email: str, 
+  phone: str, 
+  default_shipping_notes: str, 
+} 
+``` 
+ 
+### PurchaseOrder 
+```python 
+{ 
+  po_number: \"PO-0012\" , 
+  vendor_id: uuid, 
+  status: \"draft|sent|acknowledged|partial|received|cancelled\" , 
+  lines: [ 
+    { 
+      inventory_item_id: uuid, 
+      supplier_sku: str, 
+      description: str, 
+      ordered_quantity: ﬂoat, 
+      unit: str, 
+      unit_cost: ﬂoat, 
+      received_quantity: ﬂoat,     # updated on receipt 
+      shortage_ids: [uuid],         # shortages this line resolves 
+    } 
+  ], 
+  expected_delivery_date: iso_string, 
+  notes: str, 
+  sent_at: iso_string | None, 
+} 
+``` 
+ 
+### PO receipt ﬂow 
+``` 
+Receive PO → for each line: 
+  1. Create an InventoryLot (new physical stock) 
+  2. Insert a \"receipt\" InventoryTransaction 
+  3. Update lot.quantity_on_hand 
+  4. Mark shortage as \"resolved\" if linked 
+  5. Update PO line received_quantity 
+  6. If all lines received → PO status = \"received\" 
+``` 
+ 
+--- 
+ 
+
+===== PAGE 31 =====
+## 15. Production Board 
+ 
+### Kanban conﬁguration 
+```python 
+# Stored in tenant settings — not hardcoded 
+production_stages = [ 
+  { key: \"intake\" , label: \"Intake\" , color: \"#6366f1\" , order: 1 }, 
+  { key: \"prepress\" , label: \"Prepress\" , color: \"#f59e0b\" , order: 2 }, 
+  { key: \"printing\" , label: \"Printing\" , color: \"#3b82f6\" , order: 3 }, 
+  { key: \"ﬁnishing\" , label: \"Finishing\" , color: \"#8b5cf6\" , order: 4 }, 
+  { key: \"ready\" , label: \"Ready\" , color: \"#10b981\" , order: 5 }, 
+  { key: \"delivered\" , label: \"Delivered\" , color: \"#6b7280\" , order: 6 }, 
+] 
+``` 
+ 
+### View modes 
+- **Task view**: each card = one production task 
+- **Rollup view**: each card = one job ticket, showing aggregated progress across all its tasks 
+ 
+### Card data (rollup mode) 
+```python 
+{ 
+  ticket_id: uuid, 
+  ticket_name: str, 
+  ticket_number: str, 
+  ticket_priority: str, 
+  production_stage: str, 
+  __rollup_total_steps: int, 
+  __rollup_completed_steps: int, 
+  assigned_to_name: str, 
+  ticket_due_date: iso_string, 
+  materials_link: \"/job-tickets/{id}?tab=materials\" , 
+} 
+``` 
+ 
+**Know from day 1:** 
+- Stage conﬁg is in Settings → Production — build that settings page before the board 
+- Drag-and-drop updates `production_stage` on the task (not ticket) in task view, on the ticket in rollup 
+view 
+- \"Materials\" button on each card deep-links to the Materials tab of the job ticket 
+ 
+--- 
+ 
+## 16. Artwork Proofs 
+ 
+### Flow 
+``` 
+1. Upload artwork ﬁles to job ticket 
+2. Generate proof PDF (combine artwork + order details) 
+
+===== PAGE 32 =====
+3. Send proof to customer via email with approval link (signed token URL) 
+4. Customer approves or requests revision (unauthenticated endpoint) 
+5. Status updates, activity log entry created, shop notiﬁed 
+``` 
+ 
+### Proof record 
+```python 
+{ 
+  ticket_id: uuid, 
+  order_id: uuid, 
+  customer_id: uuid, 
+  version: int,               # increments on each revision 
+  status: \"draft|sent|approved|revision_requested|expired\" , 
+  ﬁle_url: str,              # stored proof PDF/image 
+  approval_token: str,        # signed token for customer link 
+  token_expires_at: iso_string, 
+  sent_at: iso_string, 
+  responded_at: iso_string | None, 
+  customer_notes: str,        # revision request notes from customer 
+} 
+``` 
+ 
+**Know from day 1:** 
+- Approval link is unauthenticated — `/proofs/approve/{token}` — no login required for customers 
+- Token must have expiry and be stored in DB (not purely JWT) so it can be invalidated 
+- Revision request creates a new proof version, increments `version`, old proof archived 
+- Dashboard \"Action Required\" card shows count of proofs awaiting approval 
+ 
+--- 
+ 
+## 17. Team, Timeclock & Payroll 
+ 
+### StaƯ record 
+```python 
+{ 
+  user_id: uuid,           # links to auth user 
+  employee_id: str,        # \"EMP-001\" — tenant-scoped 
+  hourly_rate: ﬂoat, 
+  pay_type: \"hourly|salary\" , 
+  department: str, 
+  hire_date: iso_string, 
+  is_active: bool, 
+} 
+``` 
+ 
+### Timeclock entry (immutable log) 
+```python 
+{ 
+  user_id: uuid, 
+
+===== PAGE 33 =====
+  clock_in: iso_string, 
+  clock_out: iso_string | None, 
+  break_minutes: int, 
+  total_hours: ﬂoat,          # computed: (clock_out - clock_in - breaks) / 3600 
+  status: \"active|completed|edited\" , 
+  edited_by_id: uuid | None,   # if manager adjusted 
+  notes: str, 
+} 
+``` 
+ 
+### Payroll 
+```python 
+PayPeriod: 
+{ 
+  period_type: \"weekly|biweekly|semi_monthly\" , 
+  start_date: iso_string, 
+  end_date: iso_string, 
+} 
+ 
+PayrollRun: 
+{ 
+  pay_period: PayPeriod, 
+  status: \"draft|ﬁnalized\" , 
+  ﬁnalized_at: iso_string | None, 
+  lines: [ 
+    { 
+      user_id: uuid, 
+      employee_name: str, 
+      regular_hours: ﬂoat, 
+      overtime_hours: ﬂoat, 
+      hourly_rate: ﬂoat,         # snapshot at time of run 
+      gross_pay: ﬂoat, 
+    } 
+  ], 
+} 
+``` 
+ 
+**Know from day 1:** 
+- Timeclock entries are **append-only** — never edit in place. Add an `edited` record if correction 
+needed 
+- Payroll run is a **snapshot** — once ﬁnalized, rates/hours are frozen even if employee rate changes 
+later 
+- Pay period conﬁg is in tenant settings — build it there on day 1 
+- Overtime rule: hours > 40 in a week = overtime at 1.5×. Keep this conﬁgurable per tenant 
+ 
+--- 
+ 
+## 18. AI Tools 
+ 
+
+===== PAGE 34 =====
+### Tool catalogue 
+| Tool | Input | Output | 
+|---|---|---| 
+| Document Composer | Prompt + context | Long-form document | 
+| Business Copywriter | Business type + goal | Marketing copy | 
+| Blog Creator | Topic + keywords | Blog post | 
+| Email Template | Type + recipient context | Email draft | 
+| Job Post Creator | Job title + requirements | Job listing | 
+| Social Media Creator | Platform + topic | Social post variants | 
+ 
+### Shared document model 
+```python 
+{ 
+  name: str, 
+  content: str,                # the generated text 
+  ﬁle_url: str | None,        # if converted to PDF/DOCX 
+  ﬁle_type: str | None, 
+  tags: [str],                 # includes tool name: \"document_composer\" , \"ai-generated\" 
+  linked_to_id: uuid | None,   # order, customer, or quote 
+  linked_to_type: str | None,  # \"order\" | \"customer\" | \"quote\" 
+  word_count: int, 
+  credits_used: int, 
+} 
+``` 
+ 
+### Credit system 
+```python 
+# Each tenant has a credit balance 
+# Each AI call deducts credits (conﬁgured per model/tool) 
+# Balance stored in tenant record 
+# Transaction log in ai_credit_transactions collection 
+CreditTransaction: 
+{ 
+  tenant_id: uuid, 
+  amount: ﬂoat,          # negative = deduction, positive = purchase 
+  balance_after: ﬂoat, 
+  tool: str, 
+  document_id: uuid | None, 
+  description: str, 
+} 
+``` 
+ 
+**Know from day 1:** 
+- Check credit balance BEFORE making the LLM call — fail fast with 402 if insuƯicient 
+- All tools share the same document output model — build it once 
+- `linked_to_id` + `linked_to_type` from day 1 so AI docs can be attached to any entity 
+- Use streaming responses for long generations — improves perceived performance signiﬁcantly 
+ 
+--- 
+
+===== PAGE 35 =====
+ 
+## 19. Communications & Meta Messenger 
+ 
+### Email templates (deﬁne all upfront) 
+```python 
+EMAIL_TEMPLATES = { 
+  \"proof_ready\": \"Your proof is ready for review\" , 
+  \"invoice_sent\": \"Invoice #{number} from {shop_name}\" , 
+  \"invoice_overdue\": \"Invoice #{number} is overdue\" , 
+  \"payment_received\": \"Payment conﬁrmation\" , 
+  \"order_conﬁrmed\": \"Your order has been conﬁrmed\" , 
+  \"order_ready\": \"Your order is ready for pickup\" , 
+  \"quote_sent\": \"Quote #{number} from {shop_name}\" , 
+  \"quote_accepted\": \"Quote #{number} accepted\" , 
+} 
+``` 
+ 
+### Conversation (Meta Messenger) 
+```python 
+{ 
+  platform: \"messenger|instagram\" , 
+  external_conversation_id: str,    # Meta's thread ID 
+  customer_id: uuid | None,         # linked if matched by email/phone 
+  customer_name: str, 
+  shop_unread_count: int,            # increment on inbound, reset on shop reply 
+  last_message_at: iso_string, 
+  messages: [ 
+    { 
+      direction: \"inbound|outbound\" , 
+      content: str, 
+      sent_at: iso_string, 
+      sent_by_id: uuid | None,       # staƯ user if outbound 
+      meta_message_id: str, 
+    } 
+  ] 
+} 
+``` 
+ 
+**Know from day 1:** 
+- `shop_unread_count` on every conversation — this drives the dashboard badge and digest count 
+- Meta webhook veriﬁcation must be set up before any message can be received — do this ﬁrst 
+- Communication logs go on BOTH customer record AND order record when linked 
+ 
+--- 
+ 
+## 20. Payments & Stripe 
+ 
+### Two completely separate Stripe contexts 
+ 
+
+===== PAGE 36 =====
+**Context 1: Direct shop payments (invoices)** 
+```python 
+# Setup: one Stripe account for the shop 
+# Customer pays invoice → Stripe PaymentIntent 
+# Webhook: payment_intent.succeeded → mark invoice paid 
+ 
+stripe_customer_id  # on Customer record 
+stripe_payment_intent_id  # on Invoice record 
+``` 
+ 
+**Context 2: Webstore marketplace (Stripe Connect)** 
+```python 
+# Setup: platform Stripe account + Connected Account per shop owner 
+# Customer buys from webstore → charge goes to platform → distributed to shop minus fee 
+# Webhook: account.updated, payment_intent.succeeded (with account header) 
+ 
+stripe_connect_account_id  # on Tenant record (shop owner's connected account) 
+platform_fee_percent: 5    # platform takes this % of each webstore sale 
+``` 
+ 
+**Know from day 1:** 
+- Webhook handler must check `stripe-account` header to distinguish which context the event belongs 
+to 
+- Connect onboarding is a multi-step ﬂow — build the \"Connect your Stripe\" page in Settings before 
+building webstores 
+- Store `stripe_payment_intent_id` on invoices from day 1 — enables refund ﬂows later 
+- Payment link (unauthenticated invoice payment) uses a short-lived signed token, not the invoice ID 
+ 
+--- 
+ 
+## 21. Reports & Analytics 
+ 
+### Available metrics 
+```python 
+# Time-series (daily/weekly/monthly) 
+revenue: sum of paid invoices 
+new_orders: count 
+orders_completed: count 
+average_order_value: revenue / new_orders 
+ 
+# Snapshots 
+outstanding_ar: sum of unpaid invoice balances 
+pipeline_value: sum of conﬁrmed order totals not yet invoiced 
+top_customers: by lifetime_value 
+top_products: by order frequency 
+conversion_rate: quotes_accepted / quotes_sent 
+ 
+# Production 
+average_production_time: ticket created → stage \"delivered\" 
+
+===== PAGE 37 =====
+on_time_delivery_rate: percent of tickets ﬁnished before due_date 
+``` 
+ 
+**Know from day 1:** 
+- Never compute analytics in real-time for large date ranges — use a nightly aggregation job that writes to 
+an `analytics_snapshots` collection 
+- Date ranges must be timezone-aware (user's shop timezone, stored in tenant settings) 
+- Platform admin needs cross-tenant aggregations — these run separately against all tenants 
+ 
+--- 
+ 
+## 22. Dashboard 
+ 
+### Layout: 3-column grid, max 2-col span 
+``` 
+[Ribbon: 12 action buttons — Create|Customer|Workﬂow groups    ] 
+[KPI Strip: Revenue · Orders · Quotes · AR · Unread             ] 
+[Action Required (2col) ] [Production Snapshot (1col)           ] 
+[Billing Snapshot (1col)] [Shop Health (1col)  ] [Onboarding(1col)] 
+``` 
+ 
+### 12 Ribbon actions 
+``` 
+Create:    New Order | New Quote | New Customer | Pricing Calc 
+Customer:  Send Proof | Request Approval | Send Document | New Invoice 
+Workﬂow:  Send Email | New Task | Schedule Install | Open Calendar 
+``` 
+ 
+### Action Required card (most important) 
+Consolidates in priority order: 
+1. Proofs awaiting approval 
+2. Orders awaiting customer approval 
+3. Overdue invoices 
+4. Low stock items 
+5. AI-generated suggestions (nudges) 
+ 
+### Digest API (`GET /api/digest`) 
+Returns all dashboard data in ONE call: 
+```python 
+{ 
+  revenue_today: ﬂoat, 
+  revenue_mtd: ﬂoat, 
+  active_orders: int, 
+  pending_quotes: int, 
+  outstanding_ar: ﬂoat, 
+  pending_approvals: int,      # proofs + order approvals 
+  overdue_invoices: int, 
+  unread_messages: int, 
+  low_stock_count: int, 
+
+===== PAGE 38 =====
+  inventory_shortages: int, 
+  yesterday_revenue: ﬂoat, 
+} 
+``` 
+ 
+**Know from day 1:** 
+- One API call for all dashboard data — never make 6 separate calls on dashboard load 
+- All KPI cards use the same card component with a top-border accent color — no large colored 
+backgrounds 
+- Ribbon is the same component pattern as the Webstores ribbon 
+ 
+--- 
+ 
+## 23. Settings 
+ 
+### Settings sections 
+``` 
+General          → shop name, address, timezone, logo, phone, email 
+Production       → conﬁgure kanban stages (key, label, color, order) 
+Pricing          → Pricing Foundation per category 
+Billing          → tax rates, payment terms, invoice preﬁx, due days 
+Notiﬁcations    → which email triggers are on/oƯ 
+Integrations     → Stripe Connect, SendGrid API key, Meta app conﬁg 
+Team             → default roles, pay period conﬁg, overtime rules 
+Webstores        → global store settings, platform fee conﬁg 
+``` 
+ 
+**Know from day 1:** 
+- Production stage conﬁg lives in settings, not hardcoded — build this before the kanban board 
+- Pricing Foundation is a Settings sub-page, not a standalone app section 
+- All settings stored in one `tenant_settings` document per tenant — one read on app load, cached in 
+context 
+ 
+--- 
+ 
+## 24. Platform Admin 
+ 
+### What it is 
+Root-level admin panel only accessible to `platform_creator` and `platform_admin` roles. Completely 
+separate from the main app. Routes: `/platform-admin/...` 
+ 
+### Features 
+``` 
+Tenants list    → all shops, status, plan, created date, ARR 
+Tenant detail   → users, settings, feature ﬂags, usage metrics 
+Impersonate     → \"Act as this tenant\" (sets X-Impersonate-Tenant header) 
+Delete tenant   → cascades ALL associated data (irreversible) 
+Analytics       → cross-tenant revenue, signups, churn, feature usage 
+Onboarding      → per-tenant checklist of setup steps completed 
+
+===== PAGE 39 =====
+``` 
+ 
+### Impersonation 
+```python 
+# In get_current_active_user dependency: 
+impersonate_header = request.headers.get(\"X-Impersonate-Tenant\") 
+if impersonate_header and user.role in (\"platform_creator\" , \"platform_admin\"): 
+    # Override tenant_id for this request only 
+    user.tenant_id = impersonate_header 
+``` 
+ 
+### Tenant deletion cascade order 
+```python 
+collections_to_delete = [ 
+  \"production_tasks\" , \"job_tickets\" , \"order_line_items\" , \"orders\" , 
+  \"invoice_line_items\" , \"invoices\" , \"payment_transactions\" , \"quotes\" , 
+  \"artwork_proofs\" , \"documents\" , \"customers\" , \"conversations\" , 
+  \"webstores\" , \"webstore_orders\" , \"webstore_products\" , 
+  \"inventory_transactions\" , \"inventory_lots\" , \"inventory_items\" , 
+  \"inventory_locations\" , \"inventory_vendors\" , \"purchase_orders\" , 
+  \"inventory_shortages\" , \"material_requirements\" , 
+  \"timeclock_entries\" , \"payroll_runs\" , \"staƯ\" , 
+  \"ai_credit_transactions\" , \"tenant_settings\" , 
+  \"users\" ,    # last 
+] 
+``` 
+ 
+--- 
+ 
+## 25. UI/UX System 
+ 
+### Design tokens (CSS variables) 
+```css 
+:root { 
+  --surface: #ƯƯƯ ; 
+  --surface-2: #f9fafb; 
+  --border-light: #e5e7eb; 
+  --text: #111827; 
+  --text-muted: #6b7280; 
+  --accent: #4f46e5;         /* primary brand color */ 
+  --accent-hover: #4338ca; 
+} 
+``` 
+ 
+### Component hierarchy 
+``` 
+Shadcn/UI primitives (never modify) 
+  ↓ 
+App-speciﬁc base components (Button variants, Input variants) 
+
+===== PAGE 40 =====
+  ↓ 
+Domain components (OrderCard, TicketRow, InventoryItem) 
+  ↓ 
+Page layouts 
+``` 
+ 
+### Ribbon pattern (reuse everywhere) 
+```jsx 
+// RibbonButton: min-w-[68px], h-14, icon h-5 w-5, label text-[11px] 
+// RibbonGroup: label text-[10px] uppercase tracking-wide text-gray-400 
+// RibbonDivider: 1px vertical line 
+// Ribbon container: h-14 bg-white border-b border-gray-100 
+ 
+// Used in: Dashboard, Webstores, (any future section) 
+// SAME dimensions, SAME button style — always 
+``` 
+ 
+### Card pattern (no large colored backgrounds) 
+```jsx 
+// Cards: bg-white, border border-gray-100, rounded-xl, shadow-sm 
+// Accent: 3px top border only — color signals category, not background 
+// Text hierarchy: font-semibold for labels, text-muted for values 
+// Spacing: p-4 for cards, gap-3 for sections 
+``` 
+ 
+### Typography 
+``` 
+H1: text-4xl sm:text-5xl lg:text-6xl  (landing pages only) 
+H2: text-base md:text-lg              (section headings) 
+Body: text-sm 
+Small/Accent: text-xs 
+``` 
+ 
+### Icons: lucide-react only (never emoji as icons) 
+ 
+### Toast: Sonner only — `import { toast } from 'sonner'` 
+ 
+--- 
+ 
+## 26. API Design Rules 
+ 
+### Response shapes 
+```python 
+# List endpoints 
+{ \"items\": [...], \"total\": int, \"page\": int, \"limit\": int } 
+ 
+# Single item 
+{ ...item_ﬁelds } 
+ 
+
+===== PAGE 41 =====
+# Create/Update 
+{ ...created_or_updated_item } 
+ 
+# Delete 
+{ \"success\": true, \"id\": \"uuid\" } 
+ 
+# Error 
+{ \"detail\": \"Human readable error message\" } 
+``` 
+ 
+### Route naming 
+``` 
+GET    /api/{resource}              → list 
+POST   /api/{resource}              → create 
+GET    /api/{resource}/{id}         → get one 
+PUT    /api/{resource}/{id}         → full update 
+PATCH  /api/{resource}/{id}         → partial update 
+DELETE /api/{resource}/{id}         → delete 
+POST   /api/{resource}/{id}/action  → trigger an action (e.g. /invoices/123/send) 
+``` 
+ 
+### Pagination defaults 
+```python 
+limit: int = Query(default=50, le=200) 
+skip: int = Query(default=0, ge=0) 
+``` 
+ 
+### Never 
+- Return MongoDB `_id` in any response 
+- Use `datetime.utcnow()` (use `datetime.now(timezone.utc)`) 
+- Put business logic in route handlers — use service functions 
+- Return raw dict from DB — always validate through a Pydantic model 
+ 
+--- 
+ 
+## 27. File & Asset Storage 
+ 
+### File types per domain 
+``` 
+Job tickets:     design ﬁles (.ai, .pdf, .eps, .png), customer artwork 
+Proofs:          proof PDFs, approval screenshots 
+AI documents:    generated .docx, .pdf exports 
+Invoices:        PDF exports 
+Webstores:       product images, store logos 
+Tenant:          shop logo 
+``` 
+ 
+### Storage structure 
+``` 
+
+===== PAGE 42 =====
+/{tenant_id}/ 
+  /artwork/{ticket_id}/{ﬁlename} 
+  /proofs/{proof_id}/{ﬁlename} 
+  /documents/{doc_id}/{ﬁlename} 
+  /invoices/{invoice_id}/{ﬁlename} 
+  /webstores/{store_id}/{ﬁlename} 
+  /proﬁle/{ﬁlename} 
+``` 
+ 
+### File upload pattern 
+- Chunked upload for ﬁles > 5MB (bypass proxy limits) 
+- Store only the URL in DB, not the ﬁle content 
+- Generate signed URLs for private ﬁles (time-limited access) 
+- Accept: jpg, png, gif, pdf, eps, ai, svg, docx — validate MIME type server-side 
+ 
+--- 
+ 
+## 28. Notiﬁcation & Digest System 
+ 
+### Digest endpoint (dashboard data aggregator) 
+- Single `GET /api/digest` call returns all dashboard counts 
+- Runs async queries in parallel (asyncio.gather) 
+- Result is NOT cached — fresh on every dashboard load (fast enough with indexes) 
+ 
+### Email trigger events 
+```python 
+TRIGGER_EVENTS = { 
+  \"proof.sent\":            send \"proof_ready\" email to customer 
+  \"invoice.sent\":          send \"invoice_sent\" email to customer 
+  \"invoice.overdue\":       send \"invoice_overdue\" email (scheduler, daily check) 
+  \"order.conﬁrmed\":       send \"order_conﬁrmed\" email to customer 
+  \"order.ready\":           send \"order_ready\" email to customer 
+  \"quote.sent\":            send \"quote_sent\" email to customer 
+  \"payment.received\":      send \"payment_received\" email to customer 
+} 
+``` 
+ 
+### Email on/oƯ conﬁg (tenant settings) 
+```python 
+email_notiﬁcations = { 
+  \"proof_ready\": True, 
+  \"invoice_sent\": True, 
+  \"invoice_overdue\": True, 
+  \"order_ready\": True, 
+} 
+``` 
+``` 
+ 
+### Backend gating 
+
+===== PAGE 43 =====
+```python 
+def require_feature(user: UserInDB, feature: str): 
+    if feature not in user.tier_features: 
+        raise HTTPException(402, \"This feature requires a plan upgrade\") 
+``` 
+ 
+**Know from day 1:** 
+- Tier features are a SEPARATE concept from role permissions — permissions = what you can do, tier = 
+what features your plan unlocks 
+- Founders Edition = all features forever — store this as a ﬂag on the tenant: `is_founder: true` 
+- `BYPASS_TIER_GATE=true` env var for local dev/preview environments 
+ 
+--- 
+ 
+## 30. Deployment & Environments 
+ 
+### Environment variables (complete list) 
+```bash 
+# Backend (.env) 
+MONGO_URL=mongodb://... 
+DB_NAME=signguy_ai 
+JWT_SECRET_KEY=... 
+PLATFORM_CREATOR_EMAIL=your@email.com 
+SENDGRID_API_KEY=SG.... 
+STRIPE_SECRET_KEY=sk_live_... 
+STRIPE_WEBHOOK_SECRET=whsec_... 
+STRIPE_CONNECT_WEBHOOK_SECRET=whsec_... 
+OPENAI_API_KEY=...         # or Emergent LLM key 
+OBJECT_STORAGE_URL=... 
+OBJECT_STORAGE_KEY=... 
+OBJECT_STORAGE_SECRET=... 
+OBJECT_STORAGE_BUCKET=... 
+ 
+# Frontend (.env) 
+REACT_APP_BACKEND_URL=https://your-app.preview.emergentagent.com 
+REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_... 
+REACT_APP_META_APP_ID=... 
+``` 
+ 
+### Two environments 
+- **Preview** (Emergent): development, hot reload, test data 
+- **Production** (`signguy-ai.com`): live, deployed via Emergent deploy button 
+ 
+### Services (supervisor-managed) 
+``` 
+Backend:  0.0.0.0:8001  (FastAPI via uvicorn) 
+Frontend: 0.0.0.0:3000  (React via CRA) 
+MongoDB:  localhost:27017 
+``` 
+
+===== PAGE 44 =====
+ 
+### Route routing rule 
+- `/api/*` → backend :8001 
+- Everything else → frontend :3000 
+ 
+--- 
+ 
+*Generated: 2026-06-10 | SignGuy AI Rebuild Reference* 
+*Version: 1.0 — Based on full production app feature set* 
+" 
+Observation: Create successful: /app/memory/REBUILD_SPEC.md 
+ 
+ 
+ SignGuyAI Clean Rebuild and Release Roadmap 
+EARLY PLAN 
+ Purpose 
+This document treats the current `main` branch as the target product reference. The goal is not to copy its current 
+code structure. The goal is to recreate the same useful product capabilities through a faster, cleaner, dependency-
+driven build sequence. 
+ 
+The current application is broad and valuable, but it contains several generations of implementation: 
+- Legacy Jobs alongside Orders and Job Tickets 
+- General Tasks, Production Tasks, production timelines, and uniﬁed productivity views 
+- Multiple billing, subscription, and payment paths 
+- Large pages and route modules that own too many responsibilities 
+- Features added before their underlying workﬂow had stabilized 
+ 
+The rebuild should preserve the target behavior while replacing these overlaps with one canonical model per 
+business concept. 
+ 
+ Inspection Findings 
+The current repository demonstrates the complete product direction, but its structure also explains why additional 
+changes have become increasingly . 
+ 
+- The backend currently registers roughly 58 route modules through a `server.py` ﬁle that is more than 4,600 lines 
+long. 
+- The frontend contains roughly 133 page ﬁles. Several major pages are over 1,000 lines, and the largest are over 
+2,000 to 3,000 lines. 
+- There are roughly 159 backend test ﬁles, but many are iteration-speciﬁc regression ﬁles or external smoke tests 
+rather than a single dependable release suite. 
+- Core concepts overlap: legacy Jobs coexist with Orders and Job Tickets; several task and production systems 
+feed a uniﬁed productivity layer; billing and payments have multiple generations. 
+- High-value external systems include Stripe, Stripe Connect, SendGrid, OpenAI/Emergent integrations, 
+Meta/Facebook, SMS, object storage, and scheduled jobs. 
+- The current inventory and purchasing implementation is integrated with Orders, Job Tickets, Pricing Foundation, 
+production material pulls, and role permissions. It should be preserved as the target inventory behavior. 
+ 
+These ﬁndings support a staged rebuild that starts with canonical models and contract tests rather than a page-
+for-page code port. 
+ 
+
+===== PAGE 45 =====
+ 
+ Two Different Milestones 
+ 
+** ** means a real sign shop can run its core order workﬂow with a small number of invited 
+users. It does not need every SaaS growth, ecommerce, workforce, inventory, or AI feature. 
+ 
+** ** means the product is safe to sell broadly. It requires production billing, 
+support controls, tenant isolation veriﬁcation, reliable email, backup and restore, observability, and 
+tested critical workﬂows. 
+ 
+Do not confuse feature count with launch readiness. A smaller product with reliable workﬂows is more 
+sellable than a larger product with uncertain money or data paths. 
+ 
+ Build Rule 
+1. Build a modular monolith ﬁrst. Keep one deployable backend and frontend, but enforce domain 
+boundaries. 
+2. Use one canonical `Order` model. Do not recreate a separate legacy `Job`. 
+3. Use `OrderItem` for commercial line items and `JobTicket` for production work. 
+4. Use one canonical task model with typed task sources and views. Do not create unrelated task 
+collections for every module. 
+5. Store money as integer cents and quantities with explicit units. 
+6. Put all tenant-scoped access behind shared authorization helpers. 
+7. Record important business changes as immutable audit events. 
+8. Keep deterministic pricing, inventory, payroll, and accounting calculations outside AI. 
+9. Add external integrations only after the manual workﬂow works. 
+10. Keep public portals isolated from internal APIs and internal cost data. 
+11. Use feature ﬂags and staged tenant rollouts for every major release. 
+12. Every release must include migration, rollback, monitoring, and acceptance tests. 
+ 
+ Canonical Domains 
+| Identity | Tenants, users, roles, permissions, sessions | Customer or employee records | 
+| CRM | Customers, contacts, notes, customer ﬁles | Orders or invoices | 
+| Pricing | Pricing foundation, category rules, calculations, snapshots | Inventory quantities | 
+| Sales | Quotes, orders, order items, commercial totals | Production execution | 
+| Production | Job tickets, workﬂows, tasks, schedule, proofs | Selling price rules | 
+| Billing | Invoices, payments, refunds, payment links | SaaS subscriptions | 
+| Workforce | Employees, timeclock, schedules, payroll worksheet | App users and permissions | 
+| Inventory | Items, lots, locations, ledger, reservations, purchasing | Pricing calculations | 
+| Portals | Customer, employee, and webstore-owner experiences | Internal administration | 
+| Ecommerce | Products, webstores, storefront orders, payouts | Core order implementation | 
+| Communications | Email, SMS, templates, conversations, delivery events | Domain business rules | 
+| AI | Suggestions, drafts, explanations, action previews | Unreviewed business mutations | 
+| Platform | Plans, subscriptions, tenants, support, analytics | Tenant business operations | 
+ 
+ Shared Platform Services 
+- Tenant and authorization middleware 
+
+===== PAGE 46 =====
+- Audit event store 
+- Object storage abstraction 
+- Email and SMS delivery abstraction 
+- Background job queue and scheduler 
+- Idempotency service for payments, imports, and webhooks 
+- Feature ﬂags and plan entitlements 
+- Centralized validation, error handling, and logging 
+- Database migrations and index management 
+- Metrics, tracing, health checks, and alerting 
+- Automated tenant-isolation and permission tests 
+ 
+ 
+ 
+ 
+The following is the full product destination represented by the current app. Each capability is assigned to 
+a release later in this document. 
+ 
+ Identity, Security, and Administration 
+- Tenant signup, login, logout, veriﬁcation, password reset, and sessions 
+- Multi-tenant data isolation 
+- Owner, admin, staƯ, webstore-owner, and platform-admin roles 
+- Permission-controlled navigation and actions 
+- User invitations and user management 
+- Company proﬁle and operational settings 
+- Onboarding ﬂows 
+- Backup and restore 
+- Platform administration, tenant lookup, impersonation, and audit records 
+- Platform settings, maintenance mode, banners, and analytics 
+ 
+ CRM and Sales 
+- Customer CRUD, search, import/export, tax exemption, notes, and ﬁles 
+- Customer history and portal invitation 
+- Quotes, quote cloning, approvals, and quote-to-order conversion 
+- Orders, quick entry, order items, notes, assets, drawings, and activity 
+- Detailed category-speciﬁc order items and progressive pricing forms 
+- Order-item duplicate, variant, and category-copy workﬂows 
+- Job tickets generated from order items 
+- Invoice creation, cloning, payment status, payment links, refunds, and reconciliation 
+- Promo codes and discounts 
+ 
+ Pricing and Proﬁtability 
+- Pricing Foundation and material/labor conﬁguration 
+- Category pricing for digital print, cut vinyl, rigid signs, banners, wraps, apparel, services, promotional 
+items, and custom work 
+- Pricing setup and historical invoice import 
+- Pricing snapshots and calculation breakdowns 
+- Proﬁt and margin analytics 
+
+===== PAGE 47 =====
+- Actual job time and material cost reporting 
+ 
+ Production and Shop Operations 
+- Production Board 
+- Workﬂow templates 
+- Job-ticket statuses and production tasks 
+- Uniﬁed productivity list, calendar, and Kanban views 
+- General tasks and order-linked tasks 
+- Production timeline 
+- Scheduling and appointments 
+- Artwork approvals and proofs 
+- Drawings and structured signature requests 
+- Wrap Command Center, vehicle/area records, ﬁles, notiﬁcations, and wrap workﬂow 
+- Daily digest and operational notiﬁcations 
+ 
+ Navigation, Design, and Usability 
+- Shared permission-ﬁltered application shell 
+- OƯice-style contextual ribbon navigation 
+- Customizable quick toolbar 
+- Workﬂow-ﬁrst page organization 
+- Responsive internal pages and public portals 
+- Quick camera upload 
+- Drawing, image markup, and annotation tools 
+- Consistent loading, empty, error, conﬁrmation, and success states 
+- Accessibility and keyboard navigation 
+ 
+ Emergent Inventory and Purchasing 
+- Inventory overview, items, aliases, locations, bins, lots, rolls, sheets, packs, and remnants 
+- Deterministic unit conversions and dimension checks 
+- On-hand, reserved, available, incoming, and shortage quantities 
+- Immutable inventory ledger 
+- Manual adjustments, transfers, low-stock alerts, and cycle counts 
+- Pricing Foundation material links 
+- Job material requirements, reservations, shortages, pulls, consumption, waste, returns, and remnants 
+- Basic vendors 
+- Shortage-driven draft purchase orders 
+- PO approval, receiving, partial receiving, damaged/missing/substituted/backordered handling 
+- Reviewable received-cost suggestions 
+ 
+ Workforce and Finance 
+- Employee records and permissions 
+- Employee portal 
+- Timeclock, breaks, corrections, and job time 
+- Employee schedules 
+- Payroll worksheet, adjustments, signoƯ, export, and history 
+- Sales and expense entries 
+- Financial dashboards and reports 
+ 
+ Customer Experience and Communications 
+
+===== PAGE 48 =====
+- Customer portal with orders, quotes, invoices, approvals, documents, forms, and payments 
+- Questionnaires and public tokenized forms 
+- Document library 
+- Email templates and email deliverability tracking 
+- Admin communications hub 
+- Appointment conﬁrmation and rejection 
+- Meta/Facebook connection, leads inbox, and messaging 
+- SMS reminders 
+ 
+ Webstores and Ecommerce 
+- Product catalog 
+- Webstore creation, setup, branding, products, orders, analytics, and progress 
+- Public storefront and checkout 
+- Customer/order synchronization into shop operations 
+- Fundraiser and B2B store modes 
+- Webstore-owner onboarding and portal 
+- Stripe Connect onboarding, checkout, transfers, payouts, and reconciliation 
+ 
+ AI and Automation 
+- AI Business Assistant with business context 
+- Reviewed assistant actions and navigation 
+- AI pricing advisor and service-description preﬁll 
+- Email, product-description, marketing, document, image, speech, and voice tools 
+- Facebook messaging assistance 
+- AI preferences 
+- Credit metering, history, packs, and entitlements 
+ 
+ SaaS Growth and Public Experience 
+- Marketing website 
+- Pricing plans, trials, founders oƯers, coupons, and subscriptions 
+- Dunning and billing lifecycle 
+- Documentation and help center 
+- Community hub 
+- Tiered onboarding hub 
+- Platform usage and acquisition analytics 
+ 
+ Release 0: Engineering Foundation 
+ 
+ Goal 
+Create the stable base that makes every later release faster and safer. This is an internal release, not a 
+customer-facing product release. 
+ 
+ Features and Deliverables 
+- Repository structure organized by canonical domains 
+- Shared tenant-scoping and authorization middleware 
+- Canonical roles and initial permissions 
+- Database migration system and required indexes 
+- Audit event model and shared audit writer 
+- Object storage service 
+
+===== PAGE 49 =====
+- Email service with local/test provider and delivery event model 
+- Background job queue and scheduler 
+- Feature-ﬂag and plan-entitlement service 
+- Shared money, quantity, unit, date, and timezone utilities 
+- API error contract and frontend error handling 
+- Structured logs, health checks, metrics, and error reporting 
+- Seeded demo tenant and deterministic test ﬁxtures 
+- CI pipeline with unit, API integration, tenant isolation, and frontend smoke tests 
+- Deployment environments for local, preview, staging, and production 
+ 
+ Architecture Decisions Required 
+- One `Order` model replaces legacy jobs. 
+- One typed task model powers task lists, production views, calendars, and Kanban. 
+- Order items own quoted/sold speciﬁcations and pricing snapshots. 
+- Job tickets own production requirements and execution. 
+- Invoices reference orders but maintain immutable billed snapshots. 
+- External side eƯects use idempotency keys and background jobs. 
+ 
+ Exit Criteria 
+- A second tenant cannot read or mutate the ﬁrst tenant's records. 
+- Permission checks are tested at both route and service levels. 
+- Deployments and migrations can roll forward and back safely. 
+- Failed email, storage, and background jobs are observable and retryable. 
+- New domains can be added without expanding a single giant server or page. 
+ 
+ Release 1: Pilot MVP - Core Shop Workflow 
+ 
+ Goal 
+Allow one sign shop to move from customer inquiry to priced order, production work, invoice, and 
+completion using a dependable daily workﬂow. 
+ 
+ MVP Features 
+ 
+- Owner login, logout, password reset, and session management 
+- One tenant per shop with strict tenant isolation 
+- Owner, admin, and staƯ roles 
+- Invite and deactivate users 
+- Basic company proﬁle, tax, payment terms, numbering, and timezone settings 
+- Guided initial setup checklist 
+- Responsive permission-ﬁltered app shell 
+- Small, consistent shared component library 
+- Standard loading, empty, error, conﬁrmation, and success states 
+ 
+ Customers 
+- Create, view, edit, archive, search, and ﬁlter customers 
+- Customer contacts, addresses, notes, tax-exempt ﬂag, and ﬁles 
+- Customer order and invoice history 
+- CSV customer import with preview, validation, duplicate handling, and result report 
+
+===== PAGE 50 =====
+- CSV customer export 
+ 
+ Pricing 
+- Minimal Pricing Foundation for materials, labor, markup, tax, and rush percentage 
+- Deterministic pricing calculator 
+- Initial categories: digital print, rigid signs, banners, apparel, services, and custom 
+- Pricing snapshot stored on every quote/order item 
+- Manual price override with reason and audit event 
+ 
+ Quotes and Orders 
+- Create and edit quotes 
+- Add quick or detailed line items 
+- Quote totals, tax, discount, deposit, notes, and expiration 
+- Convert approved quote to order idempotently 
+- Create orders directly without a quote 
+- Order list, search, ﬁlters, statuses, due dates, notes, and ﬁles 
+- Duplicate order items and create variations 
+- Immutable activity history for important changes 
+ 
+ Production 
+- Generate one job ticket per production order item 
+- Production Board with conﬁgurable statuses 
+- Assign staƯ, set due date and priority, add production notes 
+- Move job tickets through production statuses 
+- Record basic job time 
+- Attach artwork and production ﬁles 
+- Quick camera/ﬁle upload with safe ﬁle validation 
+ 
+ Proofs and Documents 
+- Create and send a proof/approval request 
+- Public tokenized approve/reject page 
+- Record approval history 
+- Basic document library linked to customer or order 
+- Basic drawing/ﬁle upload 
+- Basic image markup and annotation 
+ 
+ Invoices and Payments 
+- Create invoice from order 
+- Invoice list, status, due date, tax, discounts, deposit, and balance 
+- Record manual payments and refunds 
+- Generate printable/downloadable invoice 
+- Send invoice email 
+- Payment history and reconciliation audit trail 
+ 
+ Dashboard and Reports 
+- Dashboard showing open quotes, active orders, production due dates, unpaid invoices, and recent 
+activity 
+- Basic sales, outstanding invoice, and order-status reports 
+ 
+
+===== PAGE 51 =====
+ Explicitly Deferred 
+- Full workforce/payroll 
+- Inventory and purchasing 
+- Full customer and employee portals 
+- Webstores and Stripe Connect 
+- Meta/Facebook and SMS 
+- AI tools and credits 
+- SaaS self-service billing 
+- Advanced platform administration 
+- Wrap Command Center specialization 
+- Advanced productivity aggregation 
+ 
+ MVP Exit Criteria 
+- A pilot shop can complete customer-to-paid-order workﬂows without database intervention. 
+- Quote conversion, order totals, invoice totals, and payments remain consistent under retries. 
+- StaƯ cannot access owner-only settings or ﬁnancial actions. 
+- Every customer, quote, order, ticket, invoice, and ﬁle is tenant-scoped. 
+- Critical workﬂow API and browser tests pass in staging. 
+- Backup export and restore are veriﬁed on a separate tenant. 
+ 
+ Release 2: Production Operations and Commercial Core 
+ 
+ Goal 
+Make the core product operationally strong enough for multiple paying pilot shops and prepare it for 
+commercial sale. 
+ 
+ Features 
+- All remaining pricing categories and detailed progressive-disclosure forms 
+- Pricing setup and historical invoice import 
+- Workﬂow template builder 
+- Production tasks based on the canonical task model 
+- Uniﬁed task list, calendar, and Kanban views 
+- Contextual oƯice-style ribbon and customizable quick toolbar 
+- Production timeline and scheduling 
+- Appointments with email conﬁrmations 
+- Structured drawings and signature requests 
+- Advanced approvals and staƯ review workﬂow 
+- Wrap Command Center using the same order/job-ticket foundation 
+- Job-time reporting and estimated-versus-actual labor proﬁtability 
+- Daily digest and operational notiﬁcations 
+- Email templates and delivery tracking 
+- Customer portal lite: quotes, approvals, invoices, documents, and payments 
+- Production and proﬁtability reports 
+ 
+ Commercial Launch Gate 
+ 
+Before selling broadly, complete: 
+- Production SendGrid conﬁguration and delivery monitoring 
+- Production payment webhook signature veriﬁcation 
+
+===== PAGE 52 =====
+- Backup and restore drills 
+- Tenant isolation and RBAC penetration tests 
+- Error tracking, uptime monitoring, and support runbooks 
+- Data retention, privacy, terms, and security documentation 
+- Live critical-ﬂow browser tests 
+- Self-service SaaS subscription billing or a documented manual provisioning process 
+ 
+ Exit Criteria 
+- Workﬂow templates, tasks, and production views all use one task implementation. 
+- The customer portal never exposes internal notes, costs, or other tenants. 
+- Proof, signature, appointment, and payment links are tokenized and expire correctly. 
+- A shop can manage several concurrent orders without relying on spreadsheets for production status. 
+ 
+ Release 3: Workforce and Financial Control 
+ 
+ Goal 
+Replace the shop's separate timeclock, scheduling, payroll worksheet, and basic ﬁnancial tracking tools. 
+ 
+ Features 
+- Employee records and employment settings 
+- Employee portal 
+- Timeclock with work, break, end-work sequence, corrections, and audit history 
+- Job-speciﬁc time tracking 
+- Employee schedules 
+- Canonical productivity views for assignments and schedules 
+- Payroll worksheet 
+- Payroll adjustments, signoƯ, export, and history 
+- Sales and expense entries 
+- Financial dashboard 
+- Proﬁt and margin analytics 
+- Labor-cost and job-proﬁtability reporting 
+- Advanced operational and ﬁnancial reports 
+ 
+ Exit Criteria 
+- Timeclock and payroll calculations are deterministic and timezone-safe. 
+- Payroll modiﬁcations require authorization and remain auditable. 
+- Order proﬁtability reconciles sold price, labor time, and recorded expenses. 
+- Employee portal permissions cannot expose owner ﬁnancial or administrative data. 
+ 
+ Release 4: Emergent Inventory and Purchasing 
+ 
+ Goal 
+Add the current Emergent inventory implementation after orders, job tickets, pricing, and production 
+workﬂows are stable. 
+ 
+ Features 
+ 
+ Inventory Core 
+- Inventory items, categories, tracking methods, aliases, and Pricing Foundation links 
+
+===== PAGE 53 =====
+- Locations and bins 
+- Lots, quantity SKUs, rolls, sheets, boards, packs, cases, and remnants 
+- Deterministic unit conversions 
+- Dimension-aware roll and remnant availability 
+- On-hand, reserved, available, incoming, and shortage quantities 
+- Immutable transaction ledger 
+- Manual adjustments with reasons 
+- Transfers, reorder points, low-stock alerts, and cycle counts 
+ 
+ Job Materials and Production Pull 
+- Generated and editable job material requirements 
+- Reservations when an order is approved 
+- Shortage records without blocking approval 
+- Reservation recalculation and release 
+- Pull Materials from job tickets and Production Board 
+- Pulled, consumed, wasted, returned, and remnant reconciliation 
+- Actual material cost on job proﬁtability 
+ 
+ Manual Purchasing 
+- Basic vendor records 
+- Shortage list 
+- Draft purchase orders from shortages 
+- PO approval and sent statuses 
+- Manual supplier SKU, quantity, cost, and expected delivery 
+- Full and partial receiving 
+- Damaged, missing, substituted, and backordered handling 
+- Incoming quantity updates 
+- Reviewable Pricing Foundation cost suggestions 
+ 
+ Explicitly Deferred 
+- Supplier API connections 
+- Cross-supplier live price comparison 
+- Automatic ordering 
+- AI purchasing recommendations 
+- Webstore inventory reservations 
+ 
+ Exit Criteria 
+- Inventory ledger reconciles with lot balances after every transaction type. 
+- Concurrent reservations cannot exceed available stock. 
+- Dimension checks reject unusable rolls and remnants. 
+- Production pulls reconcile consumed, waste, returns, remnants, and actual cost. 
+- PO receiving reconciles incoming and on-hand quantities. 
+ 
+ Release 5: Customer Experience and Communications 
+ 
+ Goal 
+Provide a complete customer-facing experience and centralize shop communications. 
+ 
+ Features 
+
+===== PAGE 54 =====
+- Full customer portal 
+- Customer orders, quotes, invoices, approvals, ﬁles, forms, payments, and history 
+- Dynamic questionnaires and public tokenized forms 
+- Enhanced document library 
+- Advanced drawing, image markup, and annotation tools 
+- Admin communications hub 
+- Conversation history linked to customers and orders 
+- Reusable email templates 
+- Email delivery events, bounce handling, and deliverability dashboard 
+- SMS appointment and order reminders 
+- Meta/Facebook connection 
+- Facebook leads inbox and messaging 
+- Appointment scheduling, conﬁrmation, rejection, and reminders 
+- Customer notiﬁcation preferences 
+ 
+ Exit Criteria 
+- Every outbound communication is attributable, retryable, and linked to its business record. 
+- Public forms and portal routes are token-safe and rate-limited. 
+- Customer-visible data has an explicit allowlist and excludes internal costs and notes. 
+- Failed delivery and disconnected integration states are clear to staƯ. 
+ 
+ Release 6: Webstores and Ecommerce 
+ 
+ Goal 
+Add ecommerce only after core orders, payments, customer sync, production, and support controls are 
+stable. 
+ 
+ Features 
+- Product catalog and product variants 
+- Webstore creation and guided setup 
+- Branding, pages, products, pricing, publishing, and store progress 
+- Public storefront, cart, checkout, conﬁrmation, and order history 
+- Fundraiser and B2B store modes 
+- Promo codes 
+- Webstore-order synchronization to canonical orders and job tickets 
+- Webstore analytics and payout reporting 
+- Webstore-owner invitation, onboarding, and restricted portal 
+- Stripe Connect onboarding and status 
+- Connected-account checkout, transfers, payouts, refunds, disputes, and reconciliation 
+- Optional stocked-product and made-to-order inventory modes after inventory is stable 
+ 
+ Exit Criteria 
+- Checkout and webhook handling are idempotent. 
+- Storefront totals, shop orders, Stripe payments, transfers, and payouts reconcile. 
+- Webstore owners cannot see internal shop data or supplier costs. 
+- Webstore order creation uses the canonical order model without duplicate workﬂows. 
+- Failed payments, refunds, disputes, and disconnected accounts have tested recovery paths. 
+ 
+ Release 7: AI and Automation 
+
+===== PAGE 55 =====
+ 
+ Goal 
+Use AI to reduce work in already-stable workﬂows without allowing it to silently control money, inventory, 
+or approvals. 
+ 
+ Features 
+- AI Business Assistant with permission-ﬁltered business context 
+- Read-only questions and explanations 
+- Reviewed action drafts with previews and conﬁrmation 
+- AI pricing advisor and service-description preﬁll 
+- Email and reply drafting 
+- Product descriptions and marketing content 
+- Document extraction and summarization 
+- Image tools 
+- Speech-to-text and optional voice tools 
+- Facebook messaging assistance 
+- AI preferences 
+- Credit metering, history, packs, limits, and plan entitlements 
+- Inventory substitution, reorder, anomaly, and PO draft recommendations 
+- Audit trail for prompts, outputs, reviewed actions, and resulting mutations 
+ 
+ Guardrails 
+- AI cannot directly approve POs, alter inventory, submit supplier orders, issue refunds, or change selling 
+prices. 
+- Deterministic services validate every proposed action. 
+- Users see sources, assumptions, aƯected records, and predicted impact before conﬁrmation. 
+- AI context always respects tenant and user permissions. 
+ 
+ Exit Criteria 
+- AI failures never block the manual workﬂow. 
+- Every mutating AI action requires explicit review and is auditable. 
+- Credit charging is idempotent and tied to a completed action. 
+- Evaluation tests cover hallucination, permission leakage, and unsafe action attempts. 
+ 
+ Release 8: SaaS Platform, Growth, and Ecosystem 
+ 
+ Goal 
+Operate SignGuyAI as a scalable multi-product SaaS business. 
+ 
+ Features 
+- Public marketing website 
+- Plans, trials, founders oƯers, coupons, and upgrades 
+- Self-service subscription billing and customer billing portal 
+- Dunning, failed-payment recovery, plan gating, and entitlements 
+- Platform-admin tenant search and detail 
+- Controlled impersonation with audit records 
+- Platform analytics, acquisition analytics, and usage reporting 
+- Platform settings, announcements, and maintenance mode 
+- Tiered onboarding hub 
+
+===== PAGE 56 =====
+- Tenant backup and restore management 
+- Documentation and help center 
+- Community hub 
+- Supplier comparison integrations after manual purchasing is proven 
+- S&S Activewear API, PromoStandards/PSRESTful, CSV/feed imports, and authorized vendor feeds 
+ 
+ Exit Criteria 
+- Subscription state, plan access, and entitlements remain consistent through webhook retries. 
+- Impersonation and platform actions are fully audited. 
+- Support staƯ can diagnose tenant issues without direct database access. 
+- Public documentation, onboarding, and billing reduce manual support load. 
+- Supplier prices clearly distinguish live API data from timestamped imports. 
+ 
+ Release Dependency Map 
+```text 
+Release 0: Foundation 
+    | 
+    v 
+Release 1: Pilot MVP Core 
+    | 
+    v 
+Release 2: Production Operations + Commercial Core 
+    | 
+    +--------------------+ 
+    |                    | 
+    v                    v 
+Release 3: Workforce    Release 4: Inventory 
+    |                    | 
+    +----------+---------+ 
+               | 
+               v 
+Release 5: Customer Experience 
+               | 
+               v 
+Release 6: Webstores 
+               | 
+               v 
+Release 7: AI 
+ 
+Release 8 platform capabilities begin minimally before commercial launch, 
+then expand throughout the program. 
+``` 
+ 
+ Feature Coverage Matrix 
+ 
+This matrix proves that the clean roadmap preserves the current app's destination features. 
+ 
+|---|---:| 
+
+===== PAGE 57 =====
+| Authentication, tenant isolation, RBAC, users | R0-R1 | 
+| Company settings and onboarding | R1 | 
+| Backup and restore | R0, commercial gate, R8 | 
+| Customers, import/export, notes, ﬁles | R1 | 
+| Pricing Foundation and calculator | R1-R2 | 
+| All detailed pricing categories | R2 | 
+| Quotes and quote-to-order conversion | R1 | 
+| Orders and order items | R1 | 
+| Job tickets and Production Board | R1 | 
+| Approvals, proofs, drawings, signatures | R1-R2 | 
+| Invoices and manual payments | R1 | 
+| Online invoice payments and reconciliation | R2 | 
+| Dashboard and basic reports | R1 | 
+| Workﬂow templates, timeline, tasks, productivity | R2 | 
+| Shared app shell, ribbon navigation, and quick toolbar | R1-R2 | 
+| Quick camera upload, drawing markup, and annotations | R1-R5 | 
+| Scheduling, appointments, daily digest | R2 | 
+| Wrap Command Center | R2 | 
+| Customer portal lite/full | R2/R5 | 
+| Employees and employee portal | R3 | 
+| Timeclock, job time, schedules, payroll | R3 | 
+| Financials, proﬁt analytics, advanced reports | R3 | 
+| Emergent inventory and purchasing | R4 | 
+| Supplier comparison and vendor integrations | R8 | 
+| Questionnaires and forms | R5 | 
+| Communications hub, email delivery, SMS | R5 | 
+| Meta/Facebook leads and messaging | R5 | 
+| Products and webstores | R6 | 
+| Storefront, fundraiser, and B2B stores | R6 | 
+| Webstore-owner onboarding and portal | R6 | 
+| Stripe Connect, payouts, and disputes | R6 | 
+| AI tools, assistant, advisor, and action drafts | R7 | 
+| AI credits and entitlements | R7-R8 | 
+| SaaS subscriptions, plans, trials, and dunning | Commercial gate/R8 | 
+| Platform admin, impersonation, and analytics | R8 | 
+| Marketing website, docs, help, and community | R8 | 
+ 
+ Efﬁcient Rebuild Method 
+ 
+- Preserve screenshots, workﬂows, ﬁeld deﬁnitions, and acceptance tests that represent desired 
+behavior. 
+- Do not port large ﬁles wholesale. 
+- For each capability, write a concise behavior contract before rebuilding it. 
+- Reuse proven deterministic calculation rules only after isolating and testing them. 
+- Treat old route names and collection names as migration inputs, not new architecture requirements. 
+ 
+ Build Each Feature Vertically 
+For every feature: 
+
+===== PAGE 58 =====
+1. Deﬁne user outcome and permissions. 
+2. Deﬁne canonical data model and ownership. 
+3. Deﬁne API contract and audit events. 
+4. Implement deterministic domain service. 
+5. Implement a focused UI. 
+6. Add unit, integration, tenant-isolation, and browser workﬂow tests. 
+7. Add observability and failure recovery. 
+8. Release behind a feature ﬂag to an internal tenant, then pilot tenants. 
+ 
+ Avoid Recreating Current Structural Problems 
+- Do not add routes directly to a giant `server.py`. 
+- Do not create multi-thousand-line page components. 
+- Do not create a new collection because a new screen needs a slightly diƯerent view. 
+- Do not let frontend code calculate authoritative money, inventory, or payroll values. 
+- Do not couple optional integrations to core workﬂows. 
+- Do not use AI as a substitute for missing deterministic business logic. 
+- Do not launch a public surface without rate limits, token expiry, and abuse controls. 
+ 
+ Recommended Next Planning Sequence 
+ 
+Create implementation plans in this order: 
+1. Release 0 architecture, repository structure, migration strategy, and CI. 
+2. Release 1 MVP detailed feature speciﬁcations and acceptance tests. 
+3. Release 1 data migration from the current app. 
+4. Release 2 production and commercial-launch plan. 
+5. Remaining release plans immediately before their dependencies are ready. 
+ 
+The ﬁrst detailed implementation plan should cover only Release 0 and Release 1. Planning every 
+endpoint for Release 8 now would create false precision and repeat the same accumulation problem this 
+roadmap is intended to prevent. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+===== PAGE 59 =====
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Yes, I agree with your instinct: the rebuild should start with the full app structure visible from the 
+beginning, even if many areas are “thin” or placeholder-level at ﬁrst. 
+That means the new app should have the ﬁnal navigation shell, ﬁnal feature areas, ﬁnal data 
+ownership rules, and ﬁnal layout patterns from day one, then each release deepens each area. That 
+will reduce future layout rewrites and stop the codebase from becoming another sediment layer of 
+abandoned features. Humanity may yet recover. 
+I reviewed the plan again with that lens. The plan is strong, but there are some missing or 
+underemphasized feature areas compared to everything you’ve described wanting in SignGuy AI.  
+ Big Verdict 
+The plan covers most major ﬁnal features, but it is too release-focused and not enough ﬁnal-app-
+structure-focused. 
+It should be adjusted so that from the beginning the app has: 
+Home (main dashboard) 
+Operations 
+Business 
+Productivity 
+AI Hub 
+And inside those, every major ﬁnal feature area should exist in at least a minimal form. 
+Not fully built. Not polished. Not sellable. But present. 
+That is the right move if your focus is clean code architecture and avoiding future rebuilds, not rushing 
+a public launch. 
+ Features I Think Are Missing or Too Light In The Plan 
+1. The 4-Workspace App Structure Is Missing 
+The plan talks about domains, releases, and capabilities, but it does not clearly deﬁne the ﬁnal user-
+facing structure as: 
+Home (main dashboard) 
+Operations 
+Business 
+Productivity 
+AI Hub 
+Settings 
+More.. (onboarding, documentation, community,  
+That should be added near the top of the plan. 
+Add this 
+
+===== PAGE 60 =====
+The app shell must be built from the beginning around four main connected workspaces: 
+ 
+1. Operations 
+2. Business 
+3. Productivity 
+4. AI Hub 
+ 
+Each workspace should exist from Release 1, even if some sections are initially minimal, disabled, or 
+labeled Coming Soon. 
+ 2. Global Dashboard / Command Center Needs More Emphasis 
+The plan includes dashboard and reports, but it does not strongly deﬁne the main command center. 
+You need a global dashboard above the 4 workspaces. 
+It should include from the start 
+Action Required 
+Today’s Schedule 
+Open Orders 
+Production Alerts 
+Pending Approvals 
+Unpaid Invoices 
+Daily Sales 
+Tasks Due 
+Low Inventory Alerts 
+AI Suggestions / Coming Soon 
+Even if inventory or AI are not fully active, the dashboard should reserve the space. 
+Why 
+This avoids rebuilding the dashboard every release. 
+The dashboard should always show cards for the major future areas, even if some cards are minimal. 
+ 3. Global Search Is Underemphasized 
+The plan mentions search in diƯerent areas, but global search should be treated as a core app-shell 
+feature. 
+Global search should eventually ﬁnd 
+Customers 
+Contacts 
+Orders 
+Order Items 
+Job Tickets 
+Quotes 
+Invoices 
+Payments 
+Tasks 
+Documents 
+Proofs 
+Webstores 
+Employees 
+Inventory Items 
+Messages 
+
+===== PAGE 61 =====
+Help Docs 
+AI Outputs 
+Minimal ﬁrst version 
+At ﬁrst, it can search only: 
+Customers 
+Orders 
+Quotes 
+Invoices 
+Documents 
+But the architecture should be built so every future module can register searchable records. 
+ 4. Global “+ Create” Button Is Missing 
+You need a global quick-create system. 
+Should include 
+New Customer 
+New Quote 
+New Order 
+New Order Item 
+New Task 
+New Invoice 
+Upload File 
+Schedule Appointment 
+Create Webstore 
+Ask AI 
+Some can be disabled early, but the structure should exist. 
+Why 
+If you use 4 workspaces, users still need to start common actions from anywhere. 
+Without this, the “4 apps” idea may feel too separated. 
+ 5. Productivity Should Exist Earlier and More Clearly 
+The plan mentions uniﬁed productivity views, tasks, calendars, and Kanban, but it treats them more like 
+production add-ons. 
+I think Productivity should be one of the core app workspaces from the beginning. 
+It should include at least minimal versions of 
+Tasks 
+Kanban 
+Notes 
+Reminders 
+Checklists 
+Messages 
+Internal workﬂows 
+Announcements 
+Even if Kanban and recurring workﬂows come later, the data model should be there early. 
+Critical correction 
+The canonical task model should be in the foundation or MVP , not delayed too far. 
+At minimum: 
+Task 
+- title 
+- status 
+
+===== PAGE 62 =====
+- priority 
+- due date 
+- assigned user 
+- source_type 
+- source_id 
+- tenant_id 
+This prevents every module from inventing its own task/note/reminder mess again. 
+ 6. Internal Messages / Conversations Need More Clarity 
+The plan covers communications, email, SMS, and customer messaging, but internal messages and 
+team communication should be more clearly separated. 
+You likely need three communication types: 
+Customer communications 
+Internal team communications 
+Platform/community communications 
+Where they belong 
+Customer/order messages = Operations 
+Team/internal messages = Productivity 
+Support/community messages = AI Hub 
+Without this separation, everything becomes “Messages, ” which is where context goes to drown. 
+ 7. Notes Need To Be Treated As Their Own Shared Concept 
+The plan mentions notes in CRM and orders, but notes should be a canonical shared feature. 
+Notes should attach to 
+Customer 
+Order 
+Order Item 
+Job Ticket 
+Invoice 
+Task 
+Employee 
+Webstore 
+Inventory Item 
+Do not make 
+customer_notes 
+order_notes 
+production_notes 
+employee_notes 
+webstore_notes 
+as totally separate concepts. 
+Use one canonical note/comment model with typed links. 
+This is the same logic as canonical tasks. 
+ 8. Shop Schedule Should Be More Clearly Deﬁned 
+The plan includes scheduling, appointments, employee schedules, and production timeline. But the ﬁnal 
+app needs a clear Schedule workspace/module pattern. 
+Schedule should cover 
+Shop calendar 
+Install schedule 
+
+===== PAGE 63 =====
+Pickup schedule 
+Appointments 
+Employee shifts 
+Order due dates 
+Production due dates 
+Task calendar 
+Time oƯ 
+The app should not make separate unrelated calendars for production, team, tasks, and appointments. 
+Use one calendar system with event types. 
+ 9. AI Hub Should Exist From The Beginning, Even If AI Is Deferred 
+The plan puts AI in Release 7, which is safe for real AI actions. But since this is SignGuy AI, the AI Hub 
+should be present from the beginning. 
+Release 1 AI Hub can include 
+AI Hub shell 
+Prompt Library placeholder 
+Onboarding 
+Documentation 
+Help 
+Feature Request 
+Bug Report 
+Roadmap 
+Coming Soon AI tools 
+Later AI adds 
+Business Assistant 
+Pricing AI 
+Email/Text AI 
+Production AI 
+Reports AI 
+Webstore AI 
+Image tools 
+Voice tools 
+Credits 
+Entitlements 
+Reviewed actions 
+This keeps the app’s identity consistent while still protecting the core workﬂows. 
+ 10. Help, Documentation, Onboarding, and Community Are Too Late 
+The plan places documentation/help/community mostly in SaaS Growth / Release 8. 
+For a clean rebuild, I would not wait that long. 
+You need these from the beginning 
+Onboarding checklist 
+Setup wizard 
+App documentation shell 
+Bug report form 
+Feature request form 
+Release notes page 
+Help center shell 
+Even if they are simple, they should exist. 
+
+===== PAGE 64 =====
+Why 
+You are rebuilding a broad app. Documentation and onboarding are not just marketing features. They are 
+part of the product structure. 
+If Help gets added late, you will bolt it on awkwardly later. Which, shockingly, is the thing we’re trying not 
+to repeat. 
+ 11. Bug Reports and Feature Requests Should Be Product Features Early 
+The plan mentions community hub later, but bug reports and feature requests should be present earlier. 
+Minimal version 
+Submit Bug Report 
+Submit Feature Request 
+View My Requests 
+Admin Review Queue 
+Status: New / Reviewing / Planned / Done / Declined 
+This helps you manage your own rebuild testing, even before customers use it. 
+ 12. App Documentation / Internal Admin Documentation Is Missing 
+The plan includes public documentation, but I would add internal app documentation as a ﬁrst-class 
+feature. 
+Include 
+Module guides 
+Workﬂow guides 
+Admin setup guides 
+Release notes 
+Known issues 
+Keyboard shortcuts 
+What changed 
+How to use this page 
+Each module should have contextual help. 
+Example: 
+Orders page → Help button opens Orders documentation 
+Production board → Help button opens Production documentation 
+Pricing calculator → Help button opens Pricing documentation 
+ 13. Navigation Permission Rules Need More Detail 
+The plan includes permission-controlled navigation, which is good. But because you are using a 
+workspace structure, it should deﬁne permission-ﬁltered navigation more clearly. 
+Need rules for 
+Which workspaces each role can see 
+Which modules inside each workspace each role can see 
+Which ribbon actions each role can use 
+Which records each role can open 
+Which ﬁnancial ﬁelds are hidden 
+Which portal users see only allowlisted data 
+Example 
+Production staƯ may see: 
+Operations → Production 
+Productivity → My Tasks 
+But not: 
+
+===== PAGE 65 =====
+Business → Finance 
+Business → Payroll 
+Settings → Tax Rules 
+ 14. Customer Portal Is Covered, But Portal Types Should Be More Explicit 
+The plan covers portals, but I would deﬁne each portal separately from the beginning. 
+Portal types 
+Customer Portal 
+Employee Portal 
+Webstore Owner Portal 
+Partner / B2B Portal 
+Public Token Pages 
+Platform Admin Portal 
+Why 
+These should not share internal APIs casually. 
+Each portal has diƯerent data exposure rules. 
+ 15. Partner / B2B Portal Feels Underemphasized 
+The plan mentions B2B store modes and portals, but your broader business direction includes partners, 
+funeral homes, B2B, webstores, and customer portals. 
+A future Partner Portal should be included in the destination map. 
+Partner portal should eventually include 
+Place orders 
+View order status 
+Upload ﬁles/details 
+View invoices/statements 
+Access partner pricing 
+View webstore links 
+Submit forms 
+Partner-speciﬁc documents 
+Commission/discount visibility if allowed 
+Even if deferred, it should appear in the ﬁnal feature coverage. 
+ 16. Vehicle Wrap Workﬂow Is Covered, But Maybe Too Narrow 
+The plan includes Wrap Command Center, vehicle/area records, ﬁles, notiﬁcations, and workﬂow. Good. 
+But for your app, wrap work probably needs a more complete ﬁnal destination. 
+Add to ﬁnal wrap feature list 
+Vehicle records 
+Vehicle measurements 
+Area/side records 
+Damage/pre-install photos 
+Artwork zones 
+Install checklist 
+Proof approvals 
+Material estimate 
+Production stages 
+Install scheduling 
+Customer signature 
+
+===== PAGE 66 =====
+Before/after photos 
+Warranty/care instructions 
+Not all at launch, but the destination should be clearer. 
+ 17. Design / Artwork Tools Are Covered, But Could Be More Explicit 
+The plan mentions drawings, image markup, annotation, proofs, ﬁles, and AI image tools. 
+I would add a clearer Design/Artwork Workspace Concept inside Operations/Documents. 
+Final features 
+Artwork upload 
+Proof versions 
+Image markup 
+Measurements 
+Approval comments 
+Design notes 
+File versioning 
+Asset library 
+Template ﬁles 
+Customer-uploaded art 
+Before/after photos 
+This is important for sign shops. 
+ 18. Mobile / Field Use Is Missing 
+The plan says responsive internal pages and portals, but mobile ﬁeld use deserves explicit mention. 
+Add ﬁnal feature area 
+Mobile-friendly installer view 
+Camera upload 
+Install checklist 
+Customer signature 
+Before/after photos 
+Location/address quick access 
+Completion notes 
+Pickup/installation conﬁrmation 
+For sign shops, this matters. 
+Not necessarily a separate mobile app, but deﬁnitely a mobile-friendly workﬂow. 
+ 19. Notiﬁcations Need a Canonical Model 
+The plan mentions daily digest and operational notiﬁcations, but notiﬁcations should be treated as their 
+own shared system. 
+Notiﬁcation types 
+In-app notiﬁcation 
+Email notiﬁcation 
+SMS notiﬁcation 
+Digest notiﬁcation 
+Portal notiﬁcation 
+System alert 
+Trigger examples 
+Proof approved 
+Quote viewed 
+Invoice paid 
+
+===== PAGE 67 =====
+Order overdue 
+Task due 
+Low inventory 
+Appointment conﬁrmed 
+Webstore order received 
+Payroll ready 
+AI action needs review 
+Do not let each module invent its own notiﬁcation logic. That way lies madness, and probably duplicate 
+emails. 
+ 20. Audit Trail Is Good, But Activity Timeline Should Be User-Facing Too 
+The plan has audit events, which is excellent. 
+But you also need user-facing activity timelines. 
+Activity timelines should appear on 
+Customer 
+Order 
+Order Item 
+Job Ticket 
+Invoice 
+Webstore 
+Employee 
+Inventory Item 
+Task 
+Audit events are system-level. Activity timelines are user-facing. 
+They can share the same event backbone, but the UI needs timeline views. 
+ Final Feature Areas That Should Exist From The Start 
+Even if minimal, I would include these feature areas in the starting app shell: 
+Operations 
+Dashboard 
+Customers 
+Quotes 
+Orders 
+Order Items 
+Job Tickets 
+Production Board 
+Schedule 
+Proofs / Approvals 
+Documents / Artwork 
+Webstores shell 
+Customer Portal shell 
+Wraps shell 
+Business 
+Billing 
+Invoices 
+Payments 
+Daily Sales 
+Finance Dashboard 
+Expenses 
+
+===== PAGE 68 =====
+Sales Tax 
+Deductions 
+Inventory shell 
+Payroll shell 
+Reports 
+Productivity 
+Tasks 
+Kanban shell 
+Messages 
+Notes 
+Checklists 
+Reminders 
+Announcements 
+Calendar 
+AI Hub 
+AI Business Assistant shell 
+AI Tools shell 
+Prompt Library 
+Onboarding 
+Documentation 
+Help Center 
+Bug Reports 
+Feature Requests 
+Community shell 
+Roadmap 
+Release Notes 
+Global App Shell 
+Global Dashboard 
+Global Search 
+Global + Create 
+Notiﬁcations 
+Settings 
+User/Proﬁle 
+Permissions 
+Feature Flags 
+ What I Would Add To The Plan As A New Section 
+Add this section near the top: 
+Final App Surface Rule- DECIDED 
+ 
+The rebuild should create the ﬁnal application surface area from the beginning. Each major ﬁnal 
+workspace and module should exist in minimal form early, even if advanced behavior is deferred. 
+ 
+The goal is not to hide future areas until their release. The goal is to establish stable navigation, routing, 
+permissions, data ownership, and page patterns early, then progressively deepen each feature area. 
+ 
+Each ﬁnal module may begin as one or more of: 
+- working minimal feature 
+- read-only dashboard 
+
+===== PAGE 69 =====
+- setup placeholder 
+- coming soon page 
+- feature-ﬂagged internal preview 
+- shell with documented target behavior 
+ 
+This prevents repeated navigation rewrites, route churn, permission rewrites, and layout restructuring as 
+the product matures. 
+That is the principle you’re describing, and I think it’s correct. 
+ Direct Answer: Is Anything Missing? 
+Clearly missing or too underdeﬁned 
+1. 4-workspace navigation model  
+2. Global dashboard/command center  
+3. Global search  
+4. Global + Create  
+5. Early AI Hub shell  
+6. Early Help/documentation/onboarding shell  
+7. Bug reports and feature requests as early product tools  
+8. Canonical notes/comments model  
+9. Canonical notiﬁcations model  
+10. Stronger internal messages/team communication model  
+11. Stronger schedule/calendar model  
+12. Partner/B2B portal destination  
+13. Mobile installer/ﬁeld workﬂow  
+14. More explicit design/artwork asset workﬂow  
+15. User-facing activity timelines across records  
+16. Minimal presence of all ﬁnal modules from the start  
+Covered but should be emphasized more 
+1. Webstores  
+2. Wrap Command Center  
+3. Inventory  
+4. Finance/daily sales/taxes/deductions  
+5. Productivity/Kanban/tasks  
+6. Customer portal  
+7. Employee portal  
+8. Community  
+9. Documentation/help center  
+10. AI tools 
+Protected Specification Areas 
+ 
+Before rebuilding each protected area, extract the current approved behavior into a written speciﬁcation. 
+The current code may be discarded, but the approved behavior, ﬁelds, defaults, workﬂows, and 
+calculations must be preserved. 
+ 
+Protected areas include: 
+- Pricing Foundation 
+- Product/item categories 
+- Pricing quizzes and progressive forms 
+- Pricing defaults and calculation assumptions 
+
+===== PAGE 70 =====
+- Onboarding setup 
+- OƯice-style ribbon navigation 
+- Dashboard layouts 
+- Webstore setup and store types 
+- Team schedule, timeclock, and payroll rules 
+- Inventory and purchasing behavior 
+- Wrap Command Center 
+- Document library and questionnaires 
+- Customer, employee, webstore owner, and partner portals 
+- AI assistant guardrails and action review rules 
+ 
+No protected area may be simpliﬁed, renamed, removed, or restructured at the product-behavior level 
+without explicit approval.  

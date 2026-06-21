@@ -1,0 +1,900 @@
+
+
+===== PAGE 1 =====
+I want to create a brand-new clean rebuild of SignGuy AI in a new repository. 
+Do not rebuild inside the current repo. Treat the current app only as a product reference, behavior reference, 
+screenshot reference, and migration source. Do not copy large files, old routes, old page components, or legacy 
+structures wholesale. 
+The goal of this first version is to create the clean foundation and first usable version of the new app structure. 
+This first version should establish the final navigation shell, canonical data concepts, page layout patterns, 
+permissions, and feature areas from the beginning, even if many areas are minimal shells or early versions. 
+Do not leave major final feature areas completely missing. Defer depth, not presence. 
+ 
+1. Core Product Direction 
+This app is SignGuy AI, a full business operating system for custom sign shops. 
+The app should eventually manage: 
+ Customers 
+ Quotes 
+ Orders 
+ Order Items 
+ Production 
+ Job Tickets 
+ Pricing Foundation 
+ Pricing calculators 
+ Proofs and approvals 
+ Invoices and payments 
+ Daily sales 
+ Sales tax 
+ Expenses and deductions 
+ Inventory 
+ Purchasing 
+ Webstores 
+ Team/employees 
+ Timeclock 
+ Payroll 
+ Shop schedule 
+ Tasks 
+ Kanban 
+ Messages 
+ Notes 
+ Documents 
+ Questionnaires 
+ Customer portal 
+ Employee portal 
+ Webstore owner portal 
+ Partner/B2B portal 
+ AI Business Assistant 
+
+===== PAGE 2 =====
+ AI tools 
+ Onboarding 
+ Documentation 
+ Bug reports 
+ Feature requests 
+ Community 
+ Platform/admin tools 
+This first version does not need all final behavior fully built, but the app structure should already account for all 
+of it. 
+ 
+2. Main App Navigation Structure 
+Build the app shell around 4 connected workspaces: 
+1. Operations 
+2. Business 
+3. Productivity 
+4. AI Hub 
+Also include global app shell tools: 
+ Global Dashboard 
+ Global Search 
+ Global + Create 
+ Notifications 
+ Settings 
+ User/Profile menu 
+The 4 workspaces should feel like 4 connected apps inside one platform, but all records must share the same 
+canonical data system. 
+ 
+3. Global Dashboard 
+Create a main global dashboard that appears after login. 
+It should include cards/sections for: 
+ Action Required 
+ Today’s Schedule 
+ Open Orders 
+ Production Alerts 
+ Pending Approvals 
+ Unpaid Invoices 
+ Daily Sales 
+
+===== PAGE 3 =====
+ Tasks Due 
+ Low Inventory Alerts 
+ AI Business Assistant / AI Suggestions placeholder 
+ Recent Activity 
+Some sections can be minimal or placeholder-level, but the layout should reserve space for the final product. 
+The main dashboard should answer: 
+“What needs attention today?” 
+ 
+4. Workspace Dashboards 
+Each of the 4 workspaces needs its own dashboard. 
+Operations Dashboard 
+Show: 
+ Active orders 
+ Quotes needing follow-up 
+ Production status 
+ Proofs awaiting approval 
+ Today’s installs/pickups 
+ Recent customers 
+ Webstore activity placeholder 
+ Documents/artwork activity 
+Business Dashboard 
+Show: 
+ Daily sales 
+ Open invoices 
+ Overdue invoices 
+ Sales tax collected 
+ Expenses/deductions placeholder 
+ Inventory alerts placeholder 
+ Payroll placeholder 
+ Reports shortcuts 
+Productivity Dashboard 
+Show: 
+ My tasks 
+ Team tasks 
+
+===== PAGE 4 =====
+ Kanban preview 
+ Messages placeholder 
+ Notes placeholder 
+ Checklists placeholder 
+ Reminders 
+ Announcements 
+AI Hub Dashboard 
+Show: 
+ AI Business Assistant placeholder 
+ AI Tools placeholder 
+ Onboarding progress 
+ Documentation 
+ Bug reports 
+ Feature requests 
+ Roadmap 
+ Release notes 
+ Community placeholder 
+ 
+5. Workspace Navigation 
+Use this structure: 
+Operations 
+Modules: 
+ Home 
+ Customers 
+ Quotes 
+ Orders 
+ Production 
+ Schedule 
+ Documents 
+ Webstores 
+ Portals 
+Business 
+Modules: 
+ Home 
+ Sales 
+ Billing 
+ Finance 
+
+===== PAGE 5 =====
+ Inventory 
+ Payroll 
+ Reports 
+ Taxes 
+Productivity 
+Modules: 
+ Home 
+ Tasks 
+ Kanban 
+ Messages 
+ Notes 
+ Checklists 
+ Calendar 
+ Announcements 
+AI Hub 
+Modules: 
+ Assistant 
+ AI Tools 
+ Onboarding 
+ Documentation 
+ Bug Reports 
+ Feature Requests 
+ Community 
+ Roadmap 
+ Release Notes 
+Do not use a permanent left sidebar for the whole app. The main structure should be top-level workspace 
+switching plus workspace navigation and contextual ribbon. 
+Left sidebars are allowed only where they make sense, such as Settings, Documents, and Help/Documentation. 
+ 
+6. Office-Style Ribbon Requirement 
+Use a Microsoft Office-style contextual ribbon throughout the internal app. 
+The ribbon should change based on the active workspace/module. 
+The ribbon should be compact, icon-based with labels, and grouped into logical sections. 
+The ribbon is for actions and important views, not every tiny setting. 
+
+===== PAGE 6 =====
+Global rule: 
+ Top workspace nav = Which major area am I in? 
+ Workspace nav = Which module am I using? 
+ Ribbon = What can I do here? 
+ Detail tabs = What part of this record am I viewing? 
+ Filters = How do I narrow the list? 
+ Cards = What needs attention? 
+ Boards = How work moves? 
+ Settings = How the system behaves? 
+Do not create multiple competing nav systems. 
+ 
+7. Example Ribbon Layouts 
+Operations Ribbon 
+Groups: 
+ Home 
+o Overview 
+o Action Required 
+o Today 
+ Create 
+o New Customer 
+o New Quote 
+o New Order 
+o Upload File 
+ Workflow 
+o Production Board 
+o Schedule Install 
+o Request Approval 
+o Open Documents 
+ Communication 
+o Send Email 
+o Send Text/MMS 
+o Customer Portal 
+ Tools 
+o Pricing Calculator 
+o AI Order Summary placeholder 
+Business Ribbon 
+Groups: 
+ Home 
+o Business Dashboard 
+o Daily Sales 
+
+===== PAGE 7 =====
+o Reports 
+ Billing 
+o Invoices 
+o Payments 
+o Deposits 
+o Overdue 
+ Finance 
+o Expenses 
+o Deductions 
+o Sales Tax 
+o Profit Snapshot 
+ Inventory 
+o Materials 
+o Low Stock 
+o Vendors 
+ Tools 
+o Export 
+o AI Business Summary placeholder 
+Productivity Ribbon 
+Groups: 
+ Home 
+o My Work 
+o Team Work 
+o Due Today 
+ Create 
+o New Task 
+o New Reminder 
+o New Checklist 
+o New Note 
+ Views 
+o List 
+o Kanban 
+o Calendar 
+ Collaboration 
+o Messages 
+o Announcements 
+o Assign 
+ Tools 
+o Link to Order 
+o Link to Customer 
+AI Hub Ribbon 
+Groups: 
+ Assistant 
+o Business Assistant 
+o Ask About Shop 
+
+===== PAGE 8 =====
+o Daily Briefing placeholder 
+ AI Tools 
+o Pricing AI placeholder 
+o Email/Text AI placeholder 
+o Design AI placeholder 
+o Reports AI placeholder 
+ Learn 
+o Onboarding 
+o Documentation 
+o Training placeholder 
+ Feedback 
+o Bug Report 
+o Feature Request 
+o Roadmap 
+ Community 
+o Message Board placeholder 
+o Release Notes 
+ 
+8. Protected Product Decisions 
+Certain existing app areas represent approved business decisions and must be preserved as specifications. 
+Do not reinterpret, simplify, rename, remove, or restructure these product-behavior decisions without explicit 
+approval. 
+Protected areas include: 
+1. Pricing Foundation setup 
+2. Product/item category structure 
+3. Category pricing quizzes and progressive forms 
+4. Default pricing numbers and calculation assumptions 
+5. Onboarding setup flow 
+6. Office-style ribbon navigation 
+7. Dashboard layouts 
+8. Webstore setup and store types 
+9. Team schedule, timeclock, and payroll rules 
+10. Inventory and purchasing behavior 
+11. Wrap Command Center workflow 
+12. Document library and questionnaire behavior 
+13. Customer, employee, webstore owner, and partner portals 
+14. AI assistant guardrails and reviewed action rules 
+15. Global + Create and global search behavior 
+The current code may be discarded, but these product decisions must be extracted, documented, and preserved. 
+ 
+
+===== PAGE 9 =====
+9. First Version Must Include Minimal Shells For 
+Final Areas 
+This first version should include the final feature areas in minimal form. 
+The goal is to prevent future layout rewrites. 
+Each area can begin as: 
+ working minimal feature 
+ read-only dashboard 
+ shell page 
+ coming soon page 
+ feature-flagged internal preview 
+ placeholder with target behavior notes 
+But do not omit major final areas entirely. 
+ 
+10. Canonical Data Model Rules 
+Use one canonical model per business concept. 
+Do not recreate legacy overlap. 
+Required rules: 
+1. Use one canonical Order model. 
+2. Use OrderItem for commercial line items. 
+3. Use JobTicket for production execution. 
+4. Use one canonical Task model with typed links/sources. 
+5. Use one canonical Notes/Comments model with typed links. 
+6. Use one canonical Notification model. 
+7. Use one canonical Activity/Audit event system. 
+8. Store money as integer cents. 
+9. Store quantities with explicit units. 
+10. Use deterministic services for pricing, inventory, payroll, taxes, and money. 
+11. Do not let the frontend calculate authoritative money, inventory, payroll, or tax values. 
+12. AI cannot directly mutate money, inventory, approvals, refunds, purchase orders, or selling prices. 
+ 
+11. Suggested Core Models For First Version 
+Create the foundation for these records, even if some are minimal: 
+
+===== PAGE 10 =====
+Identity / Tenant 
+ Tenant 
+ User 
+ Role 
+ Permission 
+ Session 
+ Invitation 
+CRM / Sales 
+ Customer 
+ Contact 
+ CustomerNote 
+ CustomerFile 
+ Quote 
+ QuoteItem 
+Orders 
+ Order 
+ OrderItem 
+ OrderActivity 
+ OrderFile 
+ OrderStatus 
+Production 
+ JobTicket 
+ ProductionStatus 
+ ProductionNote 
+ Proof 
+ ApprovalRequest 
+Billing / Business 
+ Invoice 
+ InvoiceLine 
+ Payment 
+ Refund 
+ SalesSummary 
+ Expense placeholder 
+ TaxSummary placeholder 
+Productivity 
+ Task 
+ Checklist 
+ Note 
+
+===== PAGE 11 =====
+ Message placeholder 
+ Announcement placeholder 
+Documents 
+ Document 
+ DocumentCategory 
+ Questionnaire placeholder 
+ Template placeholder 
+Inventory 
+ InventoryItem placeholder 
+ Material placeholder 
+ Vendor placeholder 
+ LowStockAlert placeholder 
+Webstores 
+ Webstore placeholder 
+ WebstoreType 
+ StoreOwner placeholder 
+ StoreSetupProgress placeholder 
+AI Hub / Platform 
+ AIRequest placeholder 
+ SavedPrompt placeholder 
+ BugReport 
+ FeatureRequest 
+ RoadmapItem 
+ ReleaseNote 
+ HelpArticle 
+ 
+12. First Version Functional MVP 
+The first version should have working functionality for the core shop workflow. 
+Build these enough to use internally: 
+Authentication / Tenant 
+ Login 
+ Logout 
+ Password reset placeholder or working basic flow 
+ One tenant per shop 
+
+===== PAGE 12 =====
+ Owner/admin/staff roles 
+ Permission-filtered navigation 
+Customers 
+ Create customer 
+ Edit customer 
+ Archive customer 
+ Search/filter customers 
+ Customer detail page 
+ Contacts 
+ Notes 
+ Files placeholder 
+ Customer history placeholder 
+Quotes 
+ Create quote 
+ Add quote items 
+ Store pricing snapshot 
+ Quote status 
+ Quote approval placeholder 
+ Convert quote to order 
+Orders 
+ Create order directly 
+ Add order items 
+ Quick vs detailed item entry placeholder 
+ Order list 
+ Order detail page 
+ Order item detail 
+ Statuses 
+ Due dates 
+ Files placeholder 
+ Activity timeline 
+Production 
+ Generate job tickets from order items 
+ Production board 
+ Configurable statuses 
+ Assign staff 
+ Due date 
+ Priority 
+ Production notes 
+ Move tickets between statuses 
+Pricing Foundation 
+
+===== PAGE 13 =====
+This is a protected area. 
+Build the structure to support the existing agreed Pricing Foundation setup. 
+Include: 
+ Shop rate setup 
+ Materials setup 
+ Labor defaults 
+ Markup defaults 
+ Rush percentage 
+ Tax settings 
+ Category rules 
+ Pricing snapshots 
+ Manual override with reason 
+ Calculation breakdown display 
+ Placeholder for category pricing quizzes if not fully implemented yet 
+Do not create a generic pricing system that ignores the existing decisions. 
+Billing 
+ Create invoice from order 
+ Invoice list 
+ Invoice status 
+ Due date 
+ Tax 
+ Discounts 
+ Deposit 
+ Balance 
+ Record manual payments 
+ Payment history 
+ Printable/downloadable invoice placeholder 
+ Send invoice email placeholder 
+Dashboard 
+ Global dashboard 
+ Workspace dashboards 
+ Cards and summaries connected to real records where possible 
+Productivity 
+ Basic canonical tasks 
+ My tasks 
+ Team tasks 
+ Due today 
+ Overdue 
+ Link task to customer/order/order item/job ticket 
+ Kanban placeholder or simple Kanban 
+
+===== PAGE 14 =====
+Help / AI Hub 
+ Onboarding checklist 
+ Documentation shell 
+ Bug report submission 
+ Feature request submission 
+ Roadmap page 
+ Release notes page 
+ AI Business Assistant placeholder 
+ 
+13. Detail Page Patterns 
+Use consistent detail page layouts. 
+Customer Detail Tabs 
+ Overview 
+ Orders 
+ Quotes 
+ Invoices 
+ Messages placeholder 
+ Files 
+ Portal placeholder 
+ Timeline 
+Order Detail Tabs 
+ Overview 
+ Items 
+ Pricing 
+ Proofs 
+ Production 
+ Messages placeholder 
+ Billing 
+ Files 
+ Timeline 
+Webstore Detail Tabs 
+ Overview 
+ Setup 
+ Products placeholder 
+ Orders placeholder 
+ Owner Portal placeholder 
+ Payments placeholder 
+ Reports placeholder 
+ Settings placeholder 
+
+===== PAGE 15 =====
+Employee Detail Tabs 
+ Overview 
+ Schedule placeholder 
+ Time placeholder 
+ Payroll placeholder 
+ Assigned Work placeholder 
+ Portal placeholder 
+ Notes 
+Inventory Item Detail Tabs 
+ Overview 
+ Stock placeholder 
+ Usage placeholder 
+ Vendors placeholder 
+ Pricing Links placeholder 
+ History placeholder 
+ 
+14. Page Layout Rules 
+Use repeatable page patterns. 
+Dashboard pages 
+Use: 
+ summary cards 
+ action required cards 
+ recent activity 
+ quick actions 
+ alerts 
+List pages 
+Use: 
+ search 
+ filters 
+ saved views placeholder 
+ status chips 
+ sortable table/list 
+ quick preview drawer where useful 
+Detail pages 
+
+===== PAGE 16 =====
+Use: 
+ header summary 
+ status/action area 
+ tabs 
+ activity timeline 
+ related records 
+Create/edit forms 
+Use: 
+ short step-based forms 
+ smart defaults 
+ conditional sections 
+ save draft where useful 
+ validation 
+ clear submit/cancel 
+Boards 
+Use: 
+ Kanban columns 
+ filters 
+ status chips 
+ draggable cards only if reliable 
+Settings 
+Use: 
+ left sidebar 
+ grouped setting sections 
+ clear save/cancel 
+ audit important changes 
+ 
+15. Settings 
+Create global settings with a left sidebar. 
+Settings categories: 
+ Company 
+ Users & Roles 
+ Pricing 
+ Orders 
+
+===== PAGE 17 =====
+ Production 
+ Billing 
+ Finance & Taxes 
+ Inventory 
+ Communication 
+ Portals 
+ Webstores 
+ AI & Automation 
+ Security 
+ Integrations 
+ Feature Flags 
+Settings can be minimal at first but should establish the final structure. 
+ 
+16. Global + Create 
+Add a global + Create button available from anywhere. 
+Menu items: 
+ New Customer 
+ New Quote 
+ New Order 
+ New Task 
+ New Invoice 
+ Upload File 
+ Schedule Appointment 
+ Create Webstore placeholder 
+ Ask AI placeholder 
+ 
+17. Global Search 
+Add global search architecture from the beginning. 
+First version should search at least: 
+ Customers 
+ Quotes 
+ Orders 
+ Invoices 
+ Documents if available 
+Design it so future modules can register searchable records: 
+ Order Items 
+
+===== PAGE 18 =====
+ Job Tickets 
+ Tasks 
+ Webstores 
+ Employees 
+ Inventory Items 
+ Help Docs 
+ Messages 
+ AI Outputs 
+ 
+18. Permission Rules 
+Implement permission-filtered navigation and actions. 
+Roles: 
+ Owner 
+ Admin 
+ Staff 
+ Production 
+ Sales 
+ Designer 
+ Installer 
+ Employee 
+ Customer portal user 
+ Webstore owner 
+ Platform admin placeholder 
+First version can simplify roles but should not hardcode owner-only logic randomly. 
+Financial, payroll, tax, settings, and internal cost data must be restricted. 
+External portals must only expose allowlisted data. 
+ 
+19. Portal Shells 
+Create minimal shells for portals, even if not fully active. 
+Customer Portal Shell 
+Target future features: 
+ View orders 
+ Approve proofs 
+ Approve quotes 
+ Pay invoices 
+
+===== PAGE 19 =====
+ Upload files 
+ Fill forms 
+ Message shop 
+Employee Portal Shell 
+Target future features: 
+ Clock in/out 
+ View assigned work 
+ View schedule 
+ View time/pay summary 
+ Announcements 
+Webstore Owner Portal Shell 
+Target future features: 
+ Setup progress 
+ Store link 
+ Products 
+ Orders 
+ Fundraiser totals 
+ Messages 
+Partner/B2B Portal Shell 
+Target future features: 
+ Place orders 
+ Upload details 
+ View order status 
+ View invoices/statements 
+ Partner pricing 
+ Forms/documents 
+ 
+20. Protected Pricing Foundation Details 
+Before implementing Pricing Foundation deeply, extract the existing approved behavior into a written 
+spec/register. 
+Create these internal documents or config tables: 
+Pricing Defaults Register 
+Fields: 
+
+===== PAGE 20 =====
+ Category 
+ Field 
+ Default value 
+ Unit 
+ Used in calculation? 
+ User editable? 
+ Where it appears 
+ Notes 
+Category Field Register 
+Fields: 
+ Category 
+ Required fields 
+ Optional fields 
+ Quiz questions 
+ Conditional questions 
+ Pricing inputs 
+ Production inputs 
+ Proof required? 
+ Inventory inputs? 
+Workflow Register 
+Fields: 
+ Workflow name 
+ Start point 
+ Steps 
+ User roles 
+ Records created 
+ Statuses used 
+ Notifications triggered 
+ Exit condition 
+Do not guess the pricing logic. Preserve the existing agreed decisions. 
+ 
+21. Code Architecture Requirements 
+Use a modular monolith first. 
+One deployable backend and one frontend, but strict domain boundaries. 
+Do not create a giant server file. 
+Do not create multi-thousand-line page components. 
+
+===== PAGE 21 =====
+Backend should be organized by domain, for example: 
+ identity 
+ tenants 
+ crm 
+ pricing 
+ sales 
+ orders 
+ production 
+ billing 
+ business 
+ productivity 
+ documents 
+ inventory 
+ webstores 
+ portals 
+ ai 
+ platform 
+ communications 
+Frontend should be organized by: 
+ app shell 
+ workspaces 
+ modules 
+ shared components 
+ domain services/hooks 
+ routing 
+ permissions 
+ design system 
+Keep files focused and small. 
+No massive all-in-one page components. 
+ 
+22. Testing Requirements 
+Add tests from the beginning. 
+Minimum required tests: 
+ Tenant isolation tests 
+ Permission tests 
+ Customer CRUD tests 
+ Quote-to-order conversion tests 
+ Order totals tests 
+ Pricing snapshot tests 
+ Job ticket generation tests 
+ Production status tests 
+
+===== PAGE 22 =====
+ Invoice creation tests 
+ Payment recording tests 
+ Task linking tests 
+ Navigation permission tests 
+ Smoke tests for each workspace dashboard 
+Also add seed/demo data so the app can be previewed meaningfully. 
+ 
+23. Demo Data 
+Seed one demo tenant with: 
+ Several customers 
+ Several quotes 
+ Several orders 
+ Multiple order items 
+ Job tickets in different production statuses 
+ A few invoices 
+ A few manual payments 
+ Tasks 
+ Documents placeholders 
+ Inventory placeholders 
+ Webstore placeholders 
+ Bug reports 
+ Feature requests 
+ Release notes 
+The app should not preview as an empty ghost town. 
+ 
+24. Do Not Do These Things 
+Do not: 
+ Port the old app page by page 
+ Copy large files from the old repo 
+ Recreate legacy Jobs 
+ Create duplicate task systems 
+ Create duplicate note systems 
+ Create duplicate billing/payment flows 
+ Build webstores on a separate order model 
+ Put every feature in top nav 
+ Add permanent left sidebars everywhere 
+ Use AI to replace deterministic business logic 
+ Let frontend calculate authoritative money/payroll/inventory/tax values 
+ Build public portals without token expiry and allowlisted data 
+ Delay all final feature areas until later releases 
+
+===== PAGE 23 =====
+ Remove protected pricing/onboarding/category decisions 
+ 
+25. First Version Success Criteria 
+This first version is successful when: 
+1. The clean repo builds and runs. 
+2. The 4-workspace app shell exists. 
+3. Global dashboard exists. 
+4. Each workspace has a dashboard. 
+5. Contextual ribbon navigation exists. 
+6. Global + Create exists. 
+7. Global Search exists at least for core records. 
+8. Settings structure exists. 
+9. Customers, quotes, orders, order items, job tickets, production board, invoices, and tasks work at a basic 
+level. 
+10. Pricing Foundation structure exists and preserves protected decisions. 
+11. Major future areas exist as shells or placeholders. 
+12. Tenant isolation and permission-filtered navigation are implemented. 
+13. Demo data makes the app preview useful. 
+14. Tests cover the critical workflow. 
+15. No legacy Jobs model is recreated. 
+16. No giant server/page structure is created. 
+17. The app is ready for deeper feature upgrades without major navigation or architecture rewrites. 
+ 
+26. Final Build Philosophy 
+Build the final app surface from the beginning. 
+Do not try to finish one isolated feature area while hiding all the others. 
+The first version should be structurally complete and functionally thin in many areas. 
+Then future releases should deepen each area without changing the app’s main structure. 
+Rebuild the code. 
+Preserve approved product behavior. 
+Defer depth, not presence. 
+ 

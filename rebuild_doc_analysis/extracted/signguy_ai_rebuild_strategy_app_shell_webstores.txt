@@ -1,0 +1,229 @@
+
+
+===== PAGE 1 =====
+SignGuy AI Rebuild Strategy - App Shell + Webstores Expansion
+Page 1
+ SignGuy AI Rebuild Strategy Update
+ App Shell First + Webstores as the First Full Expansion Module
+Purpose: This section is written to be merged into the current rebuild plan. It explains why the rebuild
+should start with the reusable app shell, then build Webstores deeply as the first complete add-on, while
+converting anything reusable into shared platform infrastructure instead of burying it inside one module.
+1. Decision
+The new SignGuy AI rebuild should follow an App Shell + Expansion Module strategy.
+Instead of rebuilding every feature at once, the system should first establish a strong reusable application
+foundation. After the shell is stable, the first complete expansion module should be Webstores.
+This is the correct first module because Webstores naturally requires many systems the rest of the app
+will also use: questionnaires, portals, document uploads, customer emails, AI summaries, approvals,
+products, pricing, payment workflows, and owner/customer access.
+2. Core Principle
+Every Webstore feature should be evaluated with this question:
+Is this truly only a Webstore feature, or is it a platform feature that Webstores happens to use first?
+If other modules will eventually need the same functionality, build it as a shared system from day one.
+Bad Approach
+Better Approach
+Webstore-only questionnaire
+system
+Reusable Questionnaire Engine that supports webstores, orders,
+wraps, customer intake, employee training, equipment certifications,
+HR forms, and internal workflows
+Webstore-only owner portal
+code
+Reusable Portal Framework that supports store owners, customers,
+employees, vendors, funeral homes, and partners
+Webstore-only upload area
+Document Library that stores logos, proofs, contracts,
+questionnaires, order files, HR docs, and training content
+3. Phase 1: Platform App Shell
+The first rebuild phase should create the reusable structure that every module will sit inside. This
+prevents duplicate code, inconsistent navigation, and scattered features that later need to be rewritten.
+Because apparently one rebuild is plenty.
+Top-Level Navigation
+• Home
+ 
+• Operations
+ 
+• Business
+ 
+• Team
+ 
+
+===== PAGE 2 =====
+SignGuy AI Rebuild Strategy - App Shell + Webstores Expansion
+Page 2
+• Webstores
+ 
+Each area should receive its own dashboard, ribbon navigation, context-specific shortcuts, and consistent
+design language.
+Global Foundations to Build First
+• User Management: roles, permissions, employee access, customer access, and store owner access.
+ 
+• Customer System: customer records, contact information, notes, communication history, and linked
+ orders/stores.
+• Dashboard Framework: main Home dashboard, module dashboards, reusable widgets, and activity feeds.
+ 
+• Notification Framework: email notifications, in-app notifications, approval requests, reminders, and task
+ assignments.
+• AI Framework: AI summaries, AI recommendations, AI-generated content, and reusable assistant
+ workflows.
+• Shared Search: customer, order, document, webstore, and global search foundations.
+ 
+4. Phase 2: Webstores Expansion Module
+Webstores should become the first complete production-ready expansion module. It should not be treated
+as a small side feature. It should be built deeply enough to validate the shared platform systems.
+Webstore Types
+• Fundraiser Stores: donation percentages, checkout donations, goal tracking, progress bars, fundraiser
+ reports, and campaign deadlines.
+• Promotional Stores: race teams, influencers, local businesses, event brands, fan merchandise, and limited
+ campaigns.
+• B2B Stores: employee ordering, company stores, approved catalogs, internal purchasing, and
+ customer-specific products.
+• General Stores: standard ecommerce stores, public products, retail sales, and simple branded storefronts.
+ 
+Webstore Setup Workflow
+• 1. Store Creation: Choose store type, assign customer, enter core store information, and define ownership.
+ 
+• 2. Questionnaire Delivery: Send automated onboarding email with questionnaire links and upload
+ requests.
+• 3. Customer Completion: Customer submits logos, colors, brand guidelines, product requests, store
+ preferences, and campaign details.
+• 4. AI Review: AI generates a summary, action items, recommended products, and potential issues while
+ preserving the original responses.
+• 5. Admin Review: Manager reviews questionnaire, AI summary, uploaded files, and missing requirements.
+ 
+• 6. Store Build: Manager configures products, pricing, categories, branding, payment settings, and launch
+ settings.
+• 7. Owner Approval: Store owner receives preview link and approval request before launch.
+ 
+• 8. Launch: Store goes live with QR code, share link, domain/slug, promo tools, and tracking.
+ 
+
+===== PAGE 3 =====
+SignGuy AI Rebuild Strategy - App Shell + Webstores Expansion
+Page 3
+5. Shared Systems Expanded Through Webstores
+Questionnaire Engine
+Initial use: webstore onboarding. Future use: wraps, signs, customer intake, employee onboarding,
+equipment training, HR forms, and internal processes.
+Portal Framework
+Initial use: store owner portal. Future use: customer portal, employee portal, vendor portal, funeral home
+portal, and partner portal.
+Document Library
+Initial use: uploaded logos, branding files, and questionnaire attachments. Future use: orders, proofs,
+contracts, employee documents, training documents, and approvals.
+Email System
+Initial use: onboarding emails, approval emails, reminders, and store launch emails. Future use: invoice
+emails, proof approvals, production updates, customer follow-ups, and internal alerts.
+AI Content Engine
+Initial use: product descriptions and questionnaire summaries. Future use: quote assistance, order
+summaries, production recommendations, customer communication drafts, reports, and employee
+training content.
+Product/Catalog System
+Initial use: webstore products. Future use: pricing calculators, inventory, quote line items, invoice line
+items, production templates, and sales reporting.
+6. Store Owner Portal
+Every store should have a dedicated owner portal. This keeps store owners from needing full admin
+access while still giving them visibility and control over the parts they should manage. Small miracle:
+access control that does not turn into a drawer full of mystery keys.
+• Store status
+ 
+• Approval requests
+ 
+• Product review
+ 
+• Order tracking
+ 
+• Fundraiser performance
+ 
+• Donation totals
+ 
+• Reports
+ 
+• QR code access
+ 
+• Marketing assets
+ 
+• Store settings
+ 
+• Future messaging and announcements
+ 
+
+===== PAGE 4 =====
+SignGuy AI Rebuild Strategy - App Shell + Webstores Expansion
+Page 4
+• Future product requests and content submissions
+ 
+7. Product Structure
+Each Webstore product should support enough detail to become reusable in the larger
+product/catalog/pricing system.
+• Images
+ 
+• Variants
+ 
+• Sizes
+ 
+• Colors
+ 
+• SKU
+ 
+• Cost
+ 
+• Selling price
+ 
+• Owner percentage
+ 
+• Platform fees
+ 
+• Inventory settings
+ 
+• Production notes
+ 
+• Categories and tags
+ 
+• AI-generated product descriptions
+ 
+• AI-suggested pricing and product tags
+ 
+8. Payment Structure
+Use Stripe Connect-style logic where store owners can receive funds directly when appropriate. The
+platform should automatically track financial details instead of forcing manual math, because apparently
+spreadsheets were not enough punishment.
+• Platform fees
+ 
+• Donation amounts
+ 
+• Store owner earnings
+ 
+• Product-level profit
+ 
+• Campaign totals
+ 
+• Payout reporting
+ 
+• Order payment status
+ 
+9. Long-Term Expansion Strategy
+After Webstores are complete, future modules should continue using the same approach: each module
+expands the platform instead of creating one-off systems.
+Wrap Command Center
+
+
+===== PAGE 5 =====
+SignGuy AI Rebuild Strategy - App Shell + Webstores Expansion
+Page 5
+Expands questionnaire intake, AI analysis, customer portal approvals, file uploads, measurements,
+production tracking, and pricing tools.
+Pricing Command Center
+Expands product database, materials library, AI recommendations, shop-rate logic, live pricing, and
+reporting.
+Employee Training Center
+Expands questionnaires, document library, AI-generated lessons, certifications, quizzes, and
+equipment-specific training workflows.
+Smart CRM
+Expands communication history, customer portals, AI summaries, follow-ups, reporting, and campaign
+tools.
+10. Final Rebuild Rule
+The objective is not simply to rebuild the current application. The objective is to create a scalable Sign
+Shop Operating System where every new feature strengthens shared platform infrastructure that can be
+reused throughout the ecosystem.
+Every module should make the platform stronger. Nothing should be built only for one feature if it can be
+reused elsewhere.

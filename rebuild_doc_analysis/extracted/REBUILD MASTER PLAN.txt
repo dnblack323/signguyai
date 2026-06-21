@@ -1,0 +1,642 @@
+
+
+===== PAGE 1 =====
+SignGuyAI Clean Rebuild Master Plan 
+v2 - Dashboard Starting Point and Static Audit Incorporated 
+ 
+Purpose: This version updates the accepted master rebuild plan by incorporating the Codex-built dashboard layout as 
+the official UI starting point and the static repository audit as mandatory rebuild guidance. It keeps the accepted conflict 
+decisions, especially the priority of Emergent's "Know from Day 1" guidance and the preservation of approved Webstore 
+behavior. 
+0. v2 Executive Update 
+ Codex dashboard baseline accepted: The screenshot layout is now the starting visual and structural baseline for 
+the Home / Global Command Center, not the final Business dashboard. 
+ Home must exist in the dark workspace rail: The current image has Business active, but the shown content is 
+global command-center content. Add Home above Operations and make this layout Home-active. 
+ Business dashboard must be contextual: Business may reuse the same shell, but its cards and ribbon should 
+focus on invoices, payments, daily sales, expenses, payroll, inventory/purchasing, taxes, and reports. 
+ Webstores remain protected approved behavior: The static audit confirms product catalog, webstore creation, 
+storefront checkout, webstore orders, payouts, event/fundraiser stores, and owner onboarding are non-negotiable 
+features to preserve. 
+ Static audit becomes rebuild guardrail: The rebuild must not copy structural debt: giant server.py, direct DB logic 
+in routes, eager frontend loading, large page components, broad AppContext, unmanaged indexes, process-local 
+scheduling, broad CORS, base64-heavy storage, and live-URL-only tests. 
+1. Source Priority After v2 Update 
+Priority Source How to use it 
+1 User-approved protected behavior Preserve approved behavior, fields, 
+defaults, calculations, workflows, 
+and design behavior unless explicitly 
+changed. 
+2 Emergent "Know from Day 1" rebuild 
+reference 
+Use as highest-priority 
+implementation guidance when it 
+conflicts with broader early roadmap 
+text. 
+3 Codex dashboard image/start point Use as the Home / Command Center 
+UI baseline, corrected as described 
+in this document. 
+4 Static repository audit notes Use as risk register and architecture 
+guardrails. Preserve behavioral 
+contracts, do not preserve structural 
+debt. 
+5 Early Plan roadmap notes Use for staged sequencing only when 
+they do not conflict with the higher-
+priority sources. 
+
+===== PAGE 2 =====
+2. Codex Dashboard Image - Official Starting Point 
+ 
+Reference: Codex-built dashboard layout to use as the visual starting point, corrected to Home / Command Center behavior. 
+2.1 Accepted Visual Decisions 
+ Keep the dark left workspace rail with compact icon-and-label navigation. 
+ Use the top global search, global + Create button, notifications, help/profile area, and workspace context 
+consistently across the app. 
+ Keep the Office-style ribbon with icons above labels and compact groups. 
+ Keep clean white cards, thin borders, subtle shadows, and top-border accent colors instead of large colored card 
+backgrounds. 
+ Keep the KPI strip near the top of the dashboard. 
+ Keep Action Required as the dominant 2-column card. 
+ Keep the supporting card grid: Production Snapshot, Billing Snapshot, Shop Health, Onboarding, and future cards as 
+modules deepen. 
+ Keep the teal/navy/white direction. Do not redesign the color system unless a specific usability issue requires it. 
+2.2 Required Corrections to the Screenshot 
+ Add Home to the workspace rail: The dark rail order must be Home, Operations, Business, Productivity, AI Hub, 
+Settings. 
+ Make this screen Home-active: The screenshot currently marks Business active, but the widget mix is global. 
+Home should be active and the header should read Home / Command Center or Global Command Center. 
+ Make the secondary sidebar contextual: The light sidebar shown with Business items is correct only when 
+Business is active. On Home, hide it or replace it with a short Home menu: Overview, Action Required, Today, 
+Reports, Setup. 
+ Keep ribbons contextual: The Home ribbon can keep the current 12 actions. Workspace dashboards must swap to 
+workspace-specific action groups. 
+
+
+===== PAGE 3 =====
+ Do not let Home become Business: Production, approvals, billing, tasks, inventory, onboarding, and AI suggestions 
+belong together only on Home / Command Center. Business should not own all cross-workspace alerts. 
+2.3 Home / Command Center Required Layout 
+Region Required behavior 
+Global top bar Search, + Create, notifications, help, profile, workspace 
+context. 
+Dark workspace rail Home active for this screen. Operations, Business, 
+Productivity, AI Hub, Settings below. 
+Home secondary nav None or minimal Home menu only. Do not show Business 
+module links on Home. 
+Ribbon Home global actions grouped as Create, Customer, 
+Workflow. 
+KPI strip Revenue MTD, Active Orders, Pending Quotes, 
+Outstanding AR, Unread. 
+Main card Action Required, 2-column span, prioritized by urgency. 
+Right card Production Snapshot with Open Board link. Replace only 
+for non-Home workspace dashboards. 
+Lower cards Billing Snapshot, Shop Health, Onboarding, and reserved 
+future cards. 
+2.4 Home Ribbon Actions 
+Group Actions 
+Create New Order, New Quote, New Customer, Pricing Calc 
+Customer Send Proof, Request Approval, Send Document, New 
+Invoice 
+Workflow Send Email, New Task, Schedule Install, Open Calendar 
+2.5 Workspace Dashboard Rules 
+ Every workspace dashboard should reuse the same general shell, spacing, card language, and ribbon pattern. 
+ Every workspace dashboard must have contextual cards and actions instead of copying the Home dashboard 
+wholesale. 
+ Operations focuses on orders, production, proofs, due dates, installs, artwork, job tickets, and customer approvals. 
+ Business focuses on invoices, payments, AR, daily sales, expenses, sales tax, deductions, inventory/purchasing 
+alerts, payroll, and reports. 
+ Productivity focuses on tasks, kanban, reminders, internal messages, announcements, calendar, and checklists. 
+ AI Hub focuses on help, onboarding, documentation, prompt library, bug reports, feature requests, roadmap, 
+release notes, and later AI tools. 
+2.6 Dashboard Technical Requirements 
+ Dashboard data must come from one digest-style endpoint per dashboard context, not 6-12 separate calls on load. 
+ Digest endpoints must use aggregation/indexed queries, not repeated 2,000-5,000 document reads into Python 
+memory. 
+ Cards for unavailable modules must return disabled/null status, not fake zeroes that imply the feature is active. 
+ Action Required must be driven by canonical notifications/activity/task state, not separate widget-specific query 
+logic. 
+ Dashboard widgets must be reusable components, not one large multi-thousand-line Dashboard page. 
+
+===== PAGE 4 =====
+3. Static Audit Findings Incorporated 
+The static audit confirms the current product has deep functional value but also structural debt. The rebuild must 
+preserve behavioral contracts while refusing to preserve the old code shape. 
+3.1 Current Scale and Risk 
+ Approximately 700 API operations across 58 route modules. 
+ Approximately 45,000+ backend route lines and 91,000+ frontend page/component lines. 
+ 445 Pydantic model classes/enums. 
+ 1,127 tracked files, including 341 historical test-report artifacts. 
+ 159 backend test files, most depending on a live backend URL. 
+ Zero frontend test files. 
+ Primary rebuild risk: losing undocumented behavioral contracts connecting orders, pricing, production, portals, 
+webstores, payments, payroll, and legacy records. 
+3.2 Architecture Problems the Rebuild Must Not Copy 
+ server.py must not own pricing logic, tenant routes, middleware, router registration, CORS, startup behavior, and 
+lifecycle all together. 
+ Routes must not directly query and mutate MongoDB as their normal pattern. 
+ Route/service modules must not import dependencies back from server.py. 
+ Orders/tickets and legacy jobs/job-items must be reconciled through a migration plan, not kept as competing active 
+workflows forever. 
+ Plans, tiers, founders status, and entitlements must be normalized into one plan/entitlement system. 
+ Pricing defaults, configuration, templates, snapshots, and legacy fields must be mapped into canonical pricing 
+behavior without losing historical snapshot meaning. 
+ Frontend routes must use lazy loading/code splitting instead of importing every public, portal, admin, and 
+authenticated page at initial bundle construction. 
+ Large pages such as PricingCalculator, PricingFoundation, Webstores, and Dashboard must be decomposed into 
+focused components and domain hooks/services. 
+ AppContext must be narrowed. Do not expose a giant non-memoized object with dozens of API functions and broad 
+global state. 
+ Tier and Plan providers must not duplicate subscription-feature responsibilities. 
+ Dashboard/productivity queries must not load thousands of records repeatedly into Python memory. 
+ N+1 queries must be eliminated before release acceptance. 
+ Index migrations must be managed and run consistently for every high-volume collection. 
+ Object storage must not use blocking synchronous calls inside async request paths. 
+ Large files, images, PDFs, audio, and generated artifacts must not be stored or returned as base64-heavy Mongo/API 
+payloads. 
+ Backup/restore must be streaming and transactionally safe, not full-tenant memory snapshots. 
+ Background scheduling must not be process-local inside the API process if multiple workers/replicas can exist. 
+ Authorization must be centralized and consistently used by route and service layers. 
+ Production CORS must not fall back to allow-all regex behavior. 
+ Test coverage must move from live-URL smoke tests to deterministic unit, service, API integration, browser, 
+permission, and tenant-isolation tests. 
+3.3 Dead Code and Quarantine Rules 
+Category v2 decision 
+High-confidence dead/unreachable code Do not port into the runtime rebuild. Move to 
+archive/reference if useful. 
+
+===== PAGE 5 =====
+Root-level reports and generated audit artifacts Keep out of the runtime repository. Store as project 
+documentation only. 
+Standalone migration/seeding/audit/promotion scripts Move into versioned operational tooling; do not leave 
+beside runtime entrypoints. 
+Legacy Jobs, job_items, quote/invoice compatibility paths Do not delete blindly. Create explicit migration and 
+compatibility specs. 
+Legacy payroll entries Migrate or preserve through compatibility mapping before 
+removal. 
+Legacy pricing fields and snapshots Preserve historical meaning; map to canonical pricing 
+snapshots. 
+Webstore legacy aliases Preserve as compatibility/migration inputs until active 
+Webstore behavior is verified. 
+3.4 Non-Negotiable Feature Preservation List 
+ Multi-tenant authentication, RBAC, tenant isolation, suspension, user management, and platform-admin 
+impersonation. 
+ Customer CRM, branding profiles, customer history, and customer portal invitations. 
+ Order intake, order details, job tickets, production tasks, workflow templates, production board, and activity history. 
+ Pricing calculator, pricing foundation/configuration, category-specific pricing, pricing snapshots, and imported 
+historical pricing. 
+ Quotes, invoices, payment status, Stripe/Stripe Connect invoice payments, and reconciliation. 
+ Product catalog, webstore creation, storefront checkout, webstore orders, payouts, event/fundraiser stores, and 
+owner onboarding. 
+ Customer portal orders, quotes, invoices, messages, proofs, forms, documents, appointments, and webstores. 
+ Employee management, scheduling, timeclock, job-time tracking, payroll, timesheets, and employee portal. 
+ Inventory, material requirements, shortages, vendors, purchasing, purchase orders, and cost suggestions. 
+ Documents, questionnaires, artwork approvals, drawings, signatures, email templates, and communications. 
+ Dashboard command center, productivity/calendar/kanban views, financials, and profit analytics. 
+ Subscription billing, plans, founders status, AI credits, platform administration, audit logs, and email deliverability. 
+ Core AI generation tools, AI history, credit tracking, and assistant query capabilities. 
+ Backup/export and restore behavior, redesigned for streaming and transactional safety. 
+3.5 Quarantine Until Proven Reliable 
+ Floating-assistant action automation. 
+ Unfinished Wrap Command Center tabs. 
+ Public signature delivery until token security, expiration, rate limits, and audit behavior are proven. 
+ AI voice tools. 
+ External Meta/Facebook flows until webhook verification, disconnect states, permissions, and recovery behavior are 
+tested. 
+4. Revised Release and Migration Rules from Audit 
+4.1 Three Canonical Migration Conflicts to Solve First 
+1. Orders/tickets versus legacy jobs/job-items. 
+2. Plans/product lines versus tiers/founders overrides. 
+3. Canonical pricing configuration versus legacy pricing fields and snapshots. 
+These must be modeled before replacement implementation. Building screens before these mappings exist is how the 
+old app grew a fossil layer under every button. 
+
+===== PAGE 6 =====
+4.2 Webstores v2 Position 
+ Webstores are not merely future ecommerce. They are current approved behavior and must be preserved early. 
+ The Webstore workflow must remain: product catalog -> webstore -> public storefront -> Stripe checkout -> 
+webstore order -> canonical shop order/job creation where applicable. 
+ Event/fundraiser stores, B2B/owner onboarding, storefront checkout, order sync, payouts, and webstore owner flow 
+must be treated as behavior to preserve, not as optional late ideas. 
+ Implementation can still be feature-flagged and rebuilt in vertical slices, but the target behavior is not deferred out of 
+the product plan. 
+4.3 Testing Requirements Added by Audit 
+ Add frontend tests. Zero frontend tests is not acceptable for the rebuild. 
+ Replace live-backend-only tests with deterministic unit, service, API integration, and browser workflow tests. 
+ Every protected behavior spec must include acceptance tests before implementation begins. 
+ Every migration must have verification scripts and rollback rules. 
+ Tenant-isolation and permission tests must exist for every domain, portal, dashboard, search, create action, and 
+financial field. 
+4.4 Performance Acceptance Requirements Added by Audit 
+ Route-level code splitting is required for the frontend. 
+ No page should become a subsystem. Large pages must be split before they reach thousands of lines. 
+ Dashboard and productivity endpoints must use targeted aggregation, pagination, indexes, and service-layer 
+composition. 
+ File/object storage must use streaming/signed URLs and non-blocking architecture where appropriate. 
+ Background jobs must be idempotent, observable, and safe under multiple workers. 
+ Backup/export/restore must be streaming and tested on realistic tenant data. 
+5. v2 Acceptance Checklist 
+ Home exists and uses the Codex dashboard layout corrected as Home / Command Center. 
+ Business dashboard is not a copy of Home; it is money/workforce/purchasing focused. 
+ Dark workspace rail order is Home, Operations, Business, Productivity, AI Hub, Settings. 
+ Contextual ribbons are implemented through one reusable ribbon system. 
+ Dashboard digest does not make repeated large collection reads. 
+ Webstore preservation track is included early and feature-flagged where needed. 
+ No old giant server.py, giant Dashboard.js, giant Webstores.js, or giant AppContext pattern is recreated. 
+ Legacy code is either migrated, compatibility-mapped, quarantined, or archived. It is not casually deleted. 
+ Indexes, authorization helpers, tests, and audit/activity events are part of the feature definition, not cleanup chores 
+after the screen exists. 
+6. Previously Accepted Master Plan - Incorporated Below 
+The following accepted master plan remains active. The v2 sections above modify and clarify it where dashboard setup 
+and static audit findings add more specific instructions. 
+SignGuyAI Clean Rebuild Master Plan 
+Conflict-Resolved Accepted Version 
+
+===== PAGE 7 =====
+Prepared for the SignGuyAI rebuild. This version accepts the conflict-resolution decisions and treats Emergent's "Know 
+from Day 1" guidance as the highest-priority implementation guidance where conflicts exist. 
+ 
+1. Executive Decision Summary 
+This document replaces the mixed rebuild notes with one accepted plan. The current main app remains the approved 
+product-behavior reference. The rebuild may replace code, collections, route names, and component structure, but it 
+must preserve approved features, fields, defaults, calculations, workflows, and design behavior unless an explicit 
+written change is approved. 
+ The final app shell must exist from the beginning: Home / Global Command Center, Operations, Business, 
+Productivity, AI Hub, Settings, notifications, global search, global + Create, and contextual Office-style ribbon. 
+ Emergent's "Know from Day 1" rebuild guidance is accepted as authoritative implementation guidance where it 
+conflicts with the broader early roadmap notes. 
+ Webstores are a protected approved area. They are not automatically delayed to a late release. Existing approved 
+webstore behavior should be rebuilt early unless a specific feature depends on unfinished infrastructure such as 
+production Stripe Connect, inventory reservations, or external integrations. 
+ Canonical shared models must be used for tasks, notes/comments, messages, calendar events, notifications, files, 
+activity timelines, and audit events. Modules must not invent duplicate versions of these concepts. 
+ Money must be stored as integer cents. Quantities must use explicit units. Authoritative calculations must live in 
+deterministic backend services, not AI and not the frontend. 
+ Routes must stay thin. Domain services and repositories own business logic and database access. server.py is only 
+app initialization and router registration. 
+ Every protected area gets a written behavior specification before rebuilding. That is not optional. This is how we avoid 
+accidentally replacing approved behavior with something cleaner but worse, because apparently humans keep 
+doing that. 
+2. Accepted Conflict Resolutions 
+ 
+3. Priority Rules for Emergent and Future Agents 
+4. User-approved protected behavior wins over generic rebuild simplification. 
+5. The "Know from Day 1" implementation guidance wins over Early Plan roadmap text when the two conflict. 
+6. The final app surface exists early, but unavailable modules must clearly state their status and must not pretend to 
+work. 
+7. Canonical architecture wins over legacy implementation details. 
+8. Deterministic services own pricing, inventory, payroll, accounting, taxes, payments, and permissions. 
+9. AI may draft, explain, suggest, or prepare reviewed actions only after guardrails exist. AI must not silently mutate 
+money, inventory, approvals, refunds, supplier orders, or selling prices. 
+10. Public portals and token pages are separate security boundaries with allowlisted APIs and explicit visibility rules. 
+
+===== PAGE 8 =====
+4. Final App Surface from the Beginning 
+The rebuild must not hide the final product structure until later. Every major workspace and module must exist early as a 
+working feature, read-only dashboard, setup placeholder, clearly labeled coming-soon page, feature-flagged preview, or 
+shell documenting target behavior. 
+ 
+5. Global App Shell Requirements 
+ Global Dashboard / Command Center available from every workspace. 
+ Global Search with registry-based searchable record types, permission filters, result previews, and navigation 
+targets. 
+ Global + Create with permission-filtered actions: New Customer, New Quote, New Order, New Order Item, New 
+Task, New Invoice, Upload File, Schedule Appointment, Create Webstore, Ask AI. 
+ Notifications center using the canonical notification engine. 
+ Workspace switcher and permission-filtered navigation. 
+ Contextual Office-style ribbon reused consistently across Dashboard, Webstores, Orders, Documents, Team, and 
+future modules. 
+ Customizable quick toolbar for the most-used actions. 
+ Contextual help tied to the current module/page. 
+ User profile, tenant settings, and role/permission-controlled actions. 
+6. Canonical Architecture and Domain Rules 
+6.1 Modular Monolith 
+Build one deployable frontend and one deployable backend, but enforce domain boundaries. This is not a microservices 
+project. It is a modular monolith with clean seams so the codebase does not become a giant junk drawer with login 
+buttons. 
+backend/ 
+  models/          # Pydantic/domain schemas only 
+  routes/          # thin route handlers only 
+  services/        # business rules and workflows 
+  repositories/    # database access 
+  integrations/    # Stripe, SendGrid, Meta, object storage, LLM providers 
+  shared/          # money, units, dates, auth helpers, errors, audit, notifications 
+  server.py        # app init and router registration only 
+ 
+frontend/src/ 
+  pages/           # route-level pages kept focused 
+  components/      # reusable UI components 
+  modules/         # domain-specific components 
+  ribbon/          # shared Office-style ribbon pattern 
+  context/         # auth, tenant, settings, page context 
+  lib/             # api client, formatters, utilities 
+ 
+
+===== PAGE 9 =====
+7. Canonical Shared Models 
+ 
+8. Data Model Principles 
+ Every tenant-scoped collection includes tenant_id and required tenant indexes. 
+ Every record has a stable uuid id and never exposes raw MongoDB _id in API responses. 
+ Use datetime.now(timezone.utc).isoformat() or a consistent timezone-safe equivalent. Do not use naive datetimes. 
+ Human-readable numbers use tenant-scoped atomic counters: ORD-0001, INV-0001, QUO-0001, TKT-0001, PO-
+0001. 
+ Money fields use integer cents. Examples: subtotal_cents, tax_amount_cents, total_cents, unit_price_cents, 
+amount_paid_cents. 
+ Quantities include explicit units and dimensions where relevant: sq_ft, linear_ft, inch, roll_length_inches, 
+sheet_width_inches, etc. 
+ Important mutations create audit events and user-facing activity events where appropriate. 
+9. Orders, Order Items, and Job Tickets 
+Use one canonical Order model. Do not rebuild a separate legacy Job model. Commercial work and production 
+execution are related but not the same thing. 
+Order 
+└── OrderItem (1 or more commercial line items) 
+    └── JobTicket (created only when production_required = true) 
+        └── ProductionTask / Canonical Task links as needed 
+9.1 Order 
+ Order stores customer_id, order_number, source, order_type, due date, notes, special instructions, totals, deposit, 
+tax, balance display, and activity. 
+ Order totals are calculated by backend services from order items, discounts, taxes, deposits, and payments. 
+ Order.status is service-derived from order item/job ticket state, except approved lifecycle exceptions such as On 
+Hold, Cancelled, Archived. 
+ Webstore orders set is_webstore_order, webstore_order_id, and webstore_name at creation. Do not retrofit these 
+later. 
+9.2 OrderItem 
+ OrderItem owns sold/commercial specifications: product type, description, quantity, dimensions, material choice, 
+unit price, line total, pricing snapshot, artwork status, and override reason where applicable. 
+ OrderItem includes production_required: true/false. Physical production items default true. Fees, deposits, delivery 
+charges, design-only charges, and administrative items default false. 
+ OrderItem pricing snapshots freeze the pricing foundation/config used at quote or order time so later changes do not 
+rewrite history. 
+9.3 JobTicket 
+ JobTicket owns production execution: stage, priority, assignee, production notes, install notes, packaging notes, 
+rework notes, artwork files, proof status, material requirements, and activity. 
+ A JobTicket is generated automatically when a production_required OrderItem is created or converted from quote to 
+order. 
+
+===== PAGE 10 =====
+ JobTicket tabs: Overview, Artwork, Proofs, Materials, Notes, Activity. 
+ Production stages are tenant-configurable in Settings > Production. Do not hardcode them in the board. 
+10. Customers, Quotes, Pricing, and Invoices 
+10.1 Customers 
+ Customer records include display name, company name, email, phone, billing/shipping addresses, customer type, 
+tax exemption, preferred contact method, tags, notes, files, and active/archive state. 
+ Customer lifetime value is computed on read from paid invoices. Do not store it as a mutable field. 
+ Customer portal routes are separate public/portal flows with explicit allowlists, not internal APIs with a prettier login 
+screen. 
+10.2 Quotes 
+ Quotes include quote number, customer, status, expiration, line items, subtotal, tax, total, notes, pricing snapshot, 
+and converted_order_id. 
+ Quote to Order conversion is idempotent and creates OrderItems and JobTickets for production_required items. 
+ Public quote acceptance uses signed token links with expiration and audit/activity events. 
+10.3 Pricing Foundation and Calculator 
+ Pricing Foundation lives in Settings > Pricing and stores category defaults, materials, labor, markup, overhead, 
+waste, minimums, and quantity breaks. 
+ Pricing Calculator is its own tool and also appears as a global quick action and inside quote/order item workflows. 
+ All formulas are pure deterministic functions: calculatePrice(inputs, foundationConfig) returns a breakdown and 
+price with no side effects. 
+ Calculator should work with or without a selected customer for fast phone quoting. 
+ Quantity breaks are per-category, not global. 
+ Manual price overrides require a reason and create an audit event. 
+10.4 Invoices and Payments 
+ Invoices are immutable billed snapshots generated from orders or manually created where allowed. 
+ Invoice balance is computed from total_cents minus sum of payment transactions. Do not store balance as a free-
+edit mutable field. 
+ Partial payments and refunds are stored in payment_transactions. 
+ Public payment links use signed or random stored tokens, not exposed invoice IDs. 
+ Overdue status is computed from due date and payment state; scheduler sends reminders but does not blindly 
+mutate status without service rules. 
+11. Webstores - Protected Approved Behavior 
+Webstores are mostly already how the product should work. Therefore, the rebuild must preserve the approved webstore 
+behavior and rebuild it early enough to avoid losing functionality. The old plan language that delayed active webstores is 
+superseded by this accepted decision. 
+11.1 Accepted Scope 
+ Webstores appear in Operations from the beginning as a real module, not merely a fake placeholder. 
+ Store types: b2b, fundraiser, creator/event-oriented modes as approved from the current app behavior. 
+
+===== PAGE 11 =====
+ Store setup, branding/theme, images, products/catalog, forms/questionnaires, owner invite/onboarding, store 
+progress, and analytics must preserve approved behavior. 
+ Public storefront route uses /store/{store_slug}. Store slug is globally unique. 
+ Cart stays localStorage until checkout is confirmed. Do not create a cart table unless an approved future 
+requirement demands saved carts. 
+ Public storefront APIs are unauthenticated and isolated from internal APIs with explicit allowlists. 
+ Webstore products are ecommerce catalog records. They are not the same as shop inventory items or Pricing 
+Foundation materials, but they may reference pricing templates or production templates. 
+ Checkout creates WebstoreOrder, then a bridge creates canonical Order, OrderItems, and JobTickets for 
+production_required purchased items. 
+ Shop Orders list shows webstore orders with a Webstore badge and source data from creation. 
+ Stripe Connect onboarding must exist before creator/store payout features go live. 
+11.2 What May Be Gated Without Delaying Webstores 
+ Live Stripe Connect payouts may be gated until webhook signing, onboarding status, reconciliation, refunds, 
+disputes, and disconnected account recovery are tested. 
+ Inventory reservation from webstore orders may wait until inventory is active and ledger-safe. 
+ Meta/Facebook and SMS messaging attached to stores may wait until the communications infrastructure is active. 
+ Supplier API or live vendor integrations are not required for webstores to function. 
+ Any unfinished area must show explicit disabled/setup status instead of pretending it works. 
+11.3 Webstore Acceptance Tests 
+ Create each approved store type. 
+ Verify required setup fields, owner invite, questionnaire/forms, product images, product variants, publishing state, 
+and slug uniqueness. 
+ Visit public storefront unauthenticated. 
+ Add products to cart and confirm cart persists locally until checkout. 
+ Checkout creates WebstoreOrder and canonical shop Order with OrderItems and JobTickets. 
+ Internal users see correct webstore badges, source links, and order details. 
+ Webstore owner portal cannot see internal costs, supplier data, other tenants, or unrelated shop records. 
+12. Production, Documents, Artwork, and Wrap Command Center 
+ Production Board supports configurable tenant stages and at least rollup view by JobTicket. Task-level view may 
+deepen later using canonical tasks. 
+ Production cards show ticket name, ticket number, priority, stage, assignee, due date, rollup progress, and a 
+Materials deep link where enabled. 
+ Proof workflow: upload artwork, generate/send proof, public approval/revision token page, status update, activity 
+event, shop notification, versioning. 
+ Document library supports categories, files linked to customers/orders/job tickets, questionnaires/forms, and 
+explicit visibility rules. 
+ Artwork workflow includes customer-uploaded art, proof versions, image markup, measurements, approval 
+comments, design notes, file versioning, asset library, templates, before/after photos. 
+ Wrap Command Center is protected. Destination includes vehicle records, measurements, area/side records, 
+artwork zones, damage/pre-install photos, install checklist, proof approvals, material estimate, production stages, 
+install scheduling, customer signature, before/after photos, warranty/care instructions. 
+ Mobile/field workflows must be responsive from the beginning: camera upload, install checklist, customer 
+signature, before/after photos, address access, completion notes, pickup/install confirmation. 
+
+===== PAGE 12 =====
+13. Team, Timeclock, Schedule, and Payroll 
+ Team schedule, timeclock, and payroll rules are protected behavior areas and must be specified before rebuild. 
+ Employee scheduling should support multi-employee day/week scheduling from one board, not one employee 
+profile at a time. 
+ Timeclock entries are append-only. Corrections create edited/correction records with manager, reason, original 
+values, and audit trail. 
+ Payroll runs are snapshots. Once finalized, rates and hours are frozen even if employee records later change. 
+ Pay period settings live in Settings > Team. Weekly Sat-Fri baseline and Friday payday may be defaulted for Donnell's 
+tenant but must remain configurable. 
+ Overtime rules must be configurable, with default weekly overtime after 40 hours at 1.5x. 
+ Employee portal cannot expose owner-only financial/admin settings. 
+14. Inventory and Purchasing 
+Inventory and purchasing are protected behavior, but the accepted sequencing keeps them after Orders, JobTickets, 
+Pricing, Production, Tasks, Notifications, and Activity are stable. Webstores do not need to wait for inventory unless 
+using stocked-product reservations. 
+ InventoryItem is the catalog record. InventoryLot is the physical batch. InventoryTransaction is the immutable 
+ledger. 
+ Tracking methods include quantity, roll, sheet, remnant, pack, board/case as needed. 
+ Balances are computed from ledger/lots: on hand, reserved, available, incoming, shortages, value. 
+ Never mutate quantity_on_hand directly without a transaction record. 
+ Material requirements link JobTickets to InventoryItems and can become reserved, pulled, consumed, shortage, 
+returned, or waste. 
+ Shortages surface in Action Required and can become draft purchase order lines. 
+ PO receipt creates inventory lots, receipt transactions, updates incoming/on-hand status, and resolves linked 
+shortages. 
+ Supplier APIs, live comparison, automatic ordering, AI purchasing recommendations, and webstore inventory 
+reservations are later dependencies, not MVP blockers. 
+15. Portals, Communications, and Notifications 
+ Each portal is a separate security boundary: Customer Portal, Employee Portal, Webstore Owner Portal, Partner/B2B 
+Portal, Public Token Pages, Platform Admin Portal. 
+ Customer/order communications belong in Operations. Team/internal messages belong in Productivity. Platform 
+support/community messages belong in AI Hub. 
+ Email templates should be defined centrally for proofs, invoices, overdue invoices, payment received, order 
+confirmed, order ready, quote sent, quote accepted, webstore events, and portal invites. 
+ Notification triggers include proofs, quotes, invoices, orders, tasks, inventory, appointments, webstores, payroll, AI 
+review, and platform events. 
+ Notifications must be deduplicated, retryable, preference-aware, auditable, and tied to delivery events. 
+ Public token pages must have signed/random tokens, expiry, rate limits, and purpose-specific APIs. 
+16. AI Hub and Automation 
+ AI Hub exists from the beginning for product identity, help, documentation, prompt library, bug reports, feature 
+requests, roadmap, and release notes. 
+
+===== PAGE 13 =====
+ Active AI tools wait until deterministic workflows and guardrails are ready. 
+ AI can draft emails/texts/product descriptions/documents, summarize, explain, and suggest only inside permission-
+filtered context. 
+ Mutating actions require explicit review with preview, sources, assumptions, affected records, and predicted 
+impact. 
+ AI cannot directly approve purchase orders, alter inventory, submit supplier orders, issue refunds, change selling 
+prices, bypass permissions, or block manual workflows. 
+ AI credit charging must be idempotent and tied to completed actions, not failed attempts. 
+17. Dashboard, Ribbon, and UI System 
+17.1 Dashboard Layout 
+[Contextual Ribbon: 12 action buttons grouped as Create | Customer | Workflow] 
+[KPI Strip: Revenue | Orders | Quotes | AR | Unread] 
+[Action Required - 2 columns] [Production Snapshot - 1 column] 
+[Billing Snapshot] [Shop Health] [Onboarding] 
+[Reserved states for inventory, AI, webstores, payroll, and other future modules] 
+ Dashboard uses one digest endpoint for core data rather than many scattered calls. 
+ Unavailable modules return explicit disabled/setup/coming-soon state, not fake zeros. 
+ Action Required consolidates proofs awaiting approval, orders awaiting customer approval, overdue invoices, low 
+stock/shortages when active, and AI suggestions/review items when active. 
+17.2 Ribbon Actions 
+ 
+17.3 UI Rules 
+ Use the same Office-style ribbon dimensions and button pattern across modules. 
+ Cards use white surface, light border, rounded corners, subtle shadow, and 3px top accent border. Avoid large 
+colored card backgrounds. 
+ Use lucide-react icons only, not emoji icons. 
+ Use Sonner for toasts. 
+ Keep pages focused. Do not create multi-thousand-line page components. 
+ Every page must have loading, empty, error, success, confirmation, and permission-denied states. 
+18. Revised Release Plan 
+This release plan keeps the final app surface visible early, preserves approved webstore behavior early, and delays only 
+features that truly depend on unfinished infrastructure. Planning every tiny Release 8 endpoint now would be fake 
+precision, and fake precision is just procrastination wearing a tie. 
+ 
+19. Release 0 Detailed Requirements 
+ Protected specs approved for Pricing Foundation, categories, quizzes, defaults, onboarding, ribbons, dashboards, 
+webstores, team/payroll, inventory, wraps, document library/questionnaires, portals, AI guardrails. 
+ Final route map and workspace/module hierarchy approved. 
+
+===== PAGE 14 =====
+ Permission/navigation matrix approved by role and portal. 
+ Canonical data models and shared services created. 
+ Tenant isolation and permission tests pass before feature work scales. 
+ Migrations can roll forward and back. 
+ Demo tenant and deterministic fixtures exist for repeatable testing. 
+ CI includes unit, API integration, tenant-isolation, permission, and browser smoke tests. 
+20. Release 1 Detailed Requirements 
+Identity and Setup 
+ Owner login/logout/password reset/sessions 
+ Tenant isolation 
+ Owner/admin/staff roles 
+ User invitations and deactivation 
+ Company, tax, payment terms, numbering, timezone settings 
+ Setup wizard and onboarding checklist 
+Customers 
+ Create/edit/archive/search/filter/import/export 
+ Contacts, addresses, notes, tax exemption, files 
+ Order/invoice history and activity timeline 
+Pricing 
+ Minimal Pricing Foundation 
+ Deterministic calculator 
+ Digital print, rigid signs, banners, apparel, services, custom categories 
+ Pricing snapshots 
+ Audited manual overrides 
+Quotes, Orders, Production 
+ Quotes and quote-to-order conversion 
+ Direct order creation 
+ Quick and detailed order items 
+ Order lists, statuses, due dates, notes, files, activity 
+ Job tickets for production_required items 
+ Production Board with configurable statuses 
+ Assignment, priority, production notes, basic job time 
+Proofs/Documents/Artwork 
+ Proof request and public approve/reject page 
+ Approval history 
+ Document library linked to customers and orders 
+ Basic drawing upload, image markup, annotation 
+ File versions and visibility rules 
+Invoices/Dashboard 
+ Invoice creation from orders 
+
+===== PAGE 15 =====
+ Invoice statuses, totals, balances, manual payments/refunds 
+ Printable/downloadable and emailed invoices 
+ Payment and activity history 
+ Global Command Center with live core cards and reserved future cards 
+ Basic sales, outstanding invoice, order-status reports 
+Productivity and AI Hub Shells 
+ Minimal tasks 
+ Notes/comments 
+ Reminders 
+ Announcements 
+ Unified calendar shell 
+ Team messages shell 
+ AI Hub shell 
+ Prompt Library shell 
+ Documentation and Help Center shell 
+ Bug report and feature request submission 
+ My Requests 
+ Release Notes and Roadmap pages 
+Webstores Preservation 
+ Approved store types and setup preserved 
+ Store owner invite/progress preserved 
+ Product/catalog/image behavior preserved 
+ Questionnaires/forms preserved 
+ Public storefront and cart behavior preserved where payment dependencies are ready 
+ Order sync into canonical orders/job tickets 
+ Disabled states only where specific dependencies are not ready 
+21. Acceptance Test Strategy 
+ 
+22. Protected Specification Checklist 
+ Pricing Foundation: fields, labels, defaults, formulas, assumptions, validation, overrides, tests. 
+ Product/item categories: category names, progressive forms, required/optional fields, calculations, order item 
+behavior. 
+ Onboarding setup: steps, completion rules, skip rules, default settings, guided setup states. 
+ Office-style ribbon: groups, actions, dimensions, icons, labels, permission filtering, module variants. 
+ Dashboard layouts: card order, spans, KPI strip, Action Required, reserved cards, empty states, digest API. 
+ Webstore setup and store types: every approved field, flow, owner portal behavior, storefront behavior, order sync. 
+ Team schedule/timeclock/payroll: schedule workflow, pay period, payday, corrections, 
+advances/payments/carryover if approved, exports. 
+ Inventory/purchasing: ledger, lots, rolls/sheets/remnants, shortages, POs, receiving, cost suggestions. 
+ Wrap Command Center: vehicle, measurements, photos, artwork zones, install, signatures, warranty/care. 
+ Document library/questionnaires: categories, attachments, forms, sending to portal/email, visibility. 
+ Portals: customer, employee, webstore owner, partner/B2B, token pages, allowlists. 
+
+===== PAGE 16 =====
+ AI guardrails: permissions, review, audit, prohibited actions, fallback behavior. 
+23. Required Next Planning Sequence 
+11. Approve this accepted master plan as the controlling rebuild plan. 
+12. Create protected behavior specs, starting with Webstores, Pricing Foundation, Dashboard/Ribbon, Orders/Order 
+Items/JobTickets, and Document Library. 
+13. Define final route map and permission/navigation matrix. 
+14. Define canonical data models and migration inputs from current main. 
+15. Create Release 0 implementation prompt for Emergent. 
+16. Create Release 1 + Release 1W implementation prompt and acceptance tests. 
+17. Run a migration/fixture plan from current app demo data and approved behavior. 
+18. Only then start broad implementation. Build vertical slices with tests instead of porting giant files wholesale. 

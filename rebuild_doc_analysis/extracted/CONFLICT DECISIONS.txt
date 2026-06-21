@@ -1,0 +1,485 @@
+
+
+===== PAGE 1 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+SignGuy AI Rebuild 
+Conflict Resolution & Decision Worksheet 
+Prepared from COMBINED.pdf rebuild notes and corrected Day 1 meaning 
+ 
+Core resolution rule: “Day 1” means Emergent’s “what it wished it knew from Day 1” rebuild specification, 
+not Release 1. When Day 1 guidance conflicts with the Early Plan, Day 1 should usually win, especially 
+where it protects app architecture, known approved behavior, webstores, pricing, orders, dashboard, 
+ribbon navigation, permissions, and data models. Exceptions: tenant isolation, security, payment safety, 
+deterministic money/payroll/inventory math, and explicit owner-approved behavior always override 
+generic suggestions. 
+ 
+How to use this document: Each conflict is numbered. Each option is lettered. You can respond with choices like “1A, 2B, 
+3C.” Labels show where an option came from: [DAY 1], [EARLY PLAN], [ROADMAP], [USER CORRECTION], or 
+[RECOMMENDED SYNTHESIS]. 
+Executive Summary 
+The rebuild notes mostly agree on one big direction: preserve approved current-app behavior, rebuild cleaner architecture, and 
+establish the final app shell early. 
+The largest strategic conflict is webstores. One roadmap draft defers active webstores to Release 6, but the Day 1 spec treats 
+webstores as a core value loop and includes detailed webstore architecture. Since your webstores are mostly how you want 
+them, the recommended resolution is to keep active webstores in the early rebuild scope after a protected webstore behavior 
+spec is approved. 
+The second biggest conflict is architecture detail: some model examples use float money fields, direct route DB access, and 
+always-created JobTickets, while the stronger architecture rules require integer cents, service/domain boundaries, and 
+canonical ownership. 
+The final spec should not blindly follow the release roadmap where it delays already-approved or already-working features. It 
+should follow the Day 1 rebuild spec and protected-behavior rule first. 
+Source Label Definitions 
+Label Meaning 
+[DAY 1] Emergent-created “what it wished it knew from Day 1” rebuild 
+specification. This includes the detailed architecture, models, UI 
+system, webstore section, dashboard section, settings section, 
+API rules, deployment notes, and “Know from day 1” callouts. 
+[EARLY PLAN] The earlier staged roadmap / release-sequencing plan that 
+recommends dependency-driven rollout and delays several 
+active capabilities. 
+[ROADMAP] The clean rebuild roadmap that adds final app surface, four 
+workspaces, global command center, global search, global 
+create, protected specs, and release structure. 
+[USER CORRECTION] Your instruction that webstores are mostly already how you 
+want them and should not automatically be delayed. 
+[RECOMMENDED SYNTHESIS] A practical resolution combining source notes without 
+preserving avoidable contradictions. 
+
+===== PAGE 2 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+Master Conflict List and Recommendations 
+# Conflict Recommendation Decision Summary 
+1 Webstores timing: shell-only later 
+vs active early 
+1C Do not delay approved webstore 
+behavior. Rebuild active 
+webstores early after protected 
+spec approval. 
+2 Day 1 source priority vs Early Plan 
+source priority 
+2A Use Day 1 as default where it 
+conflicts with Early Plan, unless 
+security/money/tenant isolation is 
+at risk. 
+3 Money storage: integer cents vs 
+float examples 
+3A Use integer cents for all money 
+amounts; keep rates as 
+percentages/basis points. 
+4 Route architecture: no DB in 
+routes vs inline db singleton 
+4B Routes validate/auth/respond; 
+repositories/services own DB and 
+business logic. 
+5 JobTicket creation: every line item 
+vs production-only items 
+5B Add production_required to 
+OrderItem; create JobTicket only 
+when needed. 
+6 Order status: stored editable field 
+vs derived status 
+6B Store status but only update 
+through domain service; allow 
+manual exception statuses only. 
+7 ProductionTask status: complete 
+vs completed 
+7B Standardize on completed unless 
+old protected UI explicitly requires 
+complete. 
+8 Pricing Foundation location: 
+Settings vs standalone tool 
+8C Foundation in Settings; Calculator 
+global/standalone/embedded in 
+quotes and orders. 
+9 Dashboard inactive cards: zero 
+counts vs disabled states 
+9B Use stable reserved cards with 
+disabled/null state, not misleading 
+zeroes. 
+10 Settings storage: one 
+tenant_settings document vs 
+domain settings 
+10C Expose one merged settings 
+object; store by domain when 
+needed. 
+11 Inventory timing: current protected 
+behavior vs delayed dependency 
+11B Keep inventory shell and data 
+contracts early; activate full 
+inventory after core 
+order/production stability unless 
+current behavior must migrate 
+sooner. 
+12 AI Hub timing: AI shell early vs AI 
+tools deferred 
+12B AI Hub/product support shell 
+early; mutating AI tools later with 
+review guardrails. 
+13 Portals: shells early vs full portals 
+later 
+13B Create separate portal 
+boundaries/routes early; activate 
+full portal features by dependency. 
+14 Protected behavior vs clean 
+rebuild simplification 
+14A Protected approved behavior 
+wins. Architecture can change; 
+outcomes, fields, defaults, 
+workflows, calculations cannot be 
+casually changed. 
+15 Webstore product model: 
+separate catalog vs connected 
+production/orders 
+15C Keep WebstoreProduct separate, 
+but map purchases into canonical 
+Orders, OrderItems, and 
+JobTickets. 
+  
+
+===== PAGE 3 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+Detailed Conflict Decisions 
+1. Webstores Timing: Deferred Release 6 vs Active Early Rebuild 
+Conflict: The Roadmap says Webstores appear as a shell early and active ecommerce comes in Release 6. The Day 1 spec 
+treats webstores as one of the core value loops and gives detailed B2B, fundraiser, creator, checkout, Stripe Connect, store 
+slug, product, and order-sync rules. Your correction says webstores are mostly how you want them, so there is no good reason 
+to automatically delay them. 
+Option Source / Choice Notes 
+A [EARLY PLAN / ROADMAP] Keep webstores 
+as shell-only until later release. 
+Safer sequencing, but wastes already-
+approved webstore work and risks rebuilding 
+navigation twice. 
+B [DAY 1] Build webstores as a full early module 
+using the Day 1 Webstores section. 
+Preserves the existing direction and avoids 
+pretending a major product pillar is “future.” 
+C [USER CORRECTION + RECOMMENDED 
+SYNTHESIS] Include active webstores in the 
+early rebuild scope after a protected Webstore 
+Behavior Spec is approved. Do not defer store 
+setup, products, store owner flow, 
+fundraiser/B2B modes, or order sync if those 
+are already approved. Only delay pieces that 
+truly depend on unfinished services, such as 
+advanced inventory reservations or optional 
+supplier integrations. 
+Best balance. Keeps what you already like, 
+while still preventing payment/security 
+spaghetti. 
+Recommendation: 1C — Webstores are a major product pillar and already close to desired behavior. Delaying them to 
+Release 6 would be a roadmap artifact, not a product decision. 
+2. Priority Rule: Day 1 Spec vs Early Plan 
+Conflict: The Early Plan gives staged sequencing. The Day 1 spec gives detailed architecture and “wish we knew this from 
+the beginning” guidance. When they conflict, the team needs one rule. 
+Option Source / Choice Notes 
+A [DAY 1] Default to the Day 1 spec where it 
+conflicts with the Early Plan. 
+Strongest rule for avoiding repeated rebuild 
+mistakes. 
+B [EARLY PLAN] Default to the Early Plan 
+dependency sequence. 
+Safer for brand-new features, but can wrongly 
+delay already-approved features. 
+C [RECOMMENDED SYNTHESIS] Day 1 wins 
+for architecture and known approved behavior; 
+Early Plan wins only for genuinely new or risky 
+features without approved behavior. 
+Good rule, but less simple for agents to follow. 
+Recommendation: 2A with 2C as exception language — Use Day 1 as the default because it came from the “wish we knew 
+earlier” document. Add exceptions for security, payments, tenant isolation, and deterministic money/inventory/payroll logic. 
+3. Money Storage: Integer Cents vs Float Examples 
+Conflict: Clean Architecture says store money as integer cents, but model examples use floats for deposits, totals, unit price, 
+balance, and amount paid. 
+Option Source / Choice Notes 
+A [ROADMAP / CLEAN ARCHITECTURE] Store 
+all money as integer cents. 
+Best for payment accuracy and accounting. 
+B [DAY 1 MODEL EXAMPLES] Use floats as 
+shown in examples. 
+Easier to read but risky for currency 
+calculations. 
+C [RECOMMENDED SYNTHESIS] Use integer 
+cents for money; allow decimal/rate fields only 
+for percentages, markup, tax rates, and 
+quantity math. 
+Best practical implementation. 
+Recommendation: 3C — Integer cents is the correct authoritative storage rule. Float examples should be treated as sketch 
+examples, not final schema. 
+4. DB Access: No Direct DB Calls in Routes vs Inline DB Singleton 
+Conflict: The Day 1 architecture says zero direct DB calls in routes, but also says DB work can go through service functions or 
+inline using the db singleton. That contradicts itself. 
+
+===== PAGE 4 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+Option Source / Choice Notes 
+A [DAY 1 literal] Allow inline db singleton use in 
+route files. 
+Faster, but recreates giant route files. 
+B [RECOMMENDED SYNTHESIS] Routes 
+handle request/auth/response only. Services 
+own business logic. Repositories or service 
+data-access functions own DB calls. 
+Cleanest and most scalable. 
+C [EARLY PLAN] Enforce canonical domains but 
+leave implementation flexible. 
+Too vague for agents. 
+Recommendation: 4B — The current app already suffered from route/module sprawl. Do not preserve the contradiction. 
+5. JobTicket Creation: One Per Line Item vs Production-Only Items 
+Conflict: Day 1 says one JobTicket per LineItem, but real orders include fees, design charges, delivery, permit fees, 
+discounts, deposits, and other non-production items. 
+Option Source / Choice Notes 
+A [DAY 1 literal] Every LineItem always creates 
+one JobTicket. 
+Simple, but pollutes production board with non-
+production work. 
+B [RECOMMENDED SYNTHESIS] Add 
+production_required true/false to OrderItem. 
+Create JobTicket only when 
+production_required is true. 
+Correct for a sign shop. 
+C [EARLY PLAN] Job tickets generated from 
+production order items. 
+Similar to B, but less explicit in the schema. 
+Recommendation: 5B — This preserves the Day 1 hierarchy for production items while avoiding nonsense tickets for fees. 
+6. Order Status: Stored Field vs Derived Rule 
+Conflict: The model includes Order.status, but the rule says Order status is derived from line items and never set manually. 
+Option Source / Choice Notes 
+A [DAY 1 literal] Store status and allow manual 
+editing. 
+Fast UI, but easy to make totals/status lie. 
+B [RECOMMENDED SYNTHESIS] Store status, 
+but only domain services can update it based 
+on OrderItems/JobTickets. Allow manual 
+exceptions like cancelled, on_hold, void only 
+with audit reason. 
+Best balance. 
+C [PURE DERIVED] Never store status; compute 
+on read every time. 
+Clean but can be slower and harder for 
+filters/reporting. 
+Recommendation: 6B — Status needs to be filterable and auditable, but not randomly editable. 
+7. Task Status Naming: complete vs completed 
+Conflict: ProductionTask uses complete, while other cleanup work standardized completed for job/order status. Mixed naming 
+causes broken filters and fragile UI. 
+Option Source / Choice Notes 
+A [DAY 1 literal] Use complete for 
+ProductionTask only. 
+Preserves the example but creates 
+inconsistency. 
+B [RECOMMENDED SYNTHESIS] Use 
+completed across all task/order/job statuses 
+unless a protected existing UI depends on 
+complete. 
+Best consistency. 
+C [LEGACY COMPATIBILITY] Accept both 
+complete and completed in the API, normalize 
+on write to completed. 
+Useful during migration. 
+Recommendation: 7B plus 7C during migration — Final schema should use completed. Migration can accept both to avoid 
+breaking old imported data. 
+8. Pricing Foundation Location: Settings vs Calculator Tool 
+Conflict: Day 1 says Foundation and Calculator are separate: Foundation in Settings, Calculator as its own tool. MVP sections 
+also list Pricing as a core feature, which could tempt someone to make it a separate main module. 
+Option Source / Choice Notes 
+A [DAY 1] Pricing Foundation lives in Settings; 
+Calculator is its own tool. 
+Correct but needs access details. 
+B [EARLY PLAN] Pricing is a release feature True but not enough for UI placement. 
+
+===== PAGE 5 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+under core MVP. 
+C [RECOMMENDED SYNTHESIS] Settings > 
+Pricing owns the Foundation. Calculator is 
+accessible globally, standalone, and 
+embedded in Quote/Order Item flows. 
+Best usability. 
+Recommendation: 8C — Owners configure pricing in Settings, but quoting needs instant access. 
+9. Dashboard Future Cards: Zero Counts vs Disabled States 
+Conflict: The roadmap says the dashboard reserves cards for future modules. The Day 1 digest examples include fields like 
+low_stock_count even when inventory may not be active. 
+Option Source / Choice Notes 
+A [DAY 1 literal] Return zero counts for 
+unavailable modules. 
+Looks clean but misleading. 
+B [RECOMMENDED SYNTHESIS] Return 
+module state: enabled, disabled, 
+coming_soon, setup_required, or unavailable. 
+Use null counts when the system is inactive. 
+Accurate and future-proof. 
+C [EARLY PLAN] Hide unavailable cards. Avoids confusion but violates stable dashboard 
+surface rule. 
+Recommendation: 9B — Do not lie with zeros. Reserve the card, but label state honestly. 
+10. Settings Storage: One tenant_settings Document vs Domain Growth 
+Conflict: Day 1 says all settings are stored in one tenant_settings document, but production, pricing, billing, notifications, 
+integrations, team, and webstores may become too large or permission-sensitive. 
+Option Source / Choice Notes 
+A [DAY 1 literal] Store every setting in one 
+document forever. 
+Simple early, risky later. 
+B [EARLY PLAN] Use domain boundaries and 
+canonical data ownership. 
+Cleaner, but needs frontend simplicity. 
+C [RECOMMENDED SYNTHESIS] Frontend 
+receives one merged settings object on app 
+load. Backend may store settings by domain 
+once complexity requires it. 
+Best balance. 
+Recommendation: 10C — One frontend object without forcing one bloated backend document. 
+11. Inventory Timing: Protected Current Behavior vs Delayed Inventory Release 
+Conflict: Inventory is protected and integrated with orders, job tickets, pricing, and purchasing, but the Early Plan delays 
+active inventory until later. 
+Option Source / Choice Notes 
+A [DAY 1] Include inventory models and material 
+requirement links from the beginning. 
+Prevents architecture rework. 
+B [EARLY PLAN + RECOMMENDED 
+SYNTHESIS] Include inventory shell, models, 
+route contracts, permissions, and material links 
+early; activate full ledger/purchasing after core 
+orders and job tickets are stable. 
+Best phased approach. 
+C [EARLY PLAN strict] Delay nearly all inventory 
+until Release 4. 
+Risks later rework around materials and 
+pricing. 
+Recommendation: 11B — Inventory is complex. Establish the structure early, but do not let it block core order/webstore 
+rebuild. 
+12. AI Hub Early vs AI Tools Later 
+Conflict: The app is SignGuy AI, so the AI Hub should exist early. But active AI tools, credits, and mutating actions are 
+deferred for safety and stability. 
+Option Source / Choice Notes 
+A [DAY 1] Build AI tools and credit system from 
+the start. 
+Matches the AI identity but risks distracting 
+from core workflows. 
+B [ROADMAP / RECOMMENDED SYNTHESIS] 
+Build AI Hub shell, prompt library, help, docs, 
+bug reports, feature requests, roadmap, and 
+release notes early. Add active AI actions later 
+with review guardrails. 
+Best. 
+
+===== PAGE 6 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+C [EARLY PLAN strict] Delay AI almost entirely 
+until Release 7. 
+Makes the app identity weaker and causes UI 
+bolt-on later. 
+Recommendation: 12B — AI Hub should exist early, but mutating AI should wait until deterministic workflows are stable. 
+13. Portals: Separate Boundaries Early vs Full Portal Features Later 
+Conflict: The roadmap says portals need separate security boundaries early, but full portals are deferred. 
+Option Source / Choice Notes 
+A [DAY 1 / ROADMAP] Create separate 
+route/API boundaries for Customer, Employee, 
+Webstore Owner, Partner/B2B, Public Token, 
+and Platform Admin from the beginning. 
+Strong security foundation. 
+B [RECOMMENDED SYNTHESIS] Build portal 
+shells and route boundaries early, then 
+activate features as dependencies are ready. 
+Best practical path. 
+C [EARLY PLAN strict] Delay portal structures 
+until their release. 
+Risks API/security rewrites later. 
+Recommendation: 13B — Boundaries early, deep features later. 
+14. Protected Behavior vs Clean Rebuild Simplification 
+Conflict: The rebuild should clean architecture, but protected areas cannot have approved behavior casually simplified, 
+renamed, removed, or restructured. 
+Option Source / Choice Notes 
+A [ROADMAP / USER PRIORITY] Protected 
+approved behavior wins over generic 
+simplification. 
+Correct. 
+B [EARLY PLAN] Simplify aggressively for MVP. Useful for unapproved features, dangerous for 
+approved ones. 
+C [RECOMMENDED SYNTHESIS] Architecture 
+may change, but approved outcomes, fields, 
+defaults, calculations, workflows, labels, and 
+UI behavior require explicit approval to 
+change. 
+Best wording. 
+Recommendation: 14C — This prevents an agent from “simplifying” the exact things you fought to get right. 
+15. Webstore Products: Separate Catalog vs Canonical Order Integration 
+Conflict: Day 1 says WebstoreProduct is separate from shop products/materials, but checkout must create canonical Orders, 
+OrderItems, and JobTickets. 
+Option Source / Choice Notes 
+A [DAY 1 literal] Keep WebstoreProduct 
+completely separate. 
+Good catalog separation, but incomplete 
+unless order mapping is clear. 
+B [EARLY PLAN] Webstore orders sync into 
+canonical orders/job tickets later. 
+Correct but could imply delaying all integration. 
+C [RECOMMENDED SYNTHESIS] 
+WebstoreProduct remains ecommerce catalog 
+data. At checkout, each purchased product 
+maps into canonical OrderItem and JobTicket 
+templates. Pricing/material links can be 
+referenced, but WebstoreProduct is not 
+InventoryItem. 
+Best. 
+Recommendation: 15C — This preserves separation without creating duplicate order workflows. 
+  
+
+===== PAGE 7 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+Revised Webstore Scope Language 
+Use this wording in the final rebuild prompt/spec: 
+Webstores are not a future-only idea in the rebuild. The existing webstore behavior is a protected area and is mostly approved. 
+The rebuild must preserve the approved webstore setup flow, store types, owner invite/onboarding behavior, product catalog 
+behavior, public storefront expectations, order synchronization, and dashboard/ribbon placement unless the owner explicitly 
+approves a change. 
+The Day 1 Webstores specification is the default source of truth for webstore architecture. The Early Plan may still be used for 
+dependency sequencing, but it must not downgrade approved active webstore behavior into a shell-only placeholder. 
+If any webstore capability depends on an unfinished underlying service, implement the approved UI and data contracts early, 
+then feature-flag only the unsafe dependent action. Examples: advanced inventory reservations may wait for inventory, but 
+store setup, products, fundraiser/B2B modes, owner portal structure, and canonical order sync should not be delayed simply 
+because a roadmap draft placed ecommerce later. 
+Stripe Connect and checkout must be implemented only with webhook verification, idempotency, tenant isolation, 
+reconciliation, and failure recovery. This is not a reason to defer webstores as a whole; it is a reason to implement payment 
+safety correctly. 
+Owner Decision Worksheet 
+Reply with choices like: 1C, 2A, 3C, 4B. Any conflict you do not specify should use the recommendation below. 
+Conflict # Default Recommendation Your Choice Notes / Overrides 
+1 1C   
+2 2A   
+3 3A   
+4 4B   
+5 5B   
+6 6B   
+7 7B   
+8 8C   
+9 9B   
+10 10C   
+11 11B   
+12 12B   
+13 13B   
+14 14A   
+15 15C   
+  
+
+===== PAGE 8 =====
+SignGuy AI Rebuild Conflict Resolution Worksheet 
+Final Conflict Resolution Rules to Insert Near Top of Rebuild Spec 
+1. Emergent Day 1 guidance is the default source of truth when it conflicts with the Early Plan, because it represents what the 
+original builder wished it knew before implementation began. 
+2. Protected approved behavior wins over generic release sequencing. Protected areas include Pricing Foundation, 
+product/item categories, pricing defaults, webstores, dashboard layout, ribbon navigation, team/payroll, inventory/purchasing, 
+document library, portals, Wrap Command Center, and AI guardrails. 
+3. The current main app is the product-behavior reference, not the code-structure reference. Approved behavior, fields, 
+calculations, defaults, workflows, and design behavior must be preserved unless explicitly changed by the owner. 
+4. Webstores are an early active scope item, not automatically a late Release 6 item, because the current webstore behavior is 
+mostly approved. Only unsafe dependencies may be feature-flagged or staged. 
+5. Final app surface appears early: Home/Global Command Center, Operations, Business, Productivity, AI Hub, global search, 
+global create, notifications, settings, contextual ribbon, and permission-filtered navigation. 
+6. Architecture must use canonical shared concepts: Order, OrderItem, JobTicket, Task, Note/Comment, 
+Message/Conversation, CalendarEvent, Notification, File, AuditEvent, and ActivityTimeline. 
+7. Deterministic business logic controls pricing, inventory, payroll, accounting, payments, taxes, refunds, and approvals. AI 
+may draft or suggest later, but it may not silently mutate money, inventory, approvals, or supplier actions. 
+8. Money is stored as integer cents. Float examples in drafts are not final schema decisions. 
+9. Public portals and token pages must use separate security boundaries and allowlisted data. Internal cost data must never 
+leak to customer, employee, webstore-owner, partner, or public-token surfaces. 
+10. Routes must not become giant business-logic files. Routes handle auth/request/response; services and repositories own 
+business rules and persistence. 
