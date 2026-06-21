@@ -1,7 +1,7 @@
 # Prelaunch — Section 1 Agent Execution Log
 
 Executed by agent against:
-- Base URL: `https://legal-refresh-10.preview.emergentagent.com`
+- Base URL: `https://sms-consent-demo.preview.emergentagent.com`
 - Timestamp: `2026-04-23T03:36:57Z`
 - Fix/retest pass timestamp: `2026-04-23T06:29:05Z`
 

@@ -18,7 +18,7 @@ import os
 from datetime import datetime
 
 # Production URL from frontend/.env
-BASE_URL = "https://legal-refresh-10.preview.emergentagent.com"
+BASE_URL = "https://sms-consent-demo.preview.emergentagent.com"
 
 # Production credentials from test_credentials.md
 TEST_EMAIL = "signguypa@gmail.com"

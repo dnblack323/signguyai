@@ -23,7 +23,7 @@ from backend.tests.test_credentials_helper import COMMON_TEST_EMAIL, COMMON_TEST
 # Get BASE_URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://legal-refresh-10.preview.emergentagent.com"
+    BASE_URL = "https://sms-consent-demo.preview.emergentagent.com"
 
 # Test credentials
 TEST_EMAIL = "testuser123@test.com"
