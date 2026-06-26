@@ -921,6 +921,145 @@ async def _sync_vehicle_to_ticket(tenant_id: str, ticket_id: str, vehicle: dict)
 
 
 # ────────── routes ──────────
+
+@router.get("/jobs")
+async def list_wrap_jobs(
+    status: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """Return all wrap-category job tickets for the tenant with order/customer context
+    and wrap pipeline stage. Used by the /wraps dashboard page.
+    """
+    tenant_id = current_user.tenant_id
+
+    # Build category match — same set as _WRAP_CATEGORIES plus contains-"wrap" fallback
+    category_list = list(_WRAP_CATEGORIES)
+    tickets_cursor = db.job_tickets.find(
+        {
+            "tenant_id": tenant_id,
+            "$or": [
+                {"item_category": {"$in": category_list}},
+                {"item_category": {"$regex": "wrap", "$options": "i"}},
+            ],
+        },
+        {
+            "_id": 0,
+            "id": 1,
+            "order_id": 1,
+            "item_name": 1,
+            "item_category": 1,
+            "specs": 1,
+            "status": 1,
+            "created_at": 1,
+        },
+    ).sort("created_at", -1).limit(200)
+    tickets = await tickets_cursor.to_list(200)
+
+    if not tickets:
+        return {"items": [], "total": 0}
+
+    # Batch-load orders
+    order_ids = list({t.get("order_id") for t in tickets if t.get("order_id")})
+    orders_by_id: dict = {}
+    customer_ids: set = set()
+    async for o in db.orders.find(
+        {"id": {"$in": order_ids}, "tenant_id": tenant_id},
+        {"_id": 0, "id": 1, "order_number": 1, "customer_id": 1, "customer_name": 1, "status": 1},
+    ):
+        orders_by_id[o["id"]] = o
+        if o.get("customer_id"):
+            customer_ids.add(o["customer_id"])
+
+    # Batch-load customers
+    customers_by_id: dict = {}
+    if customer_ids:
+        async for c in db.customers.find(
+            {"id": {"$in": list(customer_ids)}, "tenant_id": tenant_id},
+            {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "name": 1, "company": 1},
+        ):
+            customers_by_id[c["id"]] = c
+
+    # Batch-load wrap_data for pipeline stage + vehicle info
+    ticket_ids = [t["id"] for t in tickets]
+    wrap_by_ticket: dict = {}
+    async for wd in db.wrap_data.find(
+        {"tenant_id": tenant_id, "ticket_id": {"$in": ticket_ids}},
+        {
+            "_id": 0,
+            "ticket_id": 1,
+            "wrap_type": 1,
+            "vehicle_info": 1,
+            "design": 1,
+            "contract": 1,
+            "production": 1,
+            "install": 1,
+            "inspection": 1,
+            "aftercare": 1,
+            "approvals": 1,
+        },
+    ):
+        wrap_by_ticket[wd["ticket_id"]] = wd
+
+    def _pipeline_stage(wd: dict) -> str:
+        """Derive the current human-readable pipeline stage from wrap_data."""
+        if not wd:
+            return "New"
+        aftercare = wd.get("aftercare") or {}
+        if aftercare.get("aftercare_sent"):
+            return "Aftercare"
+        inspection = wd.get("inspection") or {}
+        if (inspection.get("inspection_status") or "") not in {"", "not_started"}:
+            return "Inspection"
+        install = wd.get("install") or {}
+        ist = install.get("install_status") or ""
+        if ist not in {"", "not_scheduled"}:
+            return "Install"
+        production = wd.get("production") or {}
+        if (production.get("production_status") or "") not in {"", "not_started"}:
+            return "Production"
+        design = wd.get("design") or {}
+        if (design.get("proof_status") or "") not in {"", "not_started"}:
+            return "Design / Proof"
+        contract = wd.get("contract") or {}
+        if (contract.get("contract_status") or "") not in {"", "not_created"}:
+            return "Contract"
+        return "New"
+
+    items = []
+    for t in tickets:
+        order = orders_by_id.get(t.get("order_id"), {})
+        cust_id = order.get("customer_id")
+        customer = customers_by_id.get(cust_id, {})
+        cust_name = (
+            f"{customer.get('first_name') or ''} {customer.get('last_name') or ''}".strip()
+            or customer.get("name")
+            or customer.get("company")
+            or order.get("customer_name")
+            or "—"
+        )
+        wd = wrap_by_ticket.get(t["id"], {})
+        v = (wd.get("vehicle_info") or {})
+        vehicle = " ".join(b for b in [v.get("year"), v.get("make"), v.get("model")] if b).strip()
+
+        items.append({
+            "ticket_id": t["id"],
+            "order_id": t.get("order_id"),
+            "order_number": order.get("order_number"),
+            "order_status": order.get("status"),
+            "customer_name": cust_name,
+            "customer_id": cust_id,
+            "item_name": t.get("item_name") or "Wrap Item",
+            "item_category": t.get("item_category"),
+            "wrap_type": (wd.get("wrap_type") or "").strip() or None,
+            "vehicle": vehicle or None,
+            "pipeline_stage": _pipeline_stage(wd),
+            "ticket_status": t.get("status"),
+            "created_at": t.get("created_at"),
+        })
+
+    return {"items": items, "total": len(items)}
+
+
 @router.get("/items/{ticket_id}")
 async def get_wrap_data(ticket_id: str, current_user: UserInDB = Depends(get_current_active_user)):
     ticket = await _load_ticket_or_404(ticket_id, current_user.tenant_id)
