@@ -59,6 +59,9 @@ class Question(BaseModel):
     # For file uploads
     accept_file_types: Optional[List[str]] = None  # e.g., ["image/*", ".pdf"]
     max_file_size_mb: Optional[int] = 10
+    # Contact-field markers — used by the public form to auto-wire customer name/email
+    is_contact_name: Optional[bool] = None
+    is_contact_email: Optional[bool] = None
 
 
 class QuestionnaireCategory(str, Enum):
@@ -771,20 +774,20 @@ QUESTIONNAIRE_TEMPLATES = {
         "questions": [
             # Section 1 — Contact & Cause
             {"type": "heading", "label": "Contact and Cause", "order": 0},
-            {"type": "text",     "label": "Customer Name",                "required": True, "order": 1},
-            {"type": "text",     "label": "Organization / Cause Name",                   "order": 2},
-            {"type": "phone",    "label": "Phone Number",                 "required": True, "order": 3},
-            {"type": "email",    "label": "Email Address",                "required": True, "order": 4},
-            {"type": "text",     "label": "Main decision-maker for this fundraiser",     "order": 5},
+            {"type": "text",     "label": "Your Name",                    "required": True,  "order": 1, "is_contact_name": True},
+            {"type": "text",     "label": "Organization / Cause Name",    "required": True,  "order": 2},
+            {"type": "phone",    "label": "Phone Number",                  "required": True,  "order": 3},
+            {"type": "email",    "label": "Your Email",                    "required": True,  "order": 4, "is_contact_email": True},
+            {"type": "text",     "label": "Main decision-maker (if different from above)",   "order": 5},
 
             # Section 2 — Fundraiser Goals
-            {"type": "heading",  "label": "Fundraiser Goals",                            "order": 6},
-            {"type": "text",     "label": "Fundraiser Name", "required": True, "order": 7},
-            {"type": "textarea", "label": "What is the money being raised for?",         "order": 8},
-            {"type": "number",   "label": "Fundraiser Goal Amount ($)",                  "order": 9},
-            {"type": "date",     "label": "Fundraiser Start Date",                       "order": 10},
-            {"type": "date",     "label": "Fundraiser End Date",                         "order": 11},
-            {"type": "select",   "label": "Should a progress bar be shown publicly?", "options": [
+            {"type": "heading",  "label": "Fundraiser Goals",                                "order": 6},
+            {"type": "text",     "label": "Fundraiser Name",               "required": True, "order": 7},
+            {"type": "textarea", "label": "What is the money being raised for?",             "order": 8},
+            {"type": "number",   "label": "Fundraiser Goal Amount ($)",                      "order": 9},
+            {"type": "date",     "label": "Fundraiser Start Date",                           "order": 10},
+            {"type": "date",     "label": "Fundraiser End Date",                             "order": 11},
+            {"type": "select",   "label": "Show a progress bar publicly?", "options": [
                 {"value": "yes", "label": "Yes"},
                 {"value": "no",  "label": "No"}
             ], "order": 12},
@@ -804,18 +807,24 @@ QUESTIONNAIRE_TEMPLATES = {
                 {"value": "bags",      "label": "Bags"},
                 {"value": "other",     "label": "Other"}
             ], "order": 15},
-            {"type": "select",   "label": "Profit allocation type", "options": [
+            {"type": "select",   "label": "How should profit be allocated?", "options": [
                 {"value": "percentage",     "label": "Percentage of each sale"},
                 {"value": "fixed_per_item", "label": "Fixed dollar amount per item"},
-                {"value": "manual",         "label": "Manual — decide after the store closes"}
+                {"value": "manual",         "label": "We'll decide after the store closes"}
             ], "order": 16},
-            {"type": "number",   "label": "Profit allocation percentage (%)",          "order": 17},
-            {"type": "number",   "label": "Fixed profit allocation amount per item ($)","order": 18},
-            {"type": "select",   "label": "Allow checkout donations?", "options": [
+            {"type": "number",   "label": "Profit percentage (%)",
+             "description": "e.g., 20 for 20% of each sale.",
+             "conditional": {"depends_on_label": "profit_allocation_type", "operator": "equals", "value": "percentage"},
+             "order": 17},
+            {"type": "number",   "label": "Fixed profit amount per item ($)",
+             "description": "e.g., 5 for $5 per item sold.",
+             "conditional": {"depends_on_label": "profit_allocation_type", "operator": "equals", "value": "fixed_per_item"},
+             "order": 18},
+            {"type": "select",   "label": "Allow customers to add a donation at checkout?", "options": [
                 {"value": "yes", "label": "Yes"},
                 {"value": "no",  "label": "No"}
             ], "order": 19},
-            {"type": "text",     "label": "Suggested donation amounts at checkout",
+            {"type": "text",     "label": "Suggested donation amounts",
              "description": "e.g., $5, $10, $25 — leave blank to allow any amount.",   "order": 20},
 
             # Section 4 — Branding
@@ -823,28 +832,27 @@ QUESTIONNAIRE_TEMPLATES = {
             {"type": "file_upload", "label": "Upload your logo / artwork",
              "accept_file_types": ["image/*", ".pdf", ".svg", ".ai", ".eps", ".zip"],
              "max_file_size_mb": 25,                                                    "order": 22},
-            {"type": "text",     "label": "Brand colors",                              "order": 23},
-            {"type": "textarea", "label": "Storefront welcome message",                "order": 24},
+            {"type": "text",     "label": "Brand colors (e.g., Navy blue and gold)",   "order": 23},
+            {"type": "textarea", "label": "Welcome message for your storefront",
+             "description": "Shown at the top of your store. Keep it short and friendly.", "order": 24},
 
-            # Section 5 — Stripe Connect
-            {"type": "heading",  "label": "Stripe Connect Payment Setup",              "order": 25},
-            {"type": "paragraph","label": "Payments will be processed via Stripe Connect so funds can be paid out directly to the fundraiser bank account. We will email a secure setup link.", "order": 26},
-            {"type": "text",     "label": "Legal name or business name for payouts",   "order": 27},
-            {"type": "email",    "label": "Best email to receive the Stripe Connect setup link", "order": 28},
+            # Section 5 — Payout Setup
+            {"type": "heading",  "label": "Payout Setup",                              "order": 25},
+            {"type": "paragraph","label": "Funds are paid out directly to your bank via Stripe. We will email you a secure setup link — no banking info is collected here.", "order": 26},
+            {"type": "text",     "label": "Legal name or organization name for payouts", "required": True, "order": 27},
             {"type": "select",   "label": "Do you already have a Stripe account?", "options": [
                 {"value": "yes",       "label": "Yes"},
                 {"value": "no",        "label": "No"},
                 {"value": "not_sure",  "label": "Not sure"}
-            ], "order": 29},
+            ], "order": 28},
 
-            # Section 6 — Final approval & signature
-            {"type": "heading",   "label": "Final Approval and Signature",             "order": 30},
-            {"type": "checkbox",  "label": "I understand the store will be built from the info provided and that missing details may delay launch.", "required": True, "options": [
-                {"value": "agree", "label": "I understand"}
-            ], "order": 31},
-            {"type": "text",      "label": "Customer Name",  "required": True,         "order": 32},
-            {"type": "signature", "label": "Customer Signature", "required": True,     "order": 33},
-            {"type": "date",      "label": "Date",           "required": True,         "order": 34},
+            # Section 6 — Final Approval
+            {"type": "heading",   "label": "Final Approval",                           "order": 29},
+            {"type": "checkbox",  "label": "I understand the store will be built from the information provided, and that missing details may delay the launch.", "required": True, "options": [
+                {"value": "agree", "label": "I understand and agree"}
+            ], "order": 30},
+            {"type": "signature", "label": "Type your full name as your electronic signature", "required": True, "order": 31},
+            {"type": "date",      "label": "Today's Date",  "required": True,          "order": 32},
         ],
     },
 

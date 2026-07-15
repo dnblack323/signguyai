@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  CheckCircle, AlertCircle, Upload, Calendar as CalendarIcon,
-  Loader2, FileText, Lock
+import {
+  CheckCircle, AlertCircle, Upload, Loader2, FileText, Lock, PenLine
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -13,7 +12,6 @@ import { Textarea } from '../components/ui/textarea';
 import { Checkbox } from '../components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -25,65 +23,75 @@ export default function PublicQuestionnaire() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [answers, setAnswers] = useState({});
-  const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    email: ''
-  });
   const [errors, setErrors] = useState({});
 
-  // Locked question IDs and prefill data (from questionnaire.locked_answer_ids / prefill_answers)
+  // IDs of questions whose answers are locked (set by provider)
   const [lockedIds, setLockedIds] = useState(new Set());
+  // Maps question label→id for is_contact_name / is_contact_email fields
+  const [contactNameId, setContactNameId] = useState(null);
+  const [contactEmailId, setContactEmailId] = useState(null);
 
-  useEffect(() => {
-    fetchQuestionnaire();
-  }, [questionnaireId]);
-
-  const fetchQuestionnaire = async () => {
+  const fetchQuestionnaire = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/questionnaires/public/${questionnaireId}`);
-      const qData = response.data;
+      const res = await axios.get(`${API_URL}/api/questionnaires/public/${questionnaireId}`);
+      const qData = res.data;
       setQuestionnaire(qData);
-      
-      // Load locked question IDs
+
       const locked = new Set(qData.locked_answer_ids || []);
       setLockedIds(locked);
 
-      // Merge prefill_answers with type-aware defaults
       const prefills = qData.prefill_answers || {};
-      const initialAnswers = {};
+      const initial = {};
+      let nameId = null;
+      let emailId = null;
+
       qData.questions?.forEach(q => {
+        // Determine initial value
         if (q.type === 'checkbox' || q.type === 'multi_select') {
-          initialAnswers[q.id] = prefills[q.id] ?? [];
+          initial[q.id] = prefills[q.id] ?? [];
+        } else if (q.type === 'date' && !prefills[q.id] && q.label?.toLowerCase().includes("today")) {
+          initial[q.id] = new Date().toISOString().split('T')[0];
         } else {
-          initialAnswers[q.id] = prefills[q.id] ?? '';
+          initial[q.id] = prefills[q.id] ?? '';
         }
+
+        // Track contact-flag fields
+        if (q.is_contact_name) nameId = q.id;
+        if (q.is_contact_email) emailId = q.id;
       });
-      setAnswers(initialAnswers);
-    } catch (error) {
-      console.error('Failed to fetch questionnaire:', error);
+
+      // Auto-fill email from questionnaire-level recipient_email if present
+      if (emailId && !initial[emailId] && qData.recipient_email) {
+        initial[emailId] = qData.recipient_email;
+        locked.add(emailId);
+      }
+
+      setContactNameId(nameId);
+      setContactEmailId(emailId);
+      setLockedIds(new Set(locked));
+      setAnswers(initial);
+    } catch {
+      // handled via questionnaire staying null
     } finally {
       setLoading(false);
     }
-  };
+  }, [questionnaireId]);
+
+  useEffect(() => { fetchQuestionnaire(); }, [fetchQuestionnaire]);
+
+  // customerInfo is derived from the contact-flag questions (no separate block)
+  const customerName = answers[contactNameId] || '';
+  const customerEmail = answers[contactEmailId] || '';
 
   const validateForm = () => {
     const newErrors = {};
-    
-    if (!customerInfo.name.trim()) {
-      newErrors.customer_name = 'Please enter your name';
-    }
-    if (!customerInfo.email.trim()) {
-      newErrors.customer_email = 'Please enter your email';
-    } else if (!/\S+@\S+\.\S+/.test(customerInfo.email)) {
-      newErrors.customer_email = 'Please enter a valid email';
-    }
 
     questionnaire?.questions?.forEach(q => {
-      // Skip validation for locked fields — they already have prefilled values
       if (lockedIds.has(q.id)) return;
       if (q.required && q.type !== 'heading' && q.type !== 'paragraph') {
         const answer = answers[q.id];
-        if (!answer || (Array.isArray(answer) && answer.length === 0)) {
+        if (!answer || (Array.isArray(answer) && answer.length === 0) ||
+            (typeof answer === 'string' && answer.trim() === '')) {
           newErrors[q.id] = 'This field is required';
         }
       }
@@ -95,9 +103,14 @@ export default function PublicQuestionnaire() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast.error('Please fill in all required fields');
+      // scroll to first error
+      const firstErrId = Object.keys(errors)[0];
+      if (firstErrId) {
+        document.getElementById(`q-${firstErrId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
@@ -106,25 +119,21 @@ export default function PublicQuestionnaire() {
       await axios.post(`${API_URL}/api/questionnaires/public/${questionnaireId}/submit`, {
         questionnaire_id: questionnaireId,
         answers,
-        customer_name: customerInfo.name,
-        customer_email: customerInfo.email,
+        customer_name: customerName,
+        customer_email: customerEmail,
         webstore_id: questionnaire?.webstore_id || null,
       });
       setSubmitted(true);
-    } catch (error) {
-      console.error('Failed to submit:', error);
-      toast.error(error.response?.data?.detail || 'Failed to submit. Please try again.');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const updateAnswer = (questionId, value) => {
-    setAnswers({ ...answers, [questionId]: value });
-    // Clear error when user starts typing
-    if (errors[questionId]) {
-      setErrors({ ...errors, [questionId]: null });
-    }
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
+    if (errors[questionId]) setErrors(prev => ({ ...prev, [questionId]: null }));
   };
 
   const toggleCheckbox = (questionId, value) => {
@@ -139,242 +148,262 @@ export default function PublicQuestionnaire() {
     const hasError = errors[question.id];
     const isLocked = lockedIds.has(question.id);
 
-    // Locked field wrapper: show value as read-only with a "Set by store provider" badge
     const LockedBadge = () => (
       <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full
-                        bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-medium">
-        <Lock className="h-3 w-3" /> Set by store provider
+                        bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium">
+        <Lock className="h-3 w-3" /> Pre-filled
       </span>
     );
+
+    const labelClass = hasError ? 'text-red-600' : 'text-gray-700 font-medium';
+    const inputClass = `bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500
+      ${hasError ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : ''}
+      ${isLocked ? 'bg-gray-50 cursor-not-allowed opacity-75' : ''}`;
+
+    const ErrorMsg = () => hasError ? (
+      <p className="text-xs text-red-600 mt-1">{hasError}</p>
+    ) : null;
 
     switch (question.type) {
       case 'heading':
         return (
-          <div className="pt-4 pb-2">
-            <h3 className="text-lg font-semibold text-white">{question.label}</h3>
+          <div className="pt-6 pb-2 border-b border-gray-100">
+            <h3 className="text-base font-semibold text-gray-900">{question.label}</h3>
             {question.description && (
-              <p className="text-sm text-slate-400 mt-1">{question.description}</p>
+              <p className="text-sm text-gray-500 mt-1">{question.description}</p>
             )}
           </div>
         );
 
       case 'paragraph':
         return (
-          <p className="text-slate-300">{question.label}</p>
+          <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
+            <p className="text-sm text-blue-800">{question.label}</p>
+          </div>
         );
 
       case 'text':
       case 'email':
       case 'phone':
         return (
-          <div className="space-y-2">
+          <div className="space-y-1.5" id={`q-${question.id}`}>
             <div className="flex items-center flex-wrap gap-1">
-              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+              <Label className={labelClass}>
+                {question.label}
+                {question.required && !isLocked && <span className="text-red-500 ml-0.5">*</span>}
               </Label>
               {isLocked && <LockedBadge />}
             </div>
             {question.description && (
-              <p className="text-xs text-slate-400">{question.description}</p>
+              <p className="text-xs text-gray-500">{question.description}</p>
             )}
             <Input
-              type={question.type}
+              type={question.type === 'phone' ? 'tel' : question.type}
               value={answers[question.id] || ''}
               onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
-              placeholder={question.placeholder}
-              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
+              placeholder={question.placeholder || ''}
+              className={inputClass}
               readOnly={isLocked}
               disabled={isLocked}
             />
-            {hasError && <p className="text-xs text-destructive">{hasError}</p>}
-          </div>
-        );
-
-      case 'textarea':
-        return (
-          <div className="space-y-2">
-            <div className="flex items-center flex-wrap gap-1">
-              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
-              </Label>
-              {isLocked && <LockedBadge />}
-            </div>
-            {question.description && (
-              <p className="text-xs text-slate-400">{question.description}</p>
-            )}
-            <Textarea
-              value={answers[question.id] || ''}
-              onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
-              placeholder={question.placeholder}
-              rows={4}
-              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
-              readOnly={isLocked}
-              disabled={isLocked}
-            />
-            {hasError && <p className="text-xs text-destructive">{hasError}</p>}
+            <ErrorMsg />
           </div>
         );
 
       case 'number':
         return (
-          <div className="space-y-2">
-            <div className="flex items-center flex-wrap gap-1">
-              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
-              </Label>
-              {isLocked && <LockedBadge />}
-            </div>
+          <div className="space-y-1.5" id={`q-${question.id}`}>
+            <Label className={labelClass}>
+              {question.label}
+              {question.required && <span className="text-red-500 ml-0.5">*</span>}
+            </Label>
             {question.description && (
-              <p className="text-xs text-slate-400">{question.description}</p>
+              <p className="text-xs text-gray-500">{question.description}</p>
             )}
             <Input
               type="number"
               value={answers[question.id] || ''}
-              onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
-              placeholder={question.placeholder}
-              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
-              readOnly={isLocked}
-              disabled={isLocked}
+              onChange={(e) => updateAnswer(question.id, e.target.value)}
+              placeholder={question.placeholder || '0'}
+              className={inputClass}
             />
-            {hasError && <p className="text-xs text-destructive">{hasError}</p>}
+            <ErrorMsg />
+          </div>
+        );
+
+      case 'textarea':
+        return (
+          <div className="space-y-1.5" id={`q-${question.id}`}>
+            <Label className={labelClass}>
+              {question.label}
+              {question.required && <span className="text-red-500 ml-0.5">*</span>}
+            </Label>
+            {question.description && (
+              <p className="text-xs text-gray-500">{question.description}</p>
+            )}
+            <Textarea
+              value={answers[question.id] || ''}
+              onChange={(e) => updateAnswer(question.id, e.target.value)}
+              placeholder={question.placeholder || ''}
+              rows={4}
+              className={`${inputClass} resize-none`}
+            />
+            <ErrorMsg />
           </div>
         );
 
       case 'date':
         return (
-          <div className="space-y-2">
-            <div className="flex items-center flex-wrap gap-1">
-              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
-              </Label>
-              {isLocked && <LockedBadge />}
-            </div>
+          <div className="space-y-1.5" id={`q-${question.id}`}>
+            <Label className={labelClass}>
+              {question.label}
+              {question.required && <span className="text-red-500 ml-0.5">*</span>}
+            </Label>
+            {question.description && (
+              <p className="text-xs text-gray-500">{question.description}</p>
+            )}
             <Input
               type="date"
               value={answers[question.id] || ''}
-              onChange={(e) => !isLocked && updateAnswer(question.id, e.target.value)}
-              className={`${hasError ? 'border-destructive' : ''} ${isLocked ? 'opacity-60 cursor-not-allowed bg-slate-800/50' : ''}`}
-              readOnly={isLocked}
-              disabled={isLocked}
+              onChange={(e) => updateAnswer(question.id, e.target.value)}
+              className={inputClass}
             />
-            {hasError && <p className="text-xs text-destructive">{hasError}</p>}
+            <ErrorMsg />
           </div>
         );
 
       case 'select':
         return (
-          <div className="space-y-2">
+          <div className="space-y-1.5" id={`q-${question.id}`}>
             <div className="flex items-center flex-wrap gap-1">
-              <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-                {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+              <Label className={labelClass}>
+                {question.label}
+                {question.required && !isLocked && <span className="text-red-500 ml-0.5">*</span>}
               </Label>
               {isLocked && <LockedBadge />}
             </div>
             {question.description && (
-              <p className="text-xs text-slate-400">{question.description}</p>
+              <p className="text-xs text-gray-500">{question.description}</p>
             )}
-            {isLocked ? (
-              <Input
-                value={answers[question.id] || ''}
-                readOnly
-                disabled
-                className="opacity-60 cursor-not-allowed bg-slate-800/50"
-              />
-            ) : (
-              <Select
-                value={answers[question.id] || ''}
-                onValueChange={(value) => updateAnswer(question.id, value)}
-              >
-                <SelectTrigger className={hasError ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Select an option..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {question.options?.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {hasError && <p className="text-xs text-destructive">{hasError}</p>}
+            <Select
+              value={answers[question.id] || ''}
+              onValueChange={(v) => !isLocked && updateAnswer(question.id, v)}
+              disabled={isLocked}
+            >
+              <SelectTrigger className={inputClass}>
+                <SelectValue placeholder="Select an option..." />
+              </SelectTrigger>
+              <SelectContent>
+                {question.options?.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ErrorMsg />
           </div>
         );
 
       case 'radio':
         return (
-          <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+          <div className="space-y-2" id={`q-${question.id}`}>
+            <Label className={labelClass}>
+              {question.label}
+              {question.required && <span className="text-red-500 ml-0.5">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-slate-400">{question.description}</p>
+              <p className="text-xs text-gray-500">{question.description}</p>
             )}
             <RadioGroup
               value={answers[question.id] || ''}
-              onValueChange={(value) => !isLocked && updateAnswer(question.id, value)}
-              className="space-y-2"
+              onValueChange={(v) => !isLocked && updateAnswer(question.id, v)}
+              disabled={isLocked}
             >
-              {question.options?.map((option) => (
-                <div key={option.value} className={`flex items-center space-x-2 ${isLocked ? 'opacity-60' : ''}`}>
-                  <RadioGroupItem
-                    value={option.value}
-                    id={`${question.id}-${option.value}`}
-                    disabled={isLocked}
-                  />
-                  <Label htmlFor={`${question.id}-${option.value}`} className="font-normal text-slate-300">
-                    {option.label}
+              {question.options?.map((opt) => (
+                <div key={opt.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={opt.value} id={`${question.id}-${opt.value}`} disabled={isLocked} />
+                  <Label htmlFor={`${question.id}-${opt.value}`} className="font-normal text-gray-700">
+                    {opt.label}
                   </Label>
                 </div>
               ))}
             </RadioGroup>
-            {hasError && <p className="text-xs text-destructive">{hasError}</p>}
+            <ErrorMsg />
           </div>
         );
 
       case 'checkbox':
       case 'multi_select':
         return (
-          <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && !isLocked && <span className="text-destructive">*</span>}
+          <div className="space-y-2" id={`q-${question.id}`}>
+            <Label className={labelClass}>
+              {question.label}
+              {question.required && !isLocked && <span className="text-red-500 ml-0.5">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-slate-400">{question.description}</p>
+              <p className="text-xs text-gray-500">{question.description}</p>
             )}
-            <div className="space-y-2">
-              {question.options?.map((option) => (
-                <div key={option.value} className={`flex items-center space-x-2 ${isLocked ? 'opacity-60' : ''}`}>
+            <div className="space-y-2 mt-1">
+              {question.options?.map((opt) => (
+                <div key={opt.value} className={`flex items-center space-x-2.5 ${isLocked ? 'opacity-60' : ''}`}>
                   <Checkbox
-                    id={`${question.id}-${option.value}`}
-                    checked={(answers[question.id] || []).includes(option.value)}
-                    onCheckedChange={() => !isLocked && toggleCheckbox(question.id, option.value)}
+                    id={`${question.id}-${opt.value}`}
+                    checked={(answers[question.id] || []).includes(opt.value)}
+                    onCheckedChange={() => !isLocked && toggleCheckbox(question.id, opt.value)}
                     disabled={isLocked}
+                    className="border-gray-300"
                   />
-                  <Label htmlFor={`${question.id}-${option.value}`} className="font-normal text-slate-300">
-                    {option.label}
+                  <Label htmlFor={`${question.id}-${opt.value}`} className="font-normal text-gray-700 cursor-pointer">
+                    {opt.label}
                   </Label>
                 </div>
               ))}
             </div>
-            {hasError && <p className="text-xs text-destructive">{hasError}</p>}
+            <ErrorMsg />
+          </div>
+        );
+
+      case 'signature':
+        return (
+          <div className="space-y-1.5" id={`q-${question.id}`}>
+            <div className="flex items-center gap-2">
+              <PenLine className="w-4 h-4 text-gray-500" />
+              <Label className={labelClass}>
+                {question.label || 'Electronic Signature'}
+                {question.required && <span className="text-red-500 ml-0.5">*</span>}
+              </Label>
+            </div>
+            {question.description && (
+              <p className="text-xs text-gray-500">{question.description}</p>
+            )}
+            <Input
+              type="text"
+              value={answers[question.id] || ''}
+              onChange={(e) => updateAnswer(question.id, e.target.value)}
+              placeholder="Type your full name to sign"
+              className={`${inputClass} italic`}
+              style={{ fontFamily: 'Georgia, serif', fontSize: '1.05rem' }}
+            />
+            <p className="text-xs text-gray-400">By typing your name you are providing an electronic signature.</p>
+            <ErrorMsg />
           </div>
         );
 
       case 'file_upload':
         return (
-          <div className="space-y-2">
-            <Label className={hasError ? 'text-destructive' : 'text-slate-200'}>
-              {question.label} {question.required && <span className="text-destructive">*</span>}
+          <div className="space-y-1.5" id={`q-${question.id}`}>
+            <Label className={labelClass}>
+              {question.label}
+              {question.required && <span className="text-red-500 ml-0.5">*</span>}
             </Label>
             {question.description && (
-              <p className="text-xs text-slate-400">{question.description}</p>
+              <p className="text-xs text-gray-500">{question.description}</p>
             )}
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-              <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-sm text-slate-400">
-                File upload will be available after submission
-              </p>
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center bg-gray-50">
+              <Upload className="h-7 w-7 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">File upload will be available after submission</p>
+              <p className="text-xs text-gray-400 mt-1">We'll follow up with instructions to send your files.</p>
             </div>
           </div>
         );
@@ -384,23 +413,25 @@ export default function PublicQuestionnaire() {
     }
   };
 
+  // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-[#2F8BFB]" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
       </div>
     );
   }
 
+  // ─── Not found ─────────────────────────────────────────────────────────────
   if (!questionnaire) {
     return (
-      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-[#111826] border-[#1E293B]">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full shadow-sm">
           <CardContent className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Questionnaire Not Found</h2>
-            <p className="text-slate-400">
-              This questionnaire may have been removed or is not currently active.
+            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Form Not Found</h2>
+            <p className="text-gray-500 text-sm">
+              This form may have been removed or is no longer active. Please contact the store owner.
             </p>
           </CardContent>
         </Card>
@@ -408,15 +439,18 @@ export default function PublicQuestionnaire() {
     );
   }
 
+  // ─── Success ───────────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-[#111826] border-[#1E293B]">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full shadow-sm">
           <CardContent className="p-8 text-center">
-            <CheckCircle className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Thank You!</h2>
-            <p className="text-slate-300">
-              {questionnaire.thank_you_message}
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="h-9 w-9 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h2>
+            <p className="text-gray-600">
+              {questionnaire.thank_you_message || "Your information has been received. We'll be in touch soon."}
             </p>
           </CardContent>
         </Card>
@@ -424,82 +458,55 @@ export default function PublicQuestionnaire() {
     );
   }
 
+  // ─── Form ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0B0F17] py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-2xl mx-auto">
-        <Card className="bg-[#111826] text-white border-[#1E293B]">
-          <CardHeader className="border-b border-[#1E293B]">
+        {/* Header card */}
+        <Card className="shadow-sm mb-2 border-gray-200">
+          <CardHeader className="pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#2F8BFB]/20 rounded-lg">
-                <FileText className="h-6 w-6 text-[#2F8BFB]" />
+              <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
+                <FileText className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <CardTitle className="text-xl text-white">{questionnaire.name}</CardTitle>
+                <CardTitle className="text-xl text-gray-900">{questionnaire.name}</CardTitle>
                 {questionnaire.description && (
-                  <CardDescription className="text-slate-400">{questionnaire.description}</CardDescription>
+                  <CardDescription className="text-gray-500 mt-0.5">{questionnaire.description}</CardDescription>
                 )}
               </div>
             </div>
           </CardHeader>
-          
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Customer Info */}
-              <div className="bg-[#0B0F17] rounded-lg p-4 space-y-4">
-                <h3 className="font-medium text-white">Your Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className={errors.customer_name ? 'text-destructive' : 'text-slate-200'}>
-                      Name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      value={customerInfo.name}
-                      onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-                      placeholder="Your name"
-                      className={errors.customer_name ? 'border-destructive' : ''}
-                    />
-                    {errors.customer_name && (
-                      <p className="text-xs text-destructive">{errors.customer_name}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className={errors.customer_email ? 'text-destructive' : 'text-slate-200'}>
-                      Email <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="email"
-                      value={customerInfo.email}
-                      onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                      placeholder="your@email.com"
-                      className={errors.customer_email ? 'border-destructive' : ''}
-                    />
-                    {errors.customer_email && (
-                      <p className="text-xs text-destructive">{errors.customer_email}</p>
-                    )}
-                  </div>
+        </Card>
+
+        {/* Questions */}
+        <Card className="shadow-sm border-gray-200">
+          <CardContent className="p-6 sm:p-8">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
+              {questionnaire.questions?.map((question) => (
+                <div key={question.id}>
+                  {renderQuestion(question)}
                 </div>
-              </div>
+              ))}
 
-              {/* Questions */}
-              <div className="space-y-6">
-                {questionnaire.questions?.map((question) => (
-                  <div key={question.id}>
-                    {renderQuestion(question)}
-                  </div>
-                ))}
-              </div>
+              {/* Error summary */}
+              {Object.keys(errors).length > 0 && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">
+                    Please fill in all required fields highlighted above before submitting.
+                  </p>
+                </div>
+              )}
 
-              {/* Submit */}
-              <Button 
-                type="submit" 
-                className="w-full bg-[#2F8BFB] hover:bg-[#2F8BFB]/90"
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11 text-base font-medium mt-2"
                 disabled={submitting}
+                data-testid="questionnaire-submit-btn"
               >
                 {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
                 ) : (
                   'Submit'
                 )}
@@ -507,6 +514,10 @@ export default function PublicQuestionnaire() {
             </form>
           </CardContent>
         </Card>
+
+        <p className="text-center text-xs text-gray-400 mt-4">
+          Powered by SignGuy AI
+        </p>
       </div>
     </div>
   );

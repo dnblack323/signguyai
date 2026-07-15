@@ -169,7 +169,9 @@ async def create_from_template(
             validation=q.get("validation"),
             order=q.get("order", i),
             accept_file_types=q.get("accept_file_types"),
-            max_file_size_mb=q.get("max_file_size_mb", 10)
+            max_file_size_mb=q.get("max_file_size_mb", 10),
+            is_contact_name=q.get("is_contact_name"),
+            is_contact_email=q.get("is_contact_email"),
         )
         questions.append(question)
     
