@@ -5,11 +5,12 @@ Allows sign shops to create, manage, and collect responses from
 custom intake forms for different job types.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File, Form
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 import os
+import logging
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from models.questionnaires import (
@@ -20,6 +21,8 @@ from models.questionnaires import (
 )
 from models import UserInDB
 from core.auth_deps import get_current_active_user
+
+logger = logging.getLogger(__name__)
 
 # Database connection
 mongo_client = AsyncIOMotorClient(os.environ.get('MONGO_URL'))
@@ -167,6 +170,7 @@ async def create_from_template(
             required=q.get("required", False),
             options=[{"value": o["value"], "label": o["label"]} for o in q.get("options", [])],
             validation=q.get("validation"),
+            conditional=q.get("conditional"),
             order=q.get("order", i),
             accept_file_types=q.get("accept_file_types"),
             max_file_size_mb=q.get("max_file_size_mb", 10),
@@ -452,6 +456,46 @@ async def submit_questionnaire_response(
         {"$inc": {"response_count": 1}}
     )
 
+    # ── Auto-response email to the respondent ─────────────────────────────
+    _customer_email = request.customer_email or questionnaire.get("recipient_email")
+    _customer_name  = (request.customer_name or "").strip() or "there"
+    _shop_name      = questionnaire.get("tenant_name") or "SignGuy AI"
+    _q_name         = questionnaire.get("name", "Store Setup Form")
+
+    if _customer_email:
+        try:
+            from services.email_service import email_service
+            _html = f"""
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
+  <h2 style="color:#1d4ed8">Hi {_customer_name}, we received your form!</h2>
+  <p>Thank you for completing the <strong>{_q_name}</strong>. We have everything we need to get started on your store.</p>
+
+  <h3 style="color:#1d4ed8">What happens next</h3>
+  <ol style="line-height:1.8">
+    <li><strong>We review your submission</strong> — We'll go through your answers, artwork, and product selections.</li>
+    <li><strong>Pre-Launch Packet</strong> — We'll put together a Pre-Launch Packet with product mockups, pricing, store description, and all final details for you to review and approve. Nothing goes live without your sign-off.</li>
+    <li><strong>Stripe payment setup</strong> — You will receive a separate email from Stripe to set up your payment account so funds can be deposited directly to you. <strong>Please check your spam folder</strong> — Stripe emails sometimes go there. You do not need to do anything about this right now; just watch for it.</li>
+    <li><strong>Your approval</strong> — Once you've reviewed the Pre-Launch Packet and your Stripe account is connected, we'll send everything for your final approval and the store will go live.</li>
+  </ol>
+
+  <div style="background:#eff6ff;border-left:4px solid #1d4ed8;padding:12px 16px;margin:20px 0;border-radius:4px">
+    <strong>Important:</strong> Watch for an email from <strong>Stripe</strong> to complete your payment account setup.
+    It may land in your spam folder — add noreply@stripe.com to your contacts just in case.
+  </div>
+
+  <p>If you have questions or need to update any information, just reply to this email or contact us directly.</p>
+  <p style="color:#6b7280;font-size:14px">— The {_shop_name} Team</p>
+</div>
+"""
+            await email_service.send_email(
+                to_email=_customer_email,
+                subject=f"We received your store setup form — here's what's next",
+                html_content=_html,
+                tenant_id=questionnaire.get("tenant_id"),
+            )
+        except Exception as _e:
+            logger.warning(f"Auto-response email failed (non-fatal): {_e}")
+
     # Flag the linked webstore so staff know a review is pending.
     # This is additive and non-blocking — failures are swallowed.
     if questionnaire.get("webstore_id"):
@@ -480,6 +524,80 @@ async def submit_questionnaire_response(
         "message": questionnaire.get("thank_you_message", "Thank you for your submission!"),
         "response_id": response.id
     }
+
+
+@router.post("/public/{questionnaire_id}/upload")
+async def upload_questionnaire_file(
+    questionnaire_id: str,
+    file: UploadFile = File(...),
+    question_id: str = Form(default=""),
+):
+    """Accept a file upload from a public questionnaire respondent.
+    Returns a URL the frontend stores as the answer for the file_upload question.
+    """
+    questionnaire = await db.questionnaires.find_one(
+        {"id": questionnaire_id, "status": QuestionnaireStatus.ACTIVE.value},
+        {"_id": 0, "id": 1, "tenant_id": 1},
+    )
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found or not active")
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    ALLOWED_EXTENSIONS = {
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic",
+        ".pdf", ".svg", ".ai", ".eps", ".zip",
+        ".doc", ".docx", ".xls", ".xlsx",
+    }
+    import os as _os
+    ext = _os.path.splitext(file.filename or "")[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed")
+
+    MAX_BYTES = 25 * 1024 * 1024  # 25 MB
+    contents = await file.read()
+    if len(contents) > MAX_BYTES:
+        raise HTTPException(status_code=400, detail="File exceeds 25 MB limit")
+
+    # Store in uploads directory under questionnaire namespace
+    upload_dir = f"/tmp/questionnaire_uploads/{questionnaire_id}"
+    _os.makedirs(upload_dir, exist_ok=True)
+    safe_name = f"{uuid.uuid4()}{ext}"
+    file_path = f"{upload_dir}/{safe_name}"
+
+    with open(file_path, "wb") as f_out:
+        f_out.write(contents)
+
+    # Persist metadata to DB so staff can see uploads
+    await db.questionnaire_uploads.insert_one({
+        "id": str(uuid.uuid4()),
+        "questionnaire_id": questionnaire_id,
+        "tenant_id": questionnaire["tenant_id"],
+        "question_id": question_id,
+        "original_filename": file.filename,
+        "stored_filename": safe_name,
+        "file_path": file_path,
+        "content_type": file.content_type or "application/octet-stream",
+        "size_bytes": len(contents),
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # Return a backend-served URL
+    api_base = os.environ.get("REACT_APP_BACKEND_URL", "")
+    download_url = f"{api_base}/api/questionnaires/uploads/{questionnaire_id}/{safe_name}"
+    return {"url": download_url, "filename": file.filename, "size_bytes": len(contents)}
+
+
+@router.get("/uploads/{questionnaire_id}/{filename}")
+async def serve_questionnaire_upload(questionnaire_id: str, filename: str):
+    """Serve an uploaded questionnaire file."""
+    from fastapi.responses import FileResponse
+    import os as _os
+    file_path = f"/tmp/questionnaire_uploads/{questionnaire_id}/{filename}"
+    if not _os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
 
 
 @router.get("/{questionnaire_id}/responses")
