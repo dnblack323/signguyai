@@ -782,6 +782,11 @@ export const AppProvider = ({ children }) => {
     return res.data;
   };
 
+  const getQuestionnaireUploads = async (questionnaireId) => {
+    const res = await api.get(`/questionnaires/${questionnaireId}/uploads`);
+    return res.data;
+  };
+
   const value = {
     // Raw API instance for custom calls
     api,
@@ -845,7 +850,9 @@ export const AppProvider = ({ children }) => {
     // Tenant / Company Settings
     tenant, fetchTenant, getTenant, updateTenant,
     // Stripe Connect
-    getStripeConnectStatus, createStripeConnectAccount
+    getStripeConnectStatus, createStripeConnectAccount,
+    // Questionnaire Uploads
+    getQuestionnaireUploads,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -1,0 +1,26 @@
+{
+  "summary": "Backend-only testing of the new GET /api/questionnaires/{id}/uploads endpoint and regression check for GET /{id}/responses. All 5 tests passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_questionnaire_uploads.py",
+    "/app/test_reports/pytest/iteration185_uploads_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "questionnaires.py line 622: `import os as _os` but then uses `os.environ.get(...)` (without underscore) — this works only because `os` is also imported at the top of the module, but it is a minor inconsistency that could bite if the top-level import is ever renamed."
+  ],
+  "updated_files": ["/app/backend/tests/test_questionnaire_uploads.py"],
+  "success_rate": {"backend": "100%", "frontend": "N/A (not tested)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "New uploads endpoint at GET /api/questionnaires/{id}/uploads is fully working: 200+correct schema for valid questionnaire, 404 for unknown ID, 401 without token, and GET /{id}/responses still returns 200. Test file: /app/backend/tests/test_questionnaire_uploads.py. Questionnaire ID used: 46d4751b-28cb-45a9-b581-29219485b893 (no uploads exist yet so uploads=[] total=0)."
+}

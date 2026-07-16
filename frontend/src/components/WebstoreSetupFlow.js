@@ -18,7 +18,8 @@ import {
   Mail, Eye, Package, Palette, Truck, CreditCard,
   Zap, ExternalLink, Loader2, Copy, Check,
   ChevronRight, ClipboardCheck, ShieldCheck, ArrowRight,
-  Store,
+  Store, Paperclip, Download, FileText, FileImage, File,
+  ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { cn } from '../lib/utils';
@@ -238,6 +239,119 @@ function StaffReviewPanel({ webstoreId, questionnaireStatus, onApplyAnswers, app
     </div>
   );
 }
+
+// ── Customer Uploads Panel ────────────────────────────────────────────────────
+function CustomerUploadsPanel({ questionnaireId }) {
+  const { getQuestionnaireUploads } = useApp();
+  const [uploads, setUploads]   = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
+  const [open, setOpen]         = useState(false);
+
+  const load = async () => {
+    if (!questionnaireId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getQuestionnaireUploads(questionnaireId);
+      setUploads(data.uploads || []);
+      setOpen(true);
+    } catch {
+      setError('Could not load uploads.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggle = () => {
+    if (!open && uploads === null) { load(); return; }
+    setOpen((v) => !v);
+  };
+
+  const fmtSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const FileIcon = (contentType = '') => {
+    if (contentType.startsWith('image/')) return <FileImage className="h-4 w-4 text-blue-500 shrink-0" />;
+    if (contentType === 'application/pdf') return <FileText className="h-4 w-4 text-red-500 shrink-0" />;
+    return <File className="h-4 w-4 text-gray-400 shrink-0" />;
+  };
+
+  const count = uploads?.length ?? null;
+
+  return (
+    <div className="border rounded-md overflow-hidden text-xs" data-testid="customer-uploads-panel">
+      <button
+        className="w-full flex items-center justify-between px-3 py-2 bg-muted/40 hover:bg-muted/60 transition-colors"
+        onClick={toggle}
+        data-testid="customer-uploads-toggle"
+      >
+        <span className="flex items-center gap-1.5 font-medium text-foreground">
+          <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+          Customer Uploaded Files
+          {count !== null && (
+            <span className="ml-1 bg-primary/10 text-primary rounded-full px-1.5 py-0 font-semibold">
+              {count}
+            </span>
+          )}
+        </span>
+        {loading
+          ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          : open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        }
+      </button>
+
+      {open && (
+        <div className="px-3 py-2 space-y-1.5 bg-background">
+          {error && (
+            <p className="text-destructive text-xs">{error} <button className="underline ml-1" onClick={load}>Retry</button></p>
+          )}
+          {!error && uploads?.length === 0 && (
+            <p className="text-muted-foreground italic">No files uploaded by the customer.</p>
+          )}
+          {!error && uploads?.map((u) => (
+            <div key={u.id} className="flex items-center gap-2 py-1 border-b last:border-0" data-testid={`upload-row-${u.id}`}>
+              {FileIcon(u.content_type)}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate text-foreground">{u.original_filename}</p>
+                <p className="text-muted-foreground">
+                  {fmtSize(u.size_bytes)}
+                  {u.uploaded_at && <> · {new Date(u.uploaded_at).toLocaleDateString()}</>}
+                  {!u.file_exists && <span className="ml-1 text-amber-600 font-medium">(expired — re-upload needed)</span>}
+                </p>
+              </div>
+              <a
+                href={u.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  'flex items-center gap-1 px-2 py-1 rounded border text-xs font-medium transition-colors shrink-0',
+                  u.file_exists
+                    ? 'border-border hover:bg-muted text-foreground'
+                    : 'border-amber-200 text-amber-600 cursor-not-allowed pointer-events-none opacity-60'
+                )}
+                data-testid={`upload-download-${u.id}`}
+                title={u.file_exists ? `Download ${u.original_filename}` : 'File no longer on server'}
+              >
+                <Download className="h-3 w-3" /> Download
+              </a>
+            </div>
+          ))}
+          {!error && uploads?.length > 0 && (
+            <p className="text-[10px] text-muted-foreground pt-1">
+              Files are stored temporarily on the server. Download promptly or ask the customer to re-upload if needed.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ── Launch gate ───────────────────────────────────────────────────────────────
 function launchReady({ store, storeProducts }) {
@@ -559,6 +673,13 @@ export default function WebstoreSetupFlow({
                 onApplyAnswers={onApplyAnswers}
                 applyingAnswers={applyingAnswers}
               />
+            )}
+
+            {/* Customer Uploads — shown on staff review step when questionnaire is submitted or applied */}
+            {step.id === 'staff_review' && !loadingQuestionnaire &&
+              (phase === 'awaiting_review' || phase === 'applied') &&
+              questionnaireStatus?.questionnaire?.id && (
+              <CustomerUploadsPanel questionnaireId={questionnaireStatus.questionnaire.id} />
             )}
 
             {/* ── Step 5: Branding ── */}

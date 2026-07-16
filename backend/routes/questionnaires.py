@@ -600,6 +600,45 @@ async def serve_questionnaire_upload(questionnaire_id: str, filename: str):
     return FileResponse(file_path)
 
 
+@router.get("/{questionnaire_id}/uploads")
+async def list_questionnaire_uploads(
+    questionnaire_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """List all files uploaded by the respondent for a questionnaire (staff view)."""
+    questionnaire = await db.questionnaires.find_one(
+        {"id": questionnaire_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1},
+    )
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
+
+    uploads = await db.questionnaire_uploads.find(
+        {"questionnaire_id": questionnaire_id},
+        {"_id": 0},
+    ).sort("uploaded_at", -1).to_list(200)
+
+    import os as _os
+    api_base = os.environ.get("REACT_APP_BACKEND_URL", "")
+    results = []
+    for u in uploads:
+        stored = u.get("stored_filename", "")
+        file_path = f"/tmp/questionnaire_uploads/{questionnaire_id}/{stored}"
+        results.append({
+            "id": u.get("id"),
+            "original_filename": u.get("original_filename"),
+            "stored_filename": stored,
+            "content_type": u.get("content_type", "application/octet-stream"),
+            "size_bytes": u.get("size_bytes", 0),
+            "question_id": u.get("question_id"),
+            "uploaded_at": u.get("uploaded_at"),
+            "download_url": f"{api_base}/api/questionnaires/uploads/{questionnaire_id}/{stored}",
+            "file_exists": _os.path.exists(file_path),
+        })
+
+    return {"uploads": results, "total": len(results)}
+
+
 @router.get("/{questionnaire_id}/responses")
 async def get_questionnaire_responses(
     questionnaire_id: str,
