@@ -379,12 +379,13 @@ export default function WebstoreSetupFlow({
   onStampProgress,         // async (flagKey) => void — calls PATCH admin-progress
 }) {
   // Questionnaire inline send
-  const [sendingQ,      setSendingQ]      = useState(false);
-  const [qEmailSent,    setQEmailSent]    = useState(false);
-  const [qEmailFail,    setQEmailFail]    = useState(false);
-  const [qFallbackLink, setQFallbackLink] = useState(null);
-  const [qEmail,        setQEmail]        = useState(store?.owner_email || '');
-  const [copiedLink,    setCopiedLink]    = useState(false);
+  const [sendingQ,       setSendingQ]       = useState(false);
+  const [qEmailSent,     setQEmailSent]     = useState(false);
+  const [qEmailFail,     setQEmailFail]     = useState(false);
+  const [qFallbackLink,  setQFallbackLink]  = useState(null);
+  const [qEmail,         setQEmail]         = useState(store?.owner_email || '');
+  const [copiedLink,     setCopiedLink]     = useState(false);
+  const [showResendInput, setShowResendInput] = useState(false);
 
   // Activate & stamp state
   const [activating,   setActivating]   = useState(false);
@@ -405,6 +406,7 @@ export default function WebstoreSetupFlow({
       const result = await onSendQuestionnaire(store.id, qEmail.trim());
       if (result?.email_sent || result?.success) {
         setQEmailSent(true);
+        setShowResendInput(false);
       } else {
         setQEmailFail(true);
         setQFallbackLink(result?.link || result?.invite_url || null);
@@ -589,7 +591,7 @@ export default function WebstoreSetupFlow({
             {/* ── Step 2: Send Questionnaire ── */}
             {step.id === 'send_questionnaire' && !loadingQuestionnaire && (
               <>
-                {(phase === 'not_sent' || phase === 'draft') && (
+                {(phase === 'not_sent' || phase === 'draft' || showResendInput) && (
                   qEmailSent ? (
                     <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 rounded p-2">
                       <Check className="h-3.5 w-3.5 shrink-0" />
@@ -632,19 +634,30 @@ export default function WebstoreSetupFlow({
                         data-testid="setup-send-q-btn"
                       >
                         {sendingQ ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Mail className="h-3.5 w-3.5 mr-1" />}
-                        Send
+                        {showResendInput ? 'Resend' : 'Send'}
                       </Button>
+                      {showResendInput && (
+                        <button
+                          className="text-xs text-muted-foreground underline shrink-0"
+                          onClick={() => setShowResendInput(false)}
+                          data-testid="setup-cancel-resend-btn"
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </div>
                   )
                 )}
-                {(phase === 'sent' || phase === 'awaiting_review' || phase === 'applied') && (
+                {(phase === 'sent' || phase === 'awaiting_review' || phase === 'applied') && !showResendInput && (
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => {
                         setQEmailSent(false);
+                        setQEmailFail(false);
                         setQEmail(store?.owner_email || '');
+                        setShowResendInput(true);
                       }}
                       data-testid="setup-resend-q-btn"
                     >

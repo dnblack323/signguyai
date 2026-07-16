@@ -425,6 +425,15 @@ export default function Webstores() {
       mutated = true;
     }
 
+    // After Stripe redirects back, re-check status so the page updates
+    const stripeReturn = params.get('stripe_return') || params.get('stripe_refresh');
+    if (stripeReturn) {
+      checkStripeStatus();
+      params.delete('stripe_return');
+      params.delete('stripe_refresh');
+      mutated = true;
+    }
+
     if (mutated) {
       const nextSearch = params.toString();
       navigate(
@@ -433,7 +442,7 @@ export default function Webstores() {
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
+  }, [location.search, checkStripeStatus]);
 
   const resetForm = () => {
     setFormData({
@@ -509,6 +518,13 @@ export default function Webstores() {
       email: email || undefined,
       public_url: origin,
     });
+    // Refresh questionnaire status if this store is the one currently open in the detail dialog
+    if (storeId === selectedStore?.id) {
+      try {
+        const qs = await getWebstoreQuestionnaire(storeId);
+        setQuestionnaireStatus(qs);
+      } catch {}
+    }
     return result; // { email_sent, link, email }
   };
 
