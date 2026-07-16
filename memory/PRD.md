@@ -22,6 +22,12 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-07-16 — **Questionnaire Resend + Stripe Return Handling — FIXED & TESTED**
+  - **Questionnaire Resend Bug**: The "Resend" button in Step 2 of `WebstoreSetupFlow.js` was resetting state but the send form was phase-gated to `not_sent|draft` only — so clicking Resend showed nothing. Fixed by adding `showResendInput` state: Resend now sets it to `true`, bypassing the phase gate and showing the email input. After successful resend, resets to `false`. Also added Cancel link so user can close the form.
+  - **Parent Questionnaire Status Refresh**: `handleSendQuestionnaireAfterCreate` in `Webstores.js` now refreshes `questionnaireStatus` via `getWebstoreQuestionnaire` after a successful send (when the store is currently open in the detail dialog). Phase now updates correctly in the UI after send.
+  - **Stripe Return Handling**: Added `stripe_return` / `stripe_refresh` query param handling in `Webstores.js` URL effect — after Stripe redirects back, `checkStripeStatus()` is called automatically so the page updates without a manual refresh.
+  - Backend 4/4 tests pass. Note: Stripe `charges_enabled: false` is expected (live mode requires real business KYC on Stripe's side, not a code bug).
+
 - 2026-07-16 — **Customer Upload Viewer — COMPLETE & TESTED**
   - **Backend**: New `GET /api/questionnaires/{id}/uploads` endpoint (auth required, tenant-scoped). Returns list of all files uploaded by the customer during questionnaire completion, including `original_filename`, `content_type`, `size_bytes`, `uploaded_at`, `download_url`, and `file_exists` flag. Tested 5/5 backend assertions (200 valid, 404 unknown, 401 no-auth, regression on /responses).
   - **Frontend**: New `CustomerUploadsPanel` component in `WebstoreSetupFlow.js` — collapsible drawer showing uploaded files with file-type icons, size, upload date, and download links. Shown in Step 4 (Staff Review) whenever questionnaire phase is `awaiting_review` or `applied`. Files in /tmp noted as temporary with warning if expired.
