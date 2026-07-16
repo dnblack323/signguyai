@@ -22,6 +22,11 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-07-16 — **Customer Upload Viewer — COMPLETE & TESTED**
+  - **Backend**: New `GET /api/questionnaires/{id}/uploads` endpoint (auth required, tenant-scoped). Returns list of all files uploaded by the customer during questionnaire completion, including `original_filename`, `content_type`, `size_bytes`, `uploaded_at`, `download_url`, and `file_exists` flag. Tested 5/5 backend assertions (200 valid, 404 unknown, 401 no-auth, regression on /responses).
+  - **Frontend**: New `CustomerUploadsPanel` component in `WebstoreSetupFlow.js` — collapsible drawer showing uploaded files with file-type icons, size, upload date, and download links. Shown in Step 4 (Staff Review) whenever questionnaire phase is `awaiting_review` or `applied`. Files in /tmp noted as temporary with warning if expired.
+  - **AppContext**: Added `getQuestionnaireUploads(questionnaireId)` function and export.
+
 - 2026-07-16 — **Stripe Connect Onboarding Fix (P0) + Contact Form Email Notification (P2) — COMPLETE**
   - **Stripe Connect Fix**: `createStripeConnectAccount()` in `AppContext.js` was calling `POST /api/stripe-connect/create-account` with an empty body, causing a 422 validation error (backend requires `return_url` + `refresh_url`). Fixed by updating `AppContext.js` to pass `return_url`/`refresh_url` from `window.location.origin`, and `Webstores.js` `handleConnectStripe()` to supply `/webstores?stripe_return=true` and `/webstores?stripe_refresh=true` URLs.
   - **Contact Form Email Fix**: `POST /api/public/contact` only saved to DB. Updated `routes/public_website.py` to send an HTML notification email to the platform admin (`SENDGRID_FROM_EMAIL`) after every submit. Failure is non-blocking.
