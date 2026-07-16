@@ -22,6 +22,11 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-07-16 — **Questionnaire Submit Alert (Dashboard Notification) — COMPLETE & TESTED**
+  - **Backend**: New `GET /api/dashboard/questionnaire-reviews` (auth, tenant-scoped) returns stores with unreviewed questionnaire submissions (submitted but `applied_to_webstore != true`). Returns `webstore_id`, `store_name`, `owner_name`, `submitted_at`, `age_hours`, `questionnaire_id`. Sorted oldest-first. 10/10 tests pass.
+  - **Frontend Dashboard**: New "Store Setup Reviews" section inside the `ActionRequiredCard`. Shows animated "N pending" teal badge, lists each store name + owner + age ("submitted 2h ago"), teal-highlighted rows with "Review" badge, "All stores →" link. Count rolls into "Action Required" header badge.
+  - **Deep Linking**: `/webstores` now handles `location.state.openStoreId` + `openTab` — clicking a store row from the dashboard auto-opens that store's Setup tab. State is cleared after navigation to prevent re-opening on back.
+
 - 2026-07-16 — **Questionnaire Resend + Stripe Return Handling — FIXED & TESTED**
   - **Questionnaire Resend Bug**: The "Resend" button in Step 2 of `WebstoreSetupFlow.js` was resetting state but the send form was phase-gated to `not_sent|draft` only — so clicking Resend showed nothing. Fixed by adding `showResendInput` state: Resend now sets it to `true`, bypassing the phase gate and showing the email input. After successful resend, resets to `false`. Also added Cancel link so user can close the form.
   - **Parent Questionnaire Status Refresh**: `handleSendQuestionnaireAfterCreate` in `Webstores.js` now refreshes `questionnaireStatus` via `getWebstoreQuestionnaire` after a successful send (when the store is currently open in the detail dialog). Phase now updates correctly in the UI after send.
