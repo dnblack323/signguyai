@@ -375,13 +375,22 @@ export default function Webstores() {
   const handleConnectStripe = async () => {
     setConnectingStripe(true);
     try {
-      const result = await apiRef.current.createStripeConnectAccount();
+      const origin = window.location.origin;
+      const result = await apiRef.current.createStripeConnectAccount({
+        return_url: `${origin}/webstores?stripe_return=true`,
+        refresh_url: `${origin}/webstores?stripe_refresh=true`,
+      });
       if (result.url) {
         window.location.href = result.url;
       }
     } catch (err) {
       console.error('Error connecting Stripe:', err);
-      toast.error('Failed to start Stripe connection');
+      const detail = err.response?.data?.detail || '';
+      if (detail.includes('signed up for Connect')) {
+        toast.error('Stripe Connect is not enabled on this platform yet. Contact support.', { duration: 8000 });
+      } else {
+        toast.error(detail || 'Failed to start Stripe connection. Please try again.');
+      }
     }
     setConnectingStripe(false);
   };

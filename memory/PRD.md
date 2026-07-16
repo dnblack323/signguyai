@@ -22,6 +22,11 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-07-16 — **Stripe Connect Onboarding Fix (P0) + Contact Form Email Notification (P2) — COMPLETE**
+  - **Stripe Connect Fix**: `createStripeConnectAccount()` in `AppContext.js` was calling `POST /api/stripe-connect/create-account` with an empty body, causing a 422 validation error (backend requires `return_url` + `refresh_url`). Fixed by updating `AppContext.js` to pass `return_url`/`refresh_url` from `window.location.origin`, and `Webstores.js` `handleConnectStripe()` to supply `/webstores?stripe_return=true` and `/webstores?stripe_refresh=true` URLs.
+  - **Contact Form Email Fix**: `POST /api/public/contact` only saved to DB. Updated `routes/public_website.py` to send an HTML notification email to the platform admin (`SENDGRID_FROM_EMAIL`) after every submit. Failure is non-blocking.
+  - Verified via curl: Stripe Connect → 200 OK with valid `connect.stripe.com` onboarding URL. Contact form → 200 OK.
+
 - 2026-06-06 — **Admin Analytics Page — COMPLETE & LIVE**
   - New route: `/platform-admin/analytics` (platform_admin only, uses existing `require_platform_admin` guard)
   - New backend: `/app/backend/routes/admin_analytics.py` — 8 endpoints (overview, activity-chart, users, routes, sessions, referrers, errors, suspicious)
