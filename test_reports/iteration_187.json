@@ -1,0 +1,27 @@
+{
+  "summary": "Backend-only testing for GET /api/dashboard/questionnaire-reviews endpoint. All 10 tests passed: auth guard (401 without token, 401 with invalid token), 200 with valid auth, response shape {stores, total}, required fields per store (webstore_id, store_name, owner_name, submitted_at, age_hours, questionnaire_id), non-empty webstore_id, non-empty submitted_at, numeric age_hours, and expected pending stores present.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration187_questionnaire_reviews.py",
+    "/app/test_reports/pytest/iteration187_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration187_questionnaire_reviews.py"
+  ],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "N/A (not tested)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "GET /api/dashboard/questionnaire-reviews endpoint fully tested and working. Returns {stores:[...], total:N} with fields: webstore_id, questionnaire_id, response_id, store_name, owner_name, store_type, submitted_at, age_hours. Auth guard working (401 without/with invalid token). 3 pending stores present for tenant thesigntistslab@gmail.com matching P4-QSubmit and P4-A3-business patterns. applied_to_webstore exclusion filter working (only unreviewed returned).",
+  "rca_of_the_issue": null
+}

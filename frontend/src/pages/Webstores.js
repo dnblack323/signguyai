@@ -444,6 +444,19 @@ export default function Webstores() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search, checkStripeStatus]);
 
+  // Deep-link from dashboard: open a specific store + tab via router state
+  useEffect(() => {
+    const { openStoreId, openTab } = location.state || {};
+    if (!openStoreId || !webstores.length) return;
+    const store = webstores.find(s => s.id === openStoreId);
+    if (!store) return;
+    handleViewStore(store);
+    if (openTab) setDetailTab(openTab);
+    // Clear the state so navigating back doesn't re-open it
+    navigate(location.pathname, { replace: true, state: {} });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, webstores]);
+
   const resetForm = () => {
     setFormData({
       name: '',

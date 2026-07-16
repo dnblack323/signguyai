@@ -1044,3 +1044,87 @@ async def get_financial_attention(current_user: UserInDB = Depends(get_current_a
             "top_records": _top3(recent_paid),
         },
     }
+
+
+@router.get("/questionnaire-reviews")
+async def get_questionnaire_reviews(
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """
+    Return webstores that have a submitted questionnaire response
+    which has NOT yet been applied (awaiting staff review).
+    Sorted by submission date ascending (oldest first = most urgent).
+    """
+    tenant_id = current_user.tenant_id
+
+    # Find all questionnaires linked to this tenant's webstores that have responses
+    questionnaires = await db.questionnaires.find(
+        {"tenant_id": tenant_id, "webstore_id": {"$exists": True, "$ne": None}},
+        {"_id": 0, "id": 1, "webstore_id": 1},
+    ).to_list(500)
+
+    if not questionnaires:
+        return {"stores": [], "total": 0}
+
+    q_by_id = {q["id"]: q["webstore_id"] for q in questionnaires}
+
+    # Find latest unreviewed responses for those questionnaires
+    responses = await db.questionnaire_responses.find(
+        {
+            "tenant_id": tenant_id,
+            "questionnaire_id": {"$in": list(q_by_id.keys())},
+            "applied_to_webstore": {"$ne": True},
+            "submitted_at": {"$exists": True, "$ne": None},
+        },
+        {"_id": 0, "questionnaire_id": 1, "submitted_at": 1, "id": 1},
+    ).sort("submitted_at", 1).to_list(100)
+
+    if not responses:
+        return {"stores": [], "total": 0}
+
+    # Deduplicate: keep only the latest response per questionnaire
+    seen: set[str] = set()
+    deduped = []
+    for r in reversed(responses):  # reversed = latest first → dedup keeps latest
+        qid = r["questionnaire_id"]
+        if qid not in seen:
+            seen.add(qid)
+            deduped.append(r)
+    deduped.reverse()  # back to oldest-first
+
+    # Resolve webstore details
+    webstore_ids = [q_by_id[r["questionnaire_id"]] for r in deduped if r["questionnaire_id"] in q_by_id]
+    webstores = await db.webstores_v2.find(
+        {"id": {"$in": webstore_ids}, "tenant_id": tenant_id},
+        {"_id": 0, "id": 1, "name": 1, "owner_name": 1, "owner_email": 1, "store_type": 1},
+    ).to_list(100)
+    ws_map = {ws["id"]: ws for ws in webstores}
+
+    now = datetime.now(timezone.utc)
+    results = []
+    for r in deduped:
+        ws_id = q_by_id.get(r["questionnaire_id"])
+        ws = ws_map.get(ws_id)
+        if not ws:
+            continue
+        # Compute age in hours
+        submitted_at = r.get("submitted_at", "")
+        age_hours = None
+        try:
+            dt = datetime.fromisoformat(submitted_at.replace("Z", "+00:00"))
+            age_hours = round((now - dt).total_seconds() / 3600, 1)
+        except Exception:
+            pass
+
+        results.append({
+            "webstore_id": ws_id,
+            "questionnaire_id": r["questionnaire_id"],
+            "response_id": r["id"],
+            "store_name": ws.get("name", "Unnamed Store"),
+            "owner_name": ws.get("owner_name") or ws.get("owner_email") or "Unknown",
+            "store_type": ws.get("store_type", ""),
+            "submitted_at": submitted_at,
+            "age_hours": age_hours,
+        })
+
+    return {"stores": results, "total": len(results)}
