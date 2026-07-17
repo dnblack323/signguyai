@@ -385,9 +385,25 @@ async def start_stripe_onboarding(token: str, body: StartStripeRequest):
             type="account_onboarding",
         )
         return {"url": link.url, "account_id": account_id}
+    except stripe.error.InvalidRequestError as exc:
+        logger.error("Stripe InvalidRequestError for invite %s: %s", token, exc)
+        # Map known Stripe config errors to actionable user messages.
+        # Use HTTP 400 (not 502) so Cloudflare passes JSON through instead of showing its error page.
+        err_str = str(exc)
+        if "platform-profile" in err_str or "managing losses" in err_str:
+            detail = (
+                "Stripe Connect setup is not fully configured on this platform yet. "
+                "Please contact the store administrator to complete their Stripe platform profile."
+            )
+        elif "signed up for Connect" in err_str:
+            detail = "This platform has not enabled Stripe Connect. Please contact the store administrator."
+        else:
+            detail = f"Stripe configuration error: {err_str}"
+        raise HTTPException(status_code=400, detail=detail)
     except stripe.error.StripeError as exc:
         logger.exception("Stripe onboarding failed for invite %s", token)
-        raise HTTPException(status_code=502, detail=str(exc))
+        # Use 400 so Cloudflare doesn't swallow the response with its own error page
+        raise HTTPException(status_code=400, detail=f"Could not start Stripe onboarding: {str(exc)}")
 
 
 @public_router.get("/{token}/refresh")
