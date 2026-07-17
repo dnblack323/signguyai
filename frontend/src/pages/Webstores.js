@@ -41,7 +41,7 @@ import {
   ExternalLink, Check, X, Settings, Copy, Link2, BarChart3,
   Upload, ImageIcon, CreditCard, AlertTriangle, Loader2, Palette,
   QrCode, Download, Shirt, Sticker, Gift, CalendarDays, Search,
-  Mail, Lock, ClipboardCheck, Send, ListChecks, CheckCircle2
+  Mail, Lock, ClipboardCheck, Send, ListChecks, CheckCircle2, Wand2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -157,6 +157,7 @@ export default function Webstores() {
     getWebstoreQuestionnaire, sendWebstoreQuestionnaire, applyWebstoreQuestionnaireAnswers,
     getWebstoreEventChecklist,
     stampWebstoreAdminProgress,
+    generateAIContent,
   } = useApp();
   
   const [loading, setLoading] = useState(true);
@@ -215,6 +216,10 @@ export default function Webstores() {
   const [bannerFile, setBannerFile] = useState(null);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const bannerInputRef = useRef(null);
+
+  // Store description editor + AI rewrite
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [rewritingDesc, setRewritingDesc] = useState(false);
   
   // Create store loading state (prevent double-click)
   const [creatingStore, setCreatingStore] = useState(false);
@@ -765,6 +770,7 @@ export default function Webstores() {
     setLogoFile(null);
     setBannerPreview(null);
     setBannerFile(null);
+    setDescriptionDraft(store.description || '');
 
     // Initialise event/locked edit state from the store record
     setEventEdits({
@@ -1080,6 +1086,44 @@ export default function Webstores() {
       await loadData();
     } catch (err) {
       toast.error('Failed to update branding');
+    }
+  };
+
+  const handleSaveDescription = async (value) => {
+    if (!selectedStore) return;
+    try {
+      await updateWebstore(selectedStore.id, { description: value });
+      setSelectedStore({ ...selectedStore, description: value });
+      toast.success('Description saved');
+    } catch {
+      toast.error('Failed to save description');
+    }
+  };
+
+  const handleAIRewriteDescription = async () => {
+    if (!selectedStore) return;
+    setRewritingDesc(true);
+    try {
+      const products = (storeProducts || [])
+        .slice(0, 6)
+        .map(p => p.name)
+        .join(', ') || 'custom merchandise';
+      const result = await generateAIContent('store_description_rewrite', {
+        store_name: selectedStore.name || '',
+        store_type: selectedStore.store_type || '',
+        owner_name: selectedStore.owner_name || selectedStore.owner_email || '',
+        existing_description: descriptionDraft.trim() || 'none',
+        products,
+      });
+      const text = (result?.output || result?.content || result || '').trim();
+      if (text) {
+        setDescriptionDraft(text);
+        toast.success('Description rewritten — review and save when ready');
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'AI rewrite failed — please try again');
+    } finally {
+      setRewritingDesc(false);
     }
   };
 
@@ -2257,6 +2301,70 @@ export default function Webstores() {
                 </TabsContent>
 
                 <TabsContent value="branding" className="space-y-6" data-testid="tab-content-branding">
+                  {/* ── Store Description ── */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Edit2 className="h-4 w-4" />
+                        Store Description
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Appears on your public storefront. Keep it concise and welcoming.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="relative">
+                        <Textarea
+                          value={descriptionDraft}
+                          onChange={(e) => setDescriptionDraft(e.target.value)}
+                          onBlur={(e) => {
+                            const val = e.target.value.trim();
+                            if (val !== (selectedStore.description || '').trim()) {
+                              handleSaveDescription(val);
+                            }
+                          }}
+                          placeholder="Describe your store — who it's for, what you offer, and why customers will love it..."
+                          rows={4}
+                          className="resize-none pr-3 text-sm"
+                          data-testid="store-description-textarea"
+                        />
+                        <p className="text-[10px] text-muted-foreground text-right mt-1">
+                          {descriptionDraft.length} chars · auto-saves on blur
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleAIRewriteDescription}
+                          disabled={rewritingDesc}
+                          className="gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950"
+                          data-testid="ai-rewrite-description-btn"
+                        >
+                          {rewritingDesc
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Wand2 className="h-3.5 w-3.5" />}
+                          {rewritingDesc ? 'Rewriting…' : 'AI Rewrite'}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleSaveDescription(descriptionDraft.trim())}
+                          disabled={descriptionDraft.trim() === (selectedStore.description || '').trim()}
+                          data-testid="save-description-btn"
+                        >
+                          Save
+                        </Button>
+                        {descriptionDraft.trim() !== (selectedStore.description || '').trim() && (
+                          <span className="text-xs text-amber-600">Unsaved changes</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Separator />
+
                   {/* Branding Section */}
                   <Card>
                     <CardHeader className="pb-3">

@@ -834,7 +834,25 @@ Create a comprehensive branding brief:
    - Number kit specifications
    - Template sizes
 
-Make it memorable, professional, and ready to stand out on race day!"""
+Make it memorable, professional, and ready to stand out on race day!""",
+
+    "store_description_rewrite": """You are a professional copywriter specializing in custom merchandise and branded apparel stores.
+
+Rewrite or create a compelling store description for this webstore:
+
+Store Name: {store_name}
+Store Type: {store_type}
+Owner / Organization: {owner_name}
+Existing Description (if any): {existing_description}
+Products Available: {products}
+
+Write a polished, engaging store description that:
+1. Opens with a strong hook (1 sentence)
+2. Clearly explains what the store offers and who it's for (2-3 sentences)
+3. Highlights any unique value (quality, customization, cause, community, etc.) (1-2 sentences)
+4. Ends with a subtle call to action (1 sentence)
+
+Keep it between 80-120 words. Use a friendly, professional tone. Do NOT use exclamation marks or clichés like "world-class" or "cutting-edge". Return ONLY the description text — no labels, headings, or extra commentary."""
 }
 
 # Product Description Styles/Tones
