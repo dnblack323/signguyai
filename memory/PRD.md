@@ -22,6 +22,11 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-07-17 — **Store Description + AI Rewrite — COMPLETE & TESTED**
+  - **Backend**: Added `store_description_rewrite` tool to `TOOL_PROMPTS` in `ai.py`. Prompt takes `store_name`, `store_type`, `owner_name`, `existing_description`, `products` and returns 80-120 word polished store copy. Fixed a subtle bug where the tool was accidentally placed inside `IMAGE_PROMPTS` (wrong dict) — moved it to the correct `TOOL_PROMPTS` dict. 6/6 backend tests pass.
+  - **Frontend**: Added "Store Description" card at the top of the Branding tab in the webstore detail dialog. Includes: resizable Textarea, character count display, auto-save on blur, explicit Save button with "Unsaved changes" warning, violet-accented "AI Rewrite" button (Wand2 icon) with spinner. `descriptionDraft` state syncs with the opened store. `handleSaveDescription` patches `description` field via `updateWebstore`. `handleAIRewriteDescription` calls `generateAIContent('store_description_rewrite', {...})` with store name, type, owner, products; updates textarea on success.
+  - Destructured `generateAIContent` from AppContext in `Webstores.js`. Added `Wand2` icon import.
+
 - 2026-07-16 — **Questionnaire Submit Alert (Dashboard Notification) — COMPLETE & TESTED**
   - **Backend**: New `GET /api/dashboard/questionnaire-reviews` (auth, tenant-scoped) returns stores with unreviewed questionnaire submissions (submitted but `applied_to_webstore != true`). Returns `webstore_id`, `store_name`, `owner_name`, `submitted_at`, `age_hours`, `questionnaire_id`. Sorted oldest-first. 10/10 tests pass.
   - **Frontend Dashboard**: New "Store Setup Reviews" section inside the `ActionRequiredCard`. Shows animated "N pending" teal badge, lists each store name + owner + age ("submitted 2h ago"), teal-highlighted rows with "Review" badge, "All stores →" link. Count rolls into "Action Required" header badge.
