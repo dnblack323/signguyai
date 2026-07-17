@@ -22,6 +22,14 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-07-18 — **Event Questionnaire Multi-Step Wizard — COMPLETE & TESTED (9/9)**
+  - **Frontend** (`PublicQuestionnaire.js`): Fully rewritten as a multi-step wizard. Questions are automatically grouped into sections by `heading` type — each heading becomes one step. For the Event Store Setup Questionnaire this yields 9 steps.
+  - **Conditional logic**: `shouldShowQuestion()` evaluates against full `answers` state — hidden questions fully excluded from step validation. Dependent chains (sponsor logos, fundraiser sub-questions, personalization) all work correctly within and across steps.
+  - **Step validation**: `validateCurrentStep()` only validates visible questions in the current section.
+  - **Navigation**: Continue / Back buttons + clickable step dots (clicking a previous dot navigates back with all answers preserved).
+  - **Design**: Light stone-50 background, black body text, section titles + labels in rotating dark accent colors (dark red → dark blue → dark pink → dark purple → dark emerald → dark amber → dark teal → dark indigo). Colored top accent bar per step. Progress bar + "Step X of Y" counter.
+  - **Test**: 9/9 scenarios PASS (iteration_189.json).
+
 - 2026-07-17 — **Store Description + AI Rewrite — COMPLETE & TESTED**
   - **Backend**: Added `store_description_rewrite` tool to `TOOL_PROMPTS` in `ai.py`. Prompt takes `store_name`, `store_type`, `owner_name`, `existing_description`, `products` and returns 80-120 word polished store copy. Fixed a subtle bug where the tool was accidentally placed inside `IMAGE_PROMPTS` (wrong dict) — moved it to the correct `TOOL_PROMPTS` dict. 6/6 backend tests pass.
   - **Frontend**: Added "Store Description" card at the top of the Branding tab in the webstore detail dialog. Includes: resizable Textarea, character count display, auto-save on blur, explicit Save button with "Unsaved changes" warning, violet-accented "AI Rewrite" button (Wand2 icon) with spinner. `descriptionDraft` state syncs with the opened store. `handleSaveDescription` patches `description` field via `updateWebstore`. `handleAIRewriteDescription` calls `generateAIContent('store_description_rewrite', {...})` with store name, type, owner, products; updates textarea on success.
