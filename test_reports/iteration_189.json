@@ -1,0 +1,33 @@
+{
+  "summary": "Full frontend testing of the multi-step questionnaire wizard at /questionnaire/46d4751b-28cb-45a9-b581-29219485b893. All 9 test scenarios passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100% (9/9 scenarios)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Multi-step wizard fully verified. Step 1: 'Contact and Event Details' dark red header, Step 1 of 9 progress. Validation: empty required fields show per-field errors + toast, does NOT advance. Step 2: 'Store Setup and Branding' dark blue header, only branding questions shown. Back button returns to step 1 with answers preserved. Step 4 conditional: Yes shows Upload / hides Design Included; No hides Upload / shows Design Included. Step 6 conditional: No shows only the trigger question (1 label); Yes expands to 7 labels (fundraiser sub-questions). Dot indicators: 9 dots found, clicking previous-step dot navigates back with answers preserved. Submit button labeled 'Submit Form' visible on last step.",
+  "rca_of_the_issue": null,
+  "test_scenarios_verified": [
+    "PASS: Step 1 shows 'Step 1 of 9' progress and dark red 'Contact and Event Details' header",
+    "PASS: Clicking Continue with empty required fields shows per-field errors and toast, stays on step 1",
+    "PASS: Filling all required fields and clicking Continue advances to Step 2 'Store Setup and Branding' with dark blue header",
+    "PASS: Step 2 only shows Store Setup questions (store name, dates, public/private, welcome, colors, logo upload)",
+    "PASS: Back button on step 2 returns to step 1 with answers preserved (name='Test User')",
+    "PASS: Step 4 Artwork conditional — Yes shows Upload artwork, hides Design included; No hides Upload, shows Design included",
+    "PASS: Step 6 Fundraiser conditional — No collapses sub-questions (1 label); Yes expands all sub-questions (7 labels)",
+    "PASS: 9 dot indicators found; clicking dot 0 from step 4 returns to step 1 with data preserved",
+    "PASS: Submit Form button (data-testid=questionnaire-submit-btn) present on last step"
+  ]
+}
