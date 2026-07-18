@@ -17,7 +17,7 @@ import {
   CheckCircle2, Circle, Clock, AlertCircle, Lock,
   Mail, Eye, Package, Palette, Truck, CreditCard,
   Zap, ExternalLink, Loader2, Copy, Check,
-  ChevronRight, ClipboardCheck, ShieldCheck, ArrowRight,
+  ChevronRight, ClipboardCheck, ShieldCheck, ArrowRight, Sparkles,
   Store, Paperclip, Download, FileText, FileImage, File,
   ChevronDown, ChevronUp,
 } from 'lucide-react';
@@ -93,8 +93,7 @@ function StaffReviewPanel({ webstoreId, questionnaireStatus, onApplyAnswers, app
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState(null);
   const [safeOpen, setSafeOpen] = useState(true);
-  const [sugOpen,  setSugOpen]  = useState(false);
-  const [otherOpen, setOtherOpen] = useState(false);
+  const [allOpen,  setAllOpen]  = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -116,9 +115,9 @@ function StaffReviewPanel({ webstoreId, questionnaireStatus, onApplyAnswers, app
   );
 
   if (!details) return (
-    <div className="flex gap-2" data-testid="staff-review-panel-trigger">
+    <div className="flex gap-2 flex-wrap" data-testid="staff-review-panel-trigger">
       <Button size="sm" variant="outline" onClick={load} data-testid="review-panel-view-btn">
-        <Eye className="h-3.5 w-3.5 mr-1" /> View Answer Mapping
+        <Eye className="h-3.5 w-3.5 mr-1" /> View Answers & Summary
       </Button>
       <Button
         size="sm"
@@ -139,13 +138,32 @@ function StaffReviewPanel({ webstoreId, questionnaireStatus, onApplyAnswers, app
     </div>
   );
 
-  const safe       = details.safe_fields || {};
-  const suggested  = details.suggested_changes || {};
-  const other      = details.admin_review_answers || {};
+  // Backend now returns arrays, not dicts
+  const safeList  = Array.isArray(details.safe_fields)          ? details.safe_fields          : [];
+  const allList   = Array.isArray(details.all_answers)          ? details.all_answers          : [];
+  const aiSummary = details.response?.ai_summary || null;
+  const submitter = details.response?.customer_name || details.response?.customer_email || '';
 
   return (
     <div className="space-y-2 text-xs" data-testid="staff-review-panel">
-      {/* Safe fields */}
+
+      {/* ── AI Summary ─────────────────────────────────────────────────── */}
+      {aiSummary && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2.5" data-testid="ai-summary-box">
+          <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+            <Sparkles className="h-3 w-3" /> AI Summary
+          </p>
+          <p className="text-xs text-blue-900 leading-relaxed">{aiSummary}</p>
+          {submitter && <p className="text-[10px] text-blue-500 mt-1">Submitted by: {submitter}</p>}
+        </div>
+      )}
+      {!aiSummary && details.response?.submitted_at && (
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500 text-[10px]">
+          AI summary generating… refresh in a moment.
+        </div>
+      )}
+
+      {/* ── Safe to Apply ──────────────────────────────────────────────── */}
       <div className="border rounded-md overflow-hidden">
         <button
           className="w-full flex items-center justify-between px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-medium transition-colors"
@@ -154,75 +172,49 @@ function StaffReviewPanel({ webstoreId, questionnaireStatus, onApplyAnswers, app
         >
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            Safe to apply ({Object.keys(safe).length} field{Object.keys(safe).length !== 1 ? 's' : ''})
+            Safe to apply ({safeList.length} field{safeList.length !== 1 ? 's' : ''})
           </span>
           <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', safeOpen && 'rotate-90')} />
         </button>
-        {safeOpen && Object.keys(safe).length > 0 && (
+        {safeOpen && safeList.length > 0 && (
           <div className="divide-y" data-testid="review-safe-fields">
-            {Object.entries(safe).map(([label, val]) => (
-              <div key={label} className="flex items-start gap-2 px-3 py-2">
-                <span className="text-muted-foreground w-40 shrink-0">{label}</span>
-                <span className="font-medium text-foreground break-words">{String(val ?? '—')}</span>
+            {safeList.map((item, i) => (
+              <div key={i} className="flex items-start gap-2 px-3 py-1.5">
+                <span className="text-muted-foreground w-44 shrink-0 leading-tight">{item.label}</span>
+                <span className="font-medium text-foreground break-words">{String(item.value ?? '—')}</span>
               </div>
             ))}
           </div>
         )}
-        {safeOpen && Object.keys(safe).length === 0 && (
+        {safeOpen && safeList.length === 0 && (
           <p className="px-3 py-2 text-muted-foreground italic">No safe fields mapped.</p>
         )}
       </div>
 
-      {/* Suggested changes (locked fields) */}
-      {Object.keys(suggested).length > 0 && (
-        <div className="border rounded-md overflow-hidden">
-          <button
-            className="w-full flex items-center justify-between px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium transition-colors"
-            onClick={() => setSugOpen(!sugOpen)}
-            data-testid="review-suggest-toggle"
-          >
-            <span className="flex items-center gap-1.5">
-              <Lock className="h-3.5 w-3.5" />
-              Admin-controlled suggestions ({Object.keys(suggested).length})
-            </span>
-            <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', sugOpen && 'rotate-90')} />
-          </button>
-          {sugOpen && (
-            <div className="divide-y" data-testid="review-suggest-fields">
-              {Object.entries(suggested).map(([label, val]) => (
-                <div key={label} className="flex items-start gap-2 px-3 py-2">
-                  <span className="text-muted-foreground w-40 shrink-0">{label}</span>
-                  <span className="font-medium text-amber-700 break-words">{String(val ?? '—')}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Other answers */}
-      {Object.keys(other).length > 0 && (
-        <div className="border rounded-md overflow-hidden">
-          <button
-            className="w-full flex items-center justify-between px-3 py-2 bg-muted/60 hover:bg-muted text-foreground font-medium transition-colors"
-            onClick={() => setOtherOpen(!otherOpen)}
-            data-testid="review-other-toggle"
-          >
-            <span>Other answers ({Object.keys(other).length})</span>
-            <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', otherOpen && 'rotate-90')} />
-          </button>
-          {otherOpen && (
-            <div className="divide-y" data-testid="review-other-answers">
-              {Object.entries(other).map(([label, val]) => (
-                <div key={label} className="flex items-start gap-2 px-3 py-2">
-                  <span className="text-muted-foreground w-40 shrink-0">{label}</span>
-                  <span className="font-medium break-words">{String(val ?? '—')}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* ── All Answers ─────────────────────────────────────────────────── */}
+      <div className="border rounded-md overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors"
+          onClick={() => setAllOpen(!allOpen)}
+          data-testid="review-all-toggle"
+        >
+          <span>All submitted answers ({allList.length})</span>
+          <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', allOpen && 'rotate-90')} />
+        </button>
+        {allOpen && allList.length > 0 && (
+          <div className="divide-y max-h-96 overflow-y-auto" data-testid="review-all-answers">
+            {allList.map((item, i) => (
+              <div key={i} className="flex items-start gap-2 px-3 py-1.5">
+                <span className="text-muted-foreground w-44 shrink-0 leading-tight">{item.label}</span>
+                <span className="text-foreground break-words leading-tight">{String(item.answer ?? '—')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {allOpen && allList.length === 0 && (
+          <p className="px-3 py-2 text-muted-foreground italic">No answers recorded.</p>
+        )}
+      </div>
 
       <div className="flex gap-2 pt-1">
         <Button
@@ -233,7 +225,7 @@ function StaffReviewPanel({ webstoreId, questionnaireStatus, onApplyAnswers, app
           data-testid="review-panel-apply-btn"
         >
           {applyingAnswers ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 mr-1" />}
-          Apply Safe Answers
+          Apply Safe Answers to Store
         </Button>
       </div>
     </div>

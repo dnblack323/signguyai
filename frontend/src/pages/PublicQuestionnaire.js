@@ -316,7 +316,7 @@ export default function PublicQuestionnaire() {
 
     const labelColor = err ? '#dc2626' : sectionColor;
     const inp = [
-      'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:ring-1',
+      'bg-white border-gray-200 text-gray-900 placeholder:text-gray-300 focus:ring-1',
       err      ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : 'focus:border-blue-400 focus:ring-blue-100',
       isLocked ? 'bg-gray-50 cursor-not-allowed opacity-75' : '',
     ].join(' ');
@@ -387,6 +387,7 @@ export default function PublicQuestionnaire() {
             <Label className="font-semibold text-sm" style={{ color: labelColor }}>
               {question.label}{question.required && <span className="text-red-500 ml-0.5">*</span>}
             </Label>
+            {question.description && <p className="text-xs text-gray-500">{question.description}</p>}
             <Input type="date" value={answers[question.id] || ''}
               onChange={e => updateAnswer(question.id, e.target.value)} className={inp} />
             <Err />

@@ -473,8 +473,10 @@ QUESTIONNAIRE_TEMPLATES = {
             ], "order": 5},
             {"type": "text",  "label": "Main decision-maker (if different from you)", "order": 6},
 
-            {"type": "text",  "label": "Event Name",    "required": True, "order": 7},
-            {"type": "date",  "label": "Event Date",                       "order": 8},
+            {"type": "text",  "label": "Event Name",    "required": True, "order": 7,
+             "description": "Leave blank if this doesn't apply to your group or event"},
+            {"type": "date",  "label": "Event Date",                       "order": 8,
+             "description": "Leave blank if there is no specific event date"},
             {"type": "text",  "label": "Event Location",                   "order": 9},
             {"type": "textarea", "label": "Briefly describe the event",    "order": 10},
             {"type": "select","label": "Is this a one-time or recurring event?", "options": [
@@ -583,7 +585,8 @@ QUESTIONNAIRE_TEMPLATES = {
                 {"value": "racing",         "label": "Racing / motorsports"},
                 {"value": "school_spirit",  "label": "School spirit"},
                 {"value": "corporate",      "label": "Corporate / professional"},
-            ], "order": 33},
+            ], "order": 33,
+             "conditional": {"depends_on_label": "Do you already have finished artwork?", "operator": "not_equals", "value": "yes"}},
 
             {"type": "select","label": "Do products need personalization?",
              "description": "e.g., name, number, team, role, date, custom text on each item", "options": [
@@ -598,8 +601,6 @@ QUESTIONNAIRE_TEMPLATES = {
 
             # ── Section 5: Pricing & Fulfillment ───────────────────────────
             {"type": "heading","label": "Pricing and Fulfillment", "order": 36},
-            {"type": "textarea","label": "Any specific pricing requirements or profit per item?",
-             "description": "e.g., Add $5 profit to each shirt. Leave blank and we'll suggest pricing.", "order": 37},
             {"type": "text",  "label": "Who should receive the final order report or sales summary?", "order": 38},
             {"type": "select","label": "How should customers receive their orders?", "required": True, "options": [
                 {"value": "individual_shipping", "label": "Individual shipping to each customer"},
@@ -699,16 +700,8 @@ QUESTIONNAIRE_TEMPLATES = {
             # ── Section 8: Pre-launch Approval ─────────────────────────────
             {"type": "heading","label": "Pre-Launch Approval", "order": 61},
             {"type": "paragraph","label": "Before your store goes live, we will send you a Pre-Launch Packet with product mockups, pricing, store description, and setup details for your review and approval. Nothing goes live without your sign-off.", "order": 62},
-            {"type": "select","label": "Do you want to review and approve products and mockups before launch?", "required": True, "options": [
-                {"value": "yes", "label": "Yes — send me the pre-launch packet first"},
-                {"value": "no",  "label": "No — I trust your judgment, just launch it"},
-            ], "order": 63},
-            {"type": "text","label": "Who should review and approve the store before launch?",
+            {"type": "text","label": "Who should receive the pre-launch review packet?",
              "description": "Name and email if different from your contact info above.", "order": 64},
-            {"type": "select","label": "Do you want a private preview link to see the store before launch?", "options": [
-                {"value": "yes", "label": "Yes"},
-                {"value": "no",  "label": "No"},
-            ], "order": 65},
             {"type": "textarea","label": "Anything else we should know?",
              "description": "Special requirements, hard deadlines, budget limits, important contacts, etc.", "order": 66},
 

@@ -456,6 +456,16 @@ async def submit_questionnaire_response(
         {"$inc": {"response_count": 1}}
     )
 
+    # ── Background AI summary (non-blocking) ──────────────────────────────
+    if questionnaire.get("webstore_id"):
+        try:
+            import asyncio as _asyncio
+            _asyncio.create_task(_generate_questionnaire_summary(
+                response.id, questionnaire, request.answers or {}
+            ))
+        except Exception as _sum_err:
+            logger.debug(f"AI summary task not scheduled: {_sum_err}")
+
     # ── Auto-response email to the respondent ─────────────────────────────
     _customer_email = request.customer_email or questionnaire.get("recipient_email")
     _customer_name  = (request.customer_name or "").strip() or "there"
@@ -526,6 +536,64 @@ async def submit_questionnaire_response(
     }
 
 
+async def _generate_questionnaire_summary(response_id: str, questionnaire: dict, answers: dict):
+    """Generate a plain-English AI summary of questionnaire answers and persist it."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        llm_key = os.environ.get("EMERGENT_LLM_KEY", "")
+        if not llm_key:
+            return
+
+        # Build readable Q&A pairs
+        q_lines = []
+        for q in questionnaire.get("questions", []) or []:
+            if not isinstance(q, dict):
+                continue
+            if q.get("type") in ("heading", "paragraph"):
+                continue
+            answer = answers.get(q.get("id", ""))
+            if not answer and answer != 0:
+                continue
+            label = q.get("label", "")
+            if isinstance(answer, list):
+                if answer and isinstance(answer[0], dict) and "filename" in answer[0]:
+                    val = f"[{len(answer)} file(s) uploaded]"
+                else:
+                    val = ", ".join(str(a) for a in answer if a)
+            else:
+                val = str(answer)
+            if val:
+                q_lines.append(f"- {label}: {val}")
+
+        if not q_lines:
+            return
+
+        prompt = (
+            "You are a sign shop operations assistant. "
+            "A customer just submitted their store setup questionnaire.\n\n"
+            "Their answers:\n" + "\n".join(q_lines) +
+            "\n\nWrite a concise 3-5 sentence plain-English summary of what this store needs. "
+            "Cover: who is setting it up, what the event or cause is, what products they want, "
+            "key artwork or design notes, delivery/fulfillment method, and whether it involves a fundraiser. "
+            "Focus on actionable details for the staff building the store. No bullet points — clear prose only."
+        )
+
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"q_summary_{response_id}",
+            system_message="You are a helpful assistant summarizing store setup questionnaire responses for sign shop staff."
+        ).with_model("openai", "gpt-5.2")
+
+        summary = await chat.send_message(UserMessage(text=prompt))
+        await db.questionnaire_responses.update_one(
+            {"id": response_id},
+            {"$set": {"ai_summary": summary,
+                      "ai_summary_generated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    except Exception as _e:
+        logger.warning(f"AI summary generation failed (non-fatal): {_e}")
+
+
 @router.post("/public/{questionnaire_id}/upload")
 async def upload_questionnaire_file(
     questionnaire_id: str,
@@ -560,8 +628,8 @@ async def upload_questionnaire_file(
     if len(contents) > MAX_BYTES:
         raise HTTPException(status_code=400, detail="File exceeds 25 MB limit")
 
-    # Store in uploads directory under questionnaire namespace
-    upload_dir = f"/tmp/questionnaire_uploads/{questionnaire_id}"
+    # Store in persistent uploads directory
+    upload_dir = f"/app/backend/uploads/questionnaires/{questionnaire_id}"
     _os.makedirs(upload_dir, exist_ok=True)
     safe_name = f"{uuid.uuid4()}{ext}"
     file_path = f"{upload_dir}/{safe_name}"
@@ -594,7 +662,7 @@ async def serve_questionnaire_upload(questionnaire_id: str, filename: str):
     """Serve an uploaded questionnaire file."""
     from fastapi.responses import FileResponse
     import os as _os
-    file_path = f"/tmp/questionnaire_uploads/{questionnaire_id}/{filename}"
+    file_path = f"/app/backend/uploads/questionnaires/{questionnaire_id}/{filename}"
     if not _os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
