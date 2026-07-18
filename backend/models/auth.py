@@ -242,6 +242,8 @@ class Permission(str, Enum):
 ROLE_PERMISSIONS = {
     UserRole.PLATFORM_ADMIN: list(Permission),  # Platform admins have all permissions including impersonation
     UserRole.OWNER: list(Permission),  # Owners have all permissions
+    # Platform creator has full admin access within their own tenant
+    UserRole.PLATFORM_CREATOR: list(Permission),
     UserRole.ADMIN: [
         Permission.CUSTOMERS_VIEW, Permission.CUSTOMERS_CREATE, Permission.CUSTOMERS_EDIT, Permission.CUSTOMERS_DELETE,
         Permission.QUOTES_VIEW, Permission.QUOTES_CREATE, Permission.QUOTES_EDIT, Permission.QUOTES_DELETE, Permission.QUOTES_CONVERT,

@@ -22,7 +22,23 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
-- 2026-07-18 — **Event Questionnaire Multi-Step Wizard — COMPLETE & TESTED (9/9)**
+- 2026-07-18 — **Questionnaire UX Polish + Admin Review Overhaul — COMPLETE & TESTED**
+  - **Questionnaire template fixes** (`models/questionnaires.py` + MongoDB migration):
+    - Event Name and Event Date: added "Leave blank if this doesn't apply" hint descriptions
+    - Design style preferences: now conditionally hidden when customer already has artwork
+    - Removed "Any specific pricing requirements or profit per item?" from Pricing section
+    - Removed "Do you want to review/approve before launch?" and "private preview link" questions
+    - Renamed "Who should review and approve" → "Who should receive the pre-launch review packet?"
+  - **SAFE_MAP rewrite** (`routes/webstores.py`): 20 mapped fields now use correct current question labels (old map had mismatched labels, only 3 fields applied)
+  - **Auto-fill name/email**: send questionnaire endpoint now prefills `Your Name` and `Your Email` from webstore owner data
+  - **AI Summary**: generated automatically on questionnaire submission, stored in response document, displayed prominently in admin Staff Review panel
+  - **StaffReviewPanel overhaul** (`WebstoreSetupFlow.js`): fixed list vs dict format, added AI Summary card, "All submitted answers" expandable view, removed broken Object.entries(safe) pattern
+  - **File storage**: moved from `/tmp/questionnaire_uploads/` to `/app/backend/uploads/questionnaires/` (persistent across pod restarts)
+  - **Placeholder text**: lighter gray (`text-gray-300`) so empty inputs don't look pre-filled
+  - **Permission fix**: `platform_creator` role now has full permissions (was getting 403 on review-details API)
+  - **Test**: 9/9 scenarios PASS, 1 bug found and fixed by testing agent (Event Date description was missing in date type render). Iteration_190.json.
+
+
   - **Frontend** (`PublicQuestionnaire.js`): Fully rewritten as a multi-step wizard. Questions are automatically grouped into sections by `heading` type — each heading becomes one step. For the Event Store Setup Questionnaire this yields 9 steps.
   - **Conditional logic**: `shouldShowQuestion()` evaluates against full `answers` state — hidden questions fully excluded from step validation. Dependent chains (sponsor logos, fundraiser sub-questions, personalization) all work correctly within and across steps.
   - **Step validation**: `validateCurrentStep()` only validates visible questions in the current section.
