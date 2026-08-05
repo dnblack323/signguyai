@@ -5,11 +5,12 @@ Allows sign shops to create, manage, and collect responses from
 custom intake forms for different job types.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File, Form
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 import os
+import logging
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from models.questionnaires import (
@@ -20,6 +21,8 @@ from models.questionnaires import (
 )
 from models import UserInDB
 from core.auth_deps import get_current_active_user
+
+logger = logging.getLogger(__name__)
 
 # Database connection
 mongo_client = AsyncIOMotorClient(os.environ.get('MONGO_URL'))
@@ -167,9 +170,12 @@ async def create_from_template(
             required=q.get("required", False),
             options=[{"value": o["value"], "label": o["label"]} for o in q.get("options", [])],
             validation=q.get("validation"),
+            conditional=q.get("conditional"),
             order=q.get("order", i),
             accept_file_types=q.get("accept_file_types"),
-            max_file_size_mb=q.get("max_file_size_mb", 10)
+            max_file_size_mb=q.get("max_file_size_mb", 10),
+            is_contact_name=q.get("is_contact_name"),
+            is_contact_email=q.get("is_contact_email"),
         )
         questions.append(question)
     
@@ -450,6 +456,56 @@ async def submit_questionnaire_response(
         {"$inc": {"response_count": 1}}
     )
 
+    # ── Background AI summary (non-blocking) ──────────────────────────────
+    if questionnaire.get("webstore_id"):
+        try:
+            import asyncio as _asyncio
+            _asyncio.create_task(_generate_questionnaire_summary(
+                response.id, questionnaire, request.answers or {}
+            ))
+        except Exception as _sum_err:
+            logger.debug(f"AI summary task not scheduled: {_sum_err}")
+
+    # ── Auto-response email to the respondent ─────────────────────────────
+    _customer_email = request.customer_email or questionnaire.get("recipient_email")
+    _customer_name  = (request.customer_name or "").strip() or "there"
+    _shop_name      = questionnaire.get("tenant_name") or "SignGuy AI"
+    _q_name         = questionnaire.get("name", "Store Setup Form")
+
+    if _customer_email:
+        try:
+            from services.email_service import email_service
+            _html = f"""
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
+  <h2 style="color:#1d4ed8">Hi {_customer_name}, we received your form!</h2>
+  <p>Thank you for completing the <strong>{_q_name}</strong>. We have everything we need to get started on your store.</p>
+
+  <h3 style="color:#1d4ed8">What happens next</h3>
+  <ol style="line-height:1.8">
+    <li><strong>We review your submission</strong> — We'll go through your answers, artwork, and product selections.</li>
+    <li><strong>Pre-Launch Packet</strong> — We'll put together a Pre-Launch Packet with product mockups, pricing, store description, and all final details for you to review and approve. Nothing goes live without your sign-off.</li>
+    <li><strong>Stripe payment setup</strong> — You will receive a separate email from Stripe to set up your payment account so funds can be deposited directly to you. <strong>Please check your spam folder</strong> — Stripe emails sometimes go there. You do not need to do anything about this right now; just watch for it.</li>
+    <li><strong>Your approval</strong> — Once you've reviewed the Pre-Launch Packet and your Stripe account is connected, we'll send everything for your final approval and the store will go live.</li>
+  </ol>
+
+  <div style="background:#eff6ff;border-left:4px solid #1d4ed8;padding:12px 16px;margin:20px 0;border-radius:4px">
+    <strong>Important:</strong> Watch for an email from <strong>Stripe</strong> to complete your payment account setup.
+    It may land in your spam folder — add noreply@stripe.com to your contacts just in case.
+  </div>
+
+  <p>If you have questions or need to update any information, just reply to this email or contact us directly.</p>
+  <p style="color:#6b7280;font-size:14px">— The {_shop_name} Team</p>
+</div>
+"""
+            await email_service.send_email(
+                to_email=_customer_email,
+                subject=f"We received your store setup form — here's what's next",
+                html_content=_html,
+                tenant_id=questionnaire.get("tenant_id"),
+            )
+        except Exception as _e:
+            logger.warning(f"Auto-response email failed (non-fatal): {_e}")
+
     # Flag the linked webstore so staff know a review is pending.
     # This is additive and non-blocking — failures are swallowed.
     if questionnaire.get("webstore_id"):
@@ -478,6 +534,177 @@ async def submit_questionnaire_response(
         "message": questionnaire.get("thank_you_message", "Thank you for your submission!"),
         "response_id": response.id
     }
+
+
+async def _generate_questionnaire_summary(response_id: str, questionnaire: dict, answers: dict):
+    """Generate a plain-English AI summary of questionnaire answers and persist it."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        llm_key = os.environ.get("EMERGENT_LLM_KEY", "")
+        if not llm_key:
+            return
+
+        # Build readable Q&A pairs
+        q_lines = []
+        for q in questionnaire.get("questions", []) or []:
+            if not isinstance(q, dict):
+                continue
+            if q.get("type") in ("heading", "paragraph"):
+                continue
+            answer = answers.get(q.get("id", ""))
+            if not answer and answer != 0:
+                continue
+            label = q.get("label", "")
+            if isinstance(answer, list):
+                if answer and isinstance(answer[0], dict) and "filename" in answer[0]:
+                    val = f"[{len(answer)} file(s) uploaded]"
+                else:
+                    val = ", ".join(str(a) for a in answer if a)
+            else:
+                val = str(answer)
+            if val:
+                q_lines.append(f"- {label}: {val}")
+
+        if not q_lines:
+            return
+
+        prompt = (
+            "You are a sign shop operations assistant. "
+            "A customer just submitted their store setup questionnaire.\n\n"
+            "Their answers:\n" + "\n".join(q_lines) +
+            "\n\nWrite a concise 3-5 sentence plain-English summary of what this store needs. "
+            "Cover: who is setting it up, what the event or cause is, what products they want, "
+            "key artwork or design notes, delivery/fulfillment method, and whether it involves a fundraiser. "
+            "Focus on actionable details for the staff building the store. No bullet points — clear prose only."
+        )
+
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"q_summary_{response_id}",
+            system_message="You are a helpful assistant summarizing store setup questionnaire responses for sign shop staff."
+        ).with_model("openai", "gpt-5.2")
+
+        summary = await chat.send_message(UserMessage(text=prompt))
+        await db.questionnaire_responses.update_one(
+            {"id": response_id},
+            {"$set": {"ai_summary": summary,
+                      "ai_summary_generated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    except Exception as _e:
+        logger.warning(f"AI summary generation failed (non-fatal): {_e}")
+
+
+@router.post("/public/{questionnaire_id}/upload")
+async def upload_questionnaire_file(
+    questionnaire_id: str,
+    file: UploadFile = File(...),
+    question_id: str = Form(default=""),
+):
+    """Accept a file upload from a public questionnaire respondent.
+    Returns a URL the frontend stores as the answer for the file_upload question.
+    """
+    questionnaire = await db.questionnaires.find_one(
+        {"id": questionnaire_id, "status": QuestionnaireStatus.ACTIVE.value},
+        {"_id": 0, "id": 1, "tenant_id": 1},
+    )
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found or not active")
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    ALLOWED_EXTENSIONS = {
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic",
+        ".pdf", ".svg", ".ai", ".eps", ".zip",
+        ".doc", ".docx", ".xls", ".xlsx",
+    }
+    import os as _os
+    ext = _os.path.splitext(file.filename or "")[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed")
+
+    MAX_BYTES = 25 * 1024 * 1024  # 25 MB
+    contents = await file.read()
+    if len(contents) > MAX_BYTES:
+        raise HTTPException(status_code=400, detail="File exceeds 25 MB limit")
+
+    # Store in persistent uploads directory
+    upload_dir = f"/app/backend/uploads/questionnaires/{questionnaire_id}"
+    _os.makedirs(upload_dir, exist_ok=True)
+    safe_name = f"{uuid.uuid4()}{ext}"
+    file_path = f"{upload_dir}/{safe_name}"
+
+    with open(file_path, "wb") as f_out:
+        f_out.write(contents)
+
+    # Persist metadata to DB so staff can see uploads
+    await db.questionnaire_uploads.insert_one({
+        "id": str(uuid.uuid4()),
+        "questionnaire_id": questionnaire_id,
+        "tenant_id": questionnaire["tenant_id"],
+        "question_id": question_id,
+        "original_filename": file.filename,
+        "stored_filename": safe_name,
+        "file_path": file_path,
+        "content_type": file.content_type or "application/octet-stream",
+        "size_bytes": len(contents),
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # Return a backend-served URL
+    api_base = os.environ.get("REACT_APP_BACKEND_URL", "")
+    download_url = f"{api_base}/api/questionnaires/uploads/{questionnaire_id}/{safe_name}"
+    return {"url": download_url, "filename": file.filename, "size_bytes": len(contents)}
+
+
+@router.get("/uploads/{questionnaire_id}/{filename}")
+async def serve_questionnaire_upload(questionnaire_id: str, filename: str):
+    """Serve an uploaded questionnaire file."""
+    from fastapi.responses import FileResponse
+    import os as _os
+    file_path = f"/app/backend/uploads/questionnaires/{questionnaire_id}/{filename}"
+    if not _os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+
+@router.get("/{questionnaire_id}/uploads")
+async def list_questionnaire_uploads(
+    questionnaire_id: str,
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    """List all files uploaded by the respondent for a questionnaire (staff view)."""
+    questionnaire = await db.questionnaires.find_one(
+        {"id": questionnaire_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0, "id": 1},
+    )
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
+
+    uploads = await db.questionnaire_uploads.find(
+        {"questionnaire_id": questionnaire_id},
+        {"_id": 0},
+    ).sort("uploaded_at", -1).to_list(200)
+
+    import os as _os
+    api_base = _os.environ.get("REACT_APP_BACKEND_URL", "")
+    results = []
+    for u in uploads:
+        stored = u.get("stored_filename", "")
+        file_path = f"/tmp/questionnaire_uploads/{questionnaire_id}/{stored}"
+        results.append({
+            "id": u.get("id"),
+            "original_filename": u.get("original_filename"),
+            "stored_filename": stored,
+            "content_type": u.get("content_type", "application/octet-stream"),
+            "size_bytes": u.get("size_bytes", 0),
+            "question_id": u.get("question_id"),
+            "uploaded_at": u.get("uploaded_at"),
+            "download_url": f"{api_base}/api/questionnaires/uploads/{questionnaire_id}/{stored}",
+            "file_exists": _os.path.exists(file_path),
+        })
+
+    return {"uploads": results, "total": len(results)}
 
 
 @router.get("/{questionnaire_id}/responses")

@@ -1,13 +1,8 @@
 {
-  "summary": "P0 Bug Fixes iteration 186 tested: Financials summary API (total_tax, net_income), Magic Links creation/preview endpoints, Invoices with auth, Quote send endpoint, Promo codes, Portal preview frontend (/portal/:token), Financials/Invoices/Billing/Wrap CC pages. 14/15 backend tests passed; 1 test assertion adjusted. All frontend pages load without JSX errors.",
+  "summary": "Backend-only regression tests for questionnaire resend and Stripe Connect. All 4 tests passed: questionnaire send with email (200, email_sent:true, success:true), idempotent resend (same store, second call also 200), GET /api/stripe-connect/status (200), POST /api/stripe-connect/create-account with return_url/refresh_url returns valid stripe.com URL (200).",
   "backend_issues": {
     "critical": [],
-    "minor": [
-      {
-        "endpoint": "POST /api/quotes/{id}/send",
-        "issue": "SendGrid returns 401 Unauthorized — API key may be invalid/expired in this environment. Response contains `email.sent: false, reason: HTTP Error 401: Unauthorized`. Quote is still marked as sent. This is expected per mocked_api notes but the SendGrid key issue should be verified."
-      }
-    ]
+    "minor": []
   },
   "frontend_issues": {
     "ui_bugs": [],
@@ -15,27 +10,16 @@
     "design_issues": []
   },
   "test_report_links": [
-    "/app/backend/tests/test_p0_fixes_186.py",
+    "/app/backend/tests/test_iteration186_backend.py",
     "/app/test_reports/pytest/iteration186_results.xml"
   ],
-  "action_items": [
-    "Verify SendGrid API key is valid — quote send endpoint returns 401 from SendGrid (email not delivered)"
-  ],
-  "critical_code_review_comments": [
-    "Magic link portal preview route GET /api/portal/preview/{token} is registered correctly via preview_router included in api_router",
-    "Financials summary correctly returns total_tax and net_income alias alongside net_profit — PASS",
-    "Invoice endpoints enforce auth (401 for unauthenticated requests) — PASS",
-    "Portal preview /portal/:token route correctly renders error state for invalid token"
-  ],
-  "updated_files": [
-    "/app/backend/tests/test_p0_fixes_186.py"
-  ],
-  "success_rate": {
-    "backend": "93% (14/15 — 1 was test assertion issue, not API failure)",
-    "frontend": "100%"
-  },
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (4/4)", "frontend": "N/A (not tested)"},
   "seed_data_creation": "None",
   "retest_needed": false,
   "should_main_agent_self_test": false,
-  "context_for_next_testing_agent": "All P0 fixes from iteration 186 are working. Financials page shows Total Sales, Sales Tax, Expenses, Net Income cards. Invoices page shows 38 invoices with proper auth. Portal preview (/portal/:token) shows 'Quote Not Found' for invalid token. Magic links endpoints wired correctly. SendGrid email sending is unreliable (401) in this environment — noted but expected per mocked_api config."
+  "context_for_next_testing_agent": "All backend endpoints confirmed working. Questionnaire resend is idempotent (200 on repeated calls for store fc0bad7e-9040-477e-93b9-a3f0b1a2df90). Stripe Connect status and create-account both return 200 with correct shape. Frontend fix for resend (showResendInput state in WebstoreSetupFlow.js) was not UI-tested in this iteration.",
+  "rca_of_the_issue": "Questionnaire resend bug was frontend-only: phase-gate condition blocked form from showing when phase='sent'. Fix: added showResendInput state so Resend button bypasses the phase check. Backend was always idempotent. Stripe was already working on backend."
 }

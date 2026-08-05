@@ -4576,6 +4576,7 @@ from routes.meta_integration import router as meta_integration_router
 from routes.facebook_messages import router as facebook_messages_router
 from routes.wrap import router as wrap_router
 from routes.inventory import router as inventory_router
+from routes.public_website import router as public_website_router
 
 # Platform Admin
 from routes.platform_admin import router as platform_admin_router
@@ -4587,6 +4588,7 @@ from routes.email_deliverability import (
     router as email_deliverability_router,
     sendgrid_webhook_router,
 )
+from routes.sms import router as sms_router
 
 # Include all routers in the api_router
 api_router.include_router(auth_router)
@@ -4669,10 +4671,12 @@ api_router.include_router(meta_integration_router)  # Meta/Facebook Messenger in
 api_router.include_router(facebook_messages_router)  # Facebook Leads inbox
 api_router.include_router(wrap_router)  # Wrap Command Center (Phase 2A: vehicle info + areas)
 api_router.include_router(inventory_router)  # Inventory, job materials, and manual purchasing
+api_router.include_router(public_website_router)  # Public website contact/support forms
 api_router.include_router(platform_admin_router)  # Platform Admin for tenant impersonation
 api_router.include_router(platform_settings_public_router)  # Public banner + maintenance reads
 api_router.include_router(platform_settings_admin_router)  # Platform Admin banner + maintenance writes
 api_router.include_router(email_deliverability_router)  # Email deliverability endpoints
+api_router.include_router(sms_router)  # SMS via Twilio
 api_router.include_router(sendgrid_webhook_router)  # Public SendGrid event webhook
 
 # Backup & Restore

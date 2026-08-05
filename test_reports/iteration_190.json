@@ -1,0 +1,55 @@
+{
+  "summary": "Tested 9 questionnaire UX fixes and admin review improvements. Fixed 1 bug (Event Date missing description render). All questionnaire UI requirements verified. Admin Staff Review panel working with all_answers list, AI generating placeholder, and safe fields display.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/webstores/v2/{id}/questionnaire/review-details",
+        "issue": "Returns 403 for platform_creator role (thesigntistslab@gmail.com). Only owner role can access. Users who can see the webstore setup flow should be able to view review details.",
+        "priority": "MEDIUM"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "AI summary background task: No existing questionnaire responses have ai_summary generated. Verify the background task is running after new submissions.",
+    "Safe fields test data: Existing test webstores with responses use OLD questionnaire templates (business store labels). SAFE_MAP only matches new event store template labels. Consider adding an event store with a fresh questionnaire response to test safe fields properly.",
+    "Permission issue: platform_creator role (thesigntistslab@gmail.com) cannot call review-details API even though they can access the webstore setup flow. Decide if platform_creator should have webstores:manage permission."
+  ],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/frontend/src/pages/PublicQuestionnaire.js"
+  ],
+  "bug_fixed": {
+    "file": "/app/frontend/src/pages/PublicQuestionnaire.js",
+    "issue": "Date type question render was missing {question.description} display. Event Date's hint text 'Leave blank if there is no specific event date' was never shown.",
+    "fix": "Added {question.description && <p className='text-xs text-gray-500'>{question.description}</p>} between Label and Input in the 'date' case of renderQuestion()"
+  },
+  "test_scenarios_verified": [
+    "PASS: Event Name hint text shows 'Leave blank if this doesn't apply to your group or event'",
+    "PASS (after fix): Event Date hint text now shows 'Leave blank if there is no specific event date'",
+    "PASS: Input placeholder text uses placeholder:text-gray-300 class (light gray)",
+    "PASS: Design style preferences hidden when artwork='Yes' (conditional: not_equals yes)",
+    "PASS: Sponsor questions hidden when artwork='Yes' (they depend on the also-hidden design inclusion question)",
+    "PASS: Step 5 Pricing has no 'pricing requirements or profit per item' question",
+    "PASS: Step 8 Pre-Launch Approval has only 2 questions (packet recipient + anything else)",
+    "PASS: Admin Staff Review 'View Answers & Summary' loads panel with 'All submitted answers (9)' expanded",
+    "PASS: Admin Staff Review shows 'AI summary generating...' placeholder when no summary exists",
+    "PASS: SAFE_MAP has 20 fields, all 20 match the new event store questionnaire labels exactly",
+    "INFO: Safe fields = 0 in test data because existing responses use OLD business store questionnaire labels"
+  ],
+  "success_rate": {
+    "backend": "95% (API works, one permission issue)",
+    "frontend": "100% (all 9 scenarios verified, 1 bug fixed)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All questionnaire UX fixes tested. Bug fixed: Event Date was missing description render. To test safe_fields > 0, need an event store with a submitted event-store questionnaire (uses new template with labels like 'What should the store be called?', 'Event Name' etc.). The existing test data only has business/fundraiser store questionnaire responses with old labels. Admin test done with signguypa@gmail.com (owner role) since thesigntistslab@gmail.com (platform_creator) gets 403 on review-details API.",
+  "rca_of_the_issue": "Event Date hint text bug: PublicQuestionnaire.js renderQuestion() handles type='date' but was missing the description paragraph that all other types have. The DB had the correct description text but it was never rendered. Fixed by adding the description render between Label and Input in the date case."
+}

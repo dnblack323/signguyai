@@ -48,6 +48,56 @@ As of 2026-04-25, all Stripe business logic is centralised in `backend/services/
 Invoice Stripe payments (`POST /stripe-connect/invoice/{id}/pay`) are independently usable with no webstore dependency.
 
 ## Implemented (CHANGELOG)
+- 2026-07-18 — **Questionnaire UX Polish + Admin Review Overhaul — COMPLETE & TESTED**
+  - **Questionnaire template fixes** (`models/questionnaires.py` + MongoDB migration):
+    - Event Name and Event Date: added "Leave blank if this doesn't apply" hint descriptions
+    - Design style preferences: now conditionally hidden when customer already has artwork
+    - Removed "Any specific pricing requirements or profit per item?" from Pricing section
+    - Removed "Do you want to review/approve before launch?" and "private preview link" questions
+    - Renamed "Who should review and approve" → "Who should receive the pre-launch review packet?"
+  - **SAFE_MAP rewrite** (`routes/webstores.py`): 20 mapped fields now use correct current question labels (old map had mismatched labels, only 3 fields applied)
+  - **Auto-fill name/email**: send questionnaire endpoint now prefills `Your Name` and `Your Email` from webstore owner data
+  - **AI Summary**: generated automatically on questionnaire submission, stored in response document, displayed prominently in admin Staff Review panel
+  - **StaffReviewPanel overhaul** (`WebstoreSetupFlow.js`): fixed list vs dict format, added AI Summary card, "All submitted answers" expandable view, removed broken Object.entries(safe) pattern
+  - **File storage**: moved from `/tmp/questionnaire_uploads/` to `/app/backend/uploads/questionnaires/` (persistent across pod restarts)
+  - **Placeholder text**: lighter gray (`text-gray-300`) so empty inputs don't look pre-filled
+  - **Permission fix**: `platform_creator` role now has full permissions (was getting 403 on review-details API)
+  - **Test**: 9/9 scenarios PASS, 1 bug found and fixed by testing agent (Event Date description was missing in date type render). Iteration_190.json.
+
+
+  - **Frontend** (`PublicQuestionnaire.js`): Fully rewritten as a multi-step wizard. Questions are automatically grouped into sections by `heading` type — each heading becomes one step. For the Event Store Setup Questionnaire this yields 9 steps.
+  - **Conditional logic**: `shouldShowQuestion()` evaluates against full `answers` state — hidden questions fully excluded from step validation. Dependent chains (sponsor logos, fundraiser sub-questions, personalization) all work correctly within and across steps.
+  - **Step validation**: `validateCurrentStep()` only validates visible questions in the current section.
+  - **Navigation**: Continue / Back buttons + clickable step dots (clicking a previous dot navigates back with all answers preserved).
+  - **Design**: Light stone-50 background, black body text, section titles + labels in rotating dark accent colors (dark red → dark blue → dark pink → dark purple → dark emerald → dark amber → dark teal → dark indigo). Colored top accent bar per step. Progress bar + "Step X of Y" counter.
+  - **Test**: 9/9 scenarios PASS (iteration_189.json).
+
+- 2026-07-17 — **Store Description + AI Rewrite — COMPLETE & TESTED**
+  - **Backend**: Added `store_description_rewrite` tool to `TOOL_PROMPTS` in `ai.py`. Prompt takes `store_name`, `store_type`, `owner_name`, `existing_description`, `products` and returns 80-120 word polished store copy. Fixed a subtle bug where the tool was accidentally placed inside `IMAGE_PROMPTS` (wrong dict) — moved it to the correct `TOOL_PROMPTS` dict. 6/6 backend tests pass.
+  - **Frontend**: Added "Store Description" card at the top of the Branding tab in the webstore detail dialog. Includes: resizable Textarea, character count display, auto-save on blur, explicit Save button with "Unsaved changes" warning, violet-accented "AI Rewrite" button (Wand2 icon) with spinner. `descriptionDraft` state syncs with the opened store. `handleSaveDescription` patches `description` field via `updateWebstore`. `handleAIRewriteDescription` calls `generateAIContent('store_description_rewrite', {...})` with store name, type, owner, products; updates textarea on success.
+  - Destructured `generateAIContent` from AppContext in `Webstores.js`. Added `Wand2` icon import.
+
+- 2026-07-16 — **Questionnaire Submit Alert (Dashboard Notification) — COMPLETE & TESTED**
+  - **Backend**: New `GET /api/dashboard/questionnaire-reviews` (auth, tenant-scoped) returns stores with unreviewed questionnaire submissions (submitted but `applied_to_webstore != true`). Returns `webstore_id`, `store_name`, `owner_name`, `submitted_at`, `age_hours`, `questionnaire_id`. Sorted oldest-first. 10/10 tests pass.
+  - **Frontend Dashboard**: New "Store Setup Reviews" section inside the `ActionRequiredCard`. Shows animated "N pending" teal badge, lists each store name + owner + age ("submitted 2h ago"), teal-highlighted rows with "Review" badge, "All stores →" link. Count rolls into "Action Required" header badge.
+  - **Deep Linking**: `/webstores` now handles `location.state.openStoreId` + `openTab` — clicking a store row from the dashboard auto-opens that store's Setup tab. State is cleared after navigation to prevent re-opening on back.
+
+- 2026-07-16 — **Questionnaire Resend + Stripe Return Handling — FIXED & TESTED**
+  - **Questionnaire Resend Bug**: The "Resend" button in Step 2 of `WebstoreSetupFlow.js` was resetting state but the send form was phase-gated to `not_sent|draft` only — so clicking Resend showed nothing. Fixed by adding `showResendInput` state: Resend now sets it to `true`, bypassing the phase gate and showing the email input. After successful resend, resets to `false`. Also added Cancel link so user can close the form.
+  - **Parent Questionnaire Status Refresh**: `handleSendQuestionnaireAfterCreate` in `Webstores.js` now refreshes `questionnaireStatus` via `getWebstoreQuestionnaire` after a successful send (when the store is currently open in the detail dialog). Phase now updates correctly in the UI after send.
+  - **Stripe Return Handling**: Added `stripe_return` / `stripe_refresh` query param handling in `Webstores.js` URL effect — after Stripe redirects back, `checkStripeStatus()` is called automatically so the page updates without a manual refresh.
+  - Backend 4/4 tests pass. Note: Stripe `charges_enabled: false` is expected (live mode requires real business KYC on Stripe's side, not a code bug).
+
+- 2026-07-16 — **Customer Upload Viewer — COMPLETE & TESTED**
+  - **Backend**: New `GET /api/questionnaires/{id}/uploads` endpoint (auth required, tenant-scoped). Returns list of all files uploaded by the customer during questionnaire completion, including `original_filename`, `content_type`, `size_bytes`, `uploaded_at`, `download_url`, and `file_exists` flag. Tested 5/5 backend assertions (200 valid, 404 unknown, 401 no-auth, regression on /responses).
+  - **Frontend**: New `CustomerUploadsPanel` component in `WebstoreSetupFlow.js` — collapsible drawer showing uploaded files with file-type icons, size, upload date, and download links. Shown in Step 4 (Staff Review) whenever questionnaire phase is `awaiting_review` or `applied`. Files in /tmp noted as temporary with warning if expired.
+  - **AppContext**: Added `getQuestionnaireUploads(questionnaireId)` function and export.
+
+- 2026-07-16 — **Stripe Connect Onboarding Fix (P0) + Contact Form Email Notification (P2) — COMPLETE**
+  - **Stripe Connect Fix**: `createStripeConnectAccount()` in `AppContext.js` was calling `POST /api/stripe-connect/create-account` with an empty body, causing a 422 validation error (backend requires `return_url` + `refresh_url`). Fixed by updating `AppContext.js` to pass `return_url`/`refresh_url` from `window.location.origin`, and `Webstores.js` `handleConnectStripe()` to supply `/webstores?stripe_return=true` and `/webstores?stripe_refresh=true` URLs.
+  - **Contact Form Email Fix**: `POST /api/public/contact` only saved to DB. Updated `routes/public_website.py` to send an HTML notification email to the platform admin (`SENDGRID_FROM_EMAIL`) after every submit. Failure is non-blocking.
+  - Verified via curl: Stripe Connect → 200 OK with valid `connect.stripe.com` onboarding URL. Contact form → 200 OK.
+
 - 2026-06-06 — **Admin Analytics Page — COMPLETE & LIVE**
   - New route: `/platform-admin/analytics` (platform_admin only, uses existing `require_platform_admin` guard)
   - New backend: `/app/backend/routes/admin_analytics.py` — 8 endpoints (overview, activity-chart, users, routes, sessions, referrers, errors, suspicious)

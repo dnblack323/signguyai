@@ -1,116 +1,118 @@
 """
-SMS Service — Twilio-powered transactional SMS.
+SMS Service
 
-Usage:
-    sms = SMSService()
-    await sms.send(to="+15551234567", body="Your quote is ready!")
+Handles sending SMS messages via Twilio including:
+- Appointment reminders
+- Order notifications
+- Portal access notifications
+- General transactional SMS
 """
 
 import os
 import logging
 from typing import Optional
 
-try:
-    from twilio.rest import Client
-    from twilio.base.exceptions import TwilioRestException
-except ImportError:
-    Client = None
-
-    class TwilioRestException(Exception):
-        """Fallback used only while the optional Twilio package is unavailable."""
-
 logger = logging.getLogger(__name__)
 
-ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
-AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
-FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
-
-
-def _format_phone(phone: str) -> Optional[str]:
-    """Normalize to E.164. Returns None if unparseable."""
-    if not phone:
-        return None
-    digits = "".join(c for c in phone if c.isdigit())
-    if len(digits) == 10:
-        return f"+1{digits}"
-    if len(digits) == 11 and digits.startswith("1"):
-        return f"+{digits}"
-    if len(digits) > 7:
-        return f"+{digits}"
-    return None
+try:
+    from twilio.rest import Client as TwilioClient
+    TWILIO_AVAILABLE = True
+except ImportError:
+    TWILIO_AVAILABLE = False
+    logger.warning("twilio package not installed. SMS features disabled.")
 
 
 class SMSService:
+    """SMS service using Twilio"""
+
     def __init__(self):
-        if Client is None:
-            logger.warning("Twilio package not installed; SMS disabled")
-            self._client = None
-            return
+        self.account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+        self.auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        self.from_number = os.environ.get("TWILIO_PHONE_NUMBER")
 
-        if not ACCOUNT_SID or not AUTH_TOKEN:
-            logger.warning("Twilio credentials not configured — SMS disabled")
-            self._client = None
-        else:
-            self._client = Client(ACCOUNT_SID, AUTH_TOKEN)
+    def is_configured(self) -> bool:
+        return TWILIO_AVAILABLE and bool(self.account_sid) and bool(self.auth_token) and bool(self.from_number)
 
-    async def send(self, to: str, body: str) -> dict:
-        """Send an SMS. Returns {"success": bool, "sid": str, "error": str}."""
-        if not self._client:
-            return {"success": False, "error": "SMS not configured"}
+    def _get_client(self) -> Optional["TwilioClient"]:
+        if not self.is_configured():
+            return None
+        return TwilioClient(self.account_sid, self.auth_token)
 
-        to_e164 = _format_phone(to)
-        if not to_e164:
+    async def send_sms(self, to: str, body: str) -> dict:
+        """
+        Send an SMS message.
+
+        Args:
+            to: Recipient phone number in E.164 format (+1XXXXXXXXXX)
+            body: SMS message body (max 160 chars recommended)
+
+        Returns:
+            dict with keys: success (bool), sid (str), error (str)
+        """
+        if not self.is_configured():
+            logger.warning("SMS service not configured — skipping send to %s", to)
+            return {"success": False, "error": "SMS service not configured"}
+
+        # Normalize to E.164
+        to_normalized = self._normalize_phone(to)
+        if not to_normalized:
             return {"success": False, "error": f"Invalid phone number: {to}"}
 
-        if not FROM_NUMBER:
-            return {"success": False, "error": "TWILIO_FROM_NUMBER not set"}
-
         try:
-            message = self._client.messages.create(
-                to=to_e164,
-                from_=FROM_NUMBER,
+            client = self._get_client()
+            message = client.messages.create(
                 body=body,
+                from_=self.from_number,
+                to=to_normalized,
             )
-            logger.info("SMS sent sid=%s to=%s", message.sid, to_e164)
+            logger.info("SMS sent to %s, SID: %s", to_normalized, message.sid)
             return {"success": True, "sid": message.sid}
-        except TwilioRestException as e:
-            logger.error("Twilio SMS error: %s", e)
-            return {"success": False, "error": str(e)}
         except Exception as e:
-            logger.error("SMS unexpected error: %s", e)
+            logger.error("Twilio SMS error sending to %s: %s", to_normalized, str(e))
             return {"success": False, "error": str(e)}
 
-    # ── Convenience helpers ───────────────────────────────────────────────────
+    def _normalize_phone(self, phone: str) -> Optional[str]:
+        """Ensure phone is in E.164 format. Returns None if invalid."""
+        if not phone:
+            return None
+        digits = "".join(filter(str.isdigit, phone))
+        if len(digits) == 10:
+            return f"+1{digits}"
+        elif len(digits) == 11 and digits.startswith("1"):
+            return f"+{digits}"
+        elif phone.startswith("+") and len(digits) >= 10:
+            return phone
+        return None
 
-    async def send_quote_notification(self, to: str, customer_name: str,
-                                       quote_number: str, total: float,
-                                       share_url: Optional[str] = None) -> dict:
-        name = customer_name.split()[0] if customer_name else "there"
+    # --- Convenience methods ---
+
+    async def send_appointment_reminder(self, to: str, customer_name: str, date: str, time: str, business_name: str) -> dict:
         body = (
-            f"Hi {name}, your quote #{quote_number} is ready — ${total:,.2f}. "
+            f"Hi {customer_name}! Reminder: You have an appointment at {business_name} "
+            f"on {date} at {time}. Reply STOP to opt out."
         )
-        if share_url:
-            body += f"View it here: {share_url}"
-        else:
-            body += "Reply to this number or contact us with any questions."
-        return await self.send(to, body)
+        return await self.send_sms(to, body)
 
-    async def send_invoice_notification(self, to: str, customer_name: str,
-                                         invoice_number: str, total: float,
-                                         due_date: Optional[str] = None) -> dict:
-        name = customer_name.split()[0] if customer_name else "there"
-        body = f"Hi {name}, invoice #{invoice_number} for ${total:,.2f} has been sent."
-        if due_date:
-            body += f" Due: {due_date}."
-        body += " Contact us with any questions."
-        return await self.send(to, body)
-
-    async def send_appointment_reminder(self, to: str, customer_name: str,
-                                         scheduled_time: str,
-                                         business_name: str = "us") -> dict:
-        name = customer_name.split()[0] if customer_name else "there"
+    async def send_order_notification(self, to: str, customer_name: str, order_id: str, status: str, business_name: str) -> dict:
         body = (
-            f"Hi {name}, reminder: you have an appointment with {business_name} "
-            f"on {scheduled_time}. Reply STOP to opt out."
+            f"Hi {customer_name}! Your order #{order_id} from {business_name} "
+            f"is now {status}. Reply STOP to opt out."
         )
-        return await self.send(to, body)
+        return await self.send_sms(to, body)
+
+    async def send_portal_access(self, to: str, customer_name: str, portal_url: str, business_name: str) -> dict:
+        body = (
+            f"Hi {customer_name}! {business_name} has shared a portal link with you: "
+            f"{portal_url}"
+        )
+        return await self.send_sms(to, body)
+
+    async def send_webstore_order_confirmation(self, to: str, customer_name: str, order_id: str, store_name: str) -> dict:
+        body = (
+            f"Hi {customer_name}! Your order #{order_id} at {store_name} has been received. "
+            f"We'll notify you when it's ready. Reply STOP to opt out."
+        )
+        return await self.send_sms(to, body)
+
+    async def send_custom(self, to: str, body: str) -> dict:
+        return await self.send_sms(to, body)

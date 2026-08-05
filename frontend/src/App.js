@@ -49,6 +49,7 @@ import OnboardingHub from "./pages/OnboardingHub";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetail from "./pages/OrderDetail";
 import WrapCommandCenterPage from "./pages/WrapCommandCenterPage";
+import WrapJobs from "./pages/WrapJobs";
 import NewOrderForm from "./pages/NewOrderForm";
 import AddTicketToOrder from "./pages/AddTicketToOrder";
 import JobTicketDetail from "./pages/JobTicketDetail";
@@ -128,6 +129,7 @@ import FoundersEditionPricing from "./pages/FoundersEditionPricing";
 import WhyFounderPage from "./pages/WhyFounderPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import SupportPage from "./pages/SupportPage";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
@@ -222,6 +224,7 @@ function ProtectedRoutes() {
           <Route path="/orders/new" element={<NewOrderForm />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
           <Route path="/orders/:orderId/items/:itemId/wrap-command-center" element={<WrapCommandCenterPage />} />
+          <Route path="/wraps" element={<WrapJobs />} />
           <Route path="/orders/:id/add-ticket" element={<AddTicketToOrder />} />
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
@@ -311,6 +314,7 @@ function App() {
                 <Route path="/why-founder" element={<WhyFounderPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/support" element={<SupportPage />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/data-deletion" element={<DataDeletion />} />

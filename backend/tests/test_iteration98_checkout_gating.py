@@ -186,7 +186,7 @@ class TestCheckoutGatingBehavior:
             }
         }
         
-        origin_url = "https://sms-invoices.preview.emergentagent.com"
+        origin_url = "https://sms-consent-demo.preview.emergentagent.com"
         response = requests.post(
             f"{BASE_URL}/api/stripe-connect/webstore/{TEST_STORE_ID}/checkout?origin_url={origin_url}",
             json=checkout_payload

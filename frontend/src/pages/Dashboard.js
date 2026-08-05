@@ -9,7 +9,7 @@ import {
   CheckCircle, Calendar, UserCheck, Coffee, Sun, Sunset, Moon,
   ChevronRight, Eye, Sparkles, Download, Send, ExternalLink,
   BarChart2, DollarSign, TrendingDown, Package, Layers,
-  RefreshCw, XCircle, Zap, Inbox, Activity
+  RefreshCw, XCircle, Zap, Inbox, Activity, Store, Bell
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
@@ -1023,14 +1023,23 @@ const SectionDivider = () => <div style={{ borderTop: '1px solid var(--border-li
 //           Invoices & Payments · Customer Actions
 // ─────────────────────────────────────────────
 
-const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
+const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData, qReviews }) => {
   const messages    = sortByUrgency(data?.unread_conversations || [], 'last_message_at');
   const approvals   = sortByUrgency(data?.approvals_signatures_pending || [], 'requested_at');
   const quotes      = sortByUrgency(data?.quote_followups || [], 'last_sent_at');
   const totalUnread = messages.reduce((sum, m) => sum + (m.unread_count || 0), 0);
   const overdueCount = summaryData?.metrics?.overdue?.count || 0;
   const unpaidCount  = summaryData?.metrics?.unpaid_invoices?.count || 0;
-  const totalActions = approvals.length + totalUnread + quotes.length + overdueCount;
+  const qReviewCount = (qReviews?.stores || []).length;
+  const totalActions = approvals.length + totalUnread + quotes.length + overdueCount + qReviewCount;
+
+  const fmtAge = (hours) => {
+    if (hours == null) return '';
+    if (hours < 1) return '<1h ago';
+    if (hours < 24) return `${Math.round(hours)}h ago`;
+    const days = Math.round(hours / 24);
+    return `${days}d ago`;
+  };
 
   return (
     <div className="rounded-xl" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-light)' }} data-testid="action-required">
@@ -1086,7 +1095,57 @@ const ActionRequiredCard = ({ data, loading, error, onRetry, summaryData }) => {
 
           <SectionDivider />
 
-          {/* ── 2. Messages ── */}
+          {/* ── 2. Store Questionnaire Reviews ── */}
+          {(qReviewCount > 0 || qReviews === null) && (
+            <div className="p-4">
+              <SectionLabel
+                icon={Store} iconColor="text-teal-400" label="Store Setup Reviews"
+                badge={qReviewCount > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold animate-pulse" style={{ backgroundColor: '#CCFBF1', color: '#0F766E', border: '1px solid #99F6E4' }} data-testid="q-reviews-badge">
+                    {qReviewCount} pending
+                  </span>
+                )}
+                right={<Link to="/webstores"><span className="text-[10px] text-blue-400 hover:underline">All stores →</span></Link>}
+              />
+              {qReviewCount === 0 ? (
+                <ActionEmptyRow text="No questionnaires awaiting review." />
+              ) : (
+                <div className="space-y-1.5">
+                  {(qReviews?.stores || []).slice(0, 4).map(s => (
+                    <Link
+                      key={s.webstore_id}
+                      to={`/webstores`}
+                      state={{ openStoreId: s.webstore_id, openTab: 'setup' }}
+                      data-testid={`q-review-row-${s.webstore_id}`}
+                    >
+                      <div className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.18)' }}>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-xs truncate" style={{ color: 'var(--text)' }}>{s.store_name}</p>
+                          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                            {s.owner_name} · submitted {fmtAge(s.age_hours)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#CCFBF1', color: '#0F766E', border: '1px solid #99F6E4' }}>
+                            Review
+                          </span>
+                          <ChevronRight className="h-3 w-3" style={{ color: 'var(--text-muted)' }} />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  {qReviewCount > 4 && (
+                    <p className="text-[10px] text-center pt-1" style={{ color: 'var(--text-muted)' }}>+{qReviewCount - 4} more in Webstores →</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <SectionDivider />
+
+          {/* ── 3. Messages ── */}
           <div className="p-4">
             <SectionLabel
               icon={MessageSquare} iconColor="text-blue-400" label="Messages"
@@ -1551,6 +1610,9 @@ export default function Dashboard() {
   const [productionSnapshot, setProductionSnapshot] = useState(null);
   const [customerAttention,  setCustomerAttention]  = useState(null);
   const [financialAttention, setFinancialAttention] = useState(null);
+  const [recentAIDocs,       setRecentAIDocs]       = useState([]);
+  const [qReviews,           setQReviews]           = useState(null);
+
   // Per-section loading/error states
   const [loadingSummary,    setLoadingSummary]    = useState(true);
   const [loadingCommand,    setLoadingCommand]    = useState(true);
@@ -1631,6 +1693,12 @@ export default function Dashboard() {
         fetchProductionSnapshot(),
         fetchCustomerAttention(),
         fetchFinancialAttention(),
+        axios.get(`${API}/dashboard/recent-ai-documents`, { headers: getHeaders() })
+          .then(res => setRecentAIDocs(res.data))
+          .catch(err => console.warn('[Dashboard] recent-ai-documents failed', err)),
+        axios.get(`${API}/dashboard/questionnaire-reviews`, { headers: getHeaders() })
+          .then(res => setQReviews(res.data))
+          .catch(err => console.warn('[Dashboard] questionnaire-reviews failed', err)),
       ]);
       setLoading(false);
       setGlobalUpdatedAt(new Date());
@@ -1731,6 +1799,7 @@ export default function Dashboard() {
             error={errorCustomer}
             onRetry={fetchCustomerAttention}
             summaryData={summaryV2}
+            qReviews={qReviews}
           />
         </div>
         <div>

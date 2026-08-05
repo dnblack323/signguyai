@@ -12,12 +12,23 @@ import {
   Send, Clock, CheckCircle2, MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Checkbox } from '../components/ui/checkbox';
+
+const API = process.env.REACT_APP_BACKEND_URL;
+const SUPPORT_EMAIL = 'support@signguy-ai.com';
+const MAILING_ADDRESS = '413 S Pittsburgh St, Connellsville, PA 15425';
+const SMS_DISCLOSURE_VERSION = 'signguy_ai_sms_v1';
 
 export default function ContactPage() {
+  if (typeof document !== 'undefined') {
+    document.title = 'Contact SignGuy AI | Operated by SignTists Lab';
+  }
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     company: '',
+    phone: '',
+    sms_opt_in: false,
     subject: '',
     message: '',
   });
@@ -28,12 +39,30 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    setSubmitted(true);
-    toast.success('Message sent! We\'ll get back to you soon.');
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        company: formData.company || null,
+        phone: formData.phone || null,
+        sms_opt_in: !!formData.sms_opt_in,
+        subject: formData.subject,
+        message: formData.message,
+      };
+      const response = await fetch(`${API}/api/public/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Unable to send message');
+      setSubmitted(true);
+      toast.success('Message sent! We\'ll get back to you soon.');
+    } catch (err) {
+      toast.error(err.message || 'Unable to send message');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactMethods = [
@@ -41,8 +70,15 @@ export default function ContactPage() {
       icon: Mail,
       title: 'Email',
       description: 'Send us an email anytime',
-      value: 'donnell@signguy-ai.com',
-      action: 'mailto:donnell@signguy-ai.com',
+      value: SUPPORT_EMAIL,
+      action: `mailto:${SUPPORT_EMAIL}`,
+    },
+    {
+      icon: MapPin,
+      title: 'Mailing Address',
+      description: 'Business mailing address',
+      value: MAILING_ADDRESS,
+      action: null,
     },
     {
       icon: MessageSquare,
@@ -88,11 +124,14 @@ export default function ContactPage() {
             Get In Touch
           </Badge>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            We'd Love to <span className="text-[#2F8BFB]">Hear From You</span>
+            We&apos;d Love to <span className="text-[#2F8BFB]">Hear From You</span>
           </h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
             Have a question, feature request, or just want to say hi? 
-            We're real people who actually respond.
+            We&apos;re real people who actually respond.
+          </p>
+          <p className="text-sm text-gray-400 max-w-3xl mx-auto mt-4" data-testid="contact-identity-text">
+            SignGuy AI is operated by SignTists Lab, a sole proprietorship owned by Donnell Nicole Black.
           </p>
         </div>
       </section>
@@ -100,7 +139,7 @@ export default function ContactPage() {
       {/* Contact Methods */}
       <section className="px-4 pb-12">
         <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {contactMethods.map((method, index) => (
               <Card key={index} className="bg-[#111826] border-white/10">
                 <CardContent className="p-6 text-center">
@@ -138,13 +177,13 @@ export default function ContactPage() {
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">Message Sent!</h3>
                     <p className="text-gray-400 mb-6">
-                      Thanks for reaching out. We'll get back to you within 24 hours.
+                      Thanks for reaching out. We&apos;ll get back to you within 24 hours.
                     </p>
                     <Button 
                       variant="outline" 
                       onClick={() => {
                         setSubmitted(false);
-                        setFormData({ name: '', email: '', company: '', subject: '', message: '' });
+                        setFormData({ name: '', email: '', company: '', phone: '', sms_opt_in: false, subject: '', message: '' });
                       }}
                       className="border-white/20 !text-white hover:bg-white/10 hover:!text-white bg-transparent"
                     >
@@ -194,6 +233,17 @@ export default function ContactPage() {
                           />
                         </div>
                         <div className="space-y-2">
+                          <Label htmlFor="phone">Mobile Number (optional)</Label>
+                          <Input
+                            id="phone"
+                            data-testid="contact-phone-input"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            placeholder="(555) 555-5555"
+                            className="bg-[#0B0F17] border-white/20"
+                          />
+                        </div>
+                        <div className="space-y-2">
                           <Label htmlFor="subject">Subject *</Label>
                           <Input
                             id="subject"
@@ -217,6 +267,23 @@ export default function ContactPage() {
                           placeholder="Tell us what's on your mind..."
                           className="bg-[#0B0F17] border-white/20 resize-none"
                         />
+                      </div>
+
+                      <div className="rounded-lg border border-white/10 p-3 bg-[#0B0F17]" data-testid="contact-sms-consent-block">
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            id="contact-sms-optin"
+                            data-testid="contact-sms-optin-checkbox"
+                            checked={formData.sms_opt_in}
+                            onCheckedChange={(checked) => setFormData({ ...formData, sms_opt_in: !!checked })}
+                          />
+                          <div className="text-xs text-slate-300 leading-relaxed">
+                            <Label htmlFor="contact-sms-optin" className="cursor-pointer font-medium text-slate-200">
+                              By checking this box, you agree to receive SMS/MMS messages from SignGuy AI, operated by SignTists Lab, about your account, platform access, billing, support, and service notifications. Message frequency varies. Message and data rates may apply. Reply STOP to opt out and HELP for help. Consent is not a condition of purchase. View our <Link to="/privacy" className="underline text-[#8bc4ff]">Privacy Policy</Link> and <Link to="/terms" className="underline text-[#8bc4ff]">Terms</Link>.
+                            </Label>
+                            <p className="text-[11px] text-slate-500 mt-1" data-testid="contact-sms-disclosure-version">Disclosure version: {SMS_DISCLOSURE_VERSION}</p>
+                          </div>
+                        </div>
                       </div>
                       
                       <Button 
@@ -260,7 +327,7 @@ export default function ContactPage() {
                     We actually build what our users need.
                   </p>
                   <p className="text-[#2F8BFB] text-sm">
-                    Just mention "Feature Request" in your message subject.
+                    Just mention &quot;Feature Request&quot; in your message subject.
                   </p>
                 </CardContent>
               </Card>

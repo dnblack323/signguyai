@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 
 export default function AboutPage() {
+  if (typeof document !== 'undefined') {
+    document.title = 'About SignGuy AI | Operated by SignTists Lab';
+  }
   const values = [
     {
       icon: Heart,
@@ -63,6 +66,16 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="pt-32 pb-16 px-4">
         <div className="max-w-7xl mx-auto">
+          <div className="mb-8 rounded-xl border border-[#2F8BFB]/30 bg-[#2F8BFB]/10 p-4" data-testid="about-signguy-identity-section">
+            <h2 className="text-lg font-semibold text-white mb-2">About SignGuy AI</h2>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              SignGuy AI is a software platform built for sign shops, wrap shops, print businesses, and related visual-branding companies. The platform helps businesses manage customers, quotes, orders, proofs, invoices, production workflows, customer portals, webstores, and customer communications.
+            </p>
+            <p className="text-sm text-gray-300 mt-2 leading-relaxed">
+              SignGuy AI is operated by SignTists Lab, a sole proprietorship owned by Donnell Nicole Black.
+            </p>
+          </div>
+
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <Badge className="mb-6 bg-[#2F8BFB]/20 text-[#2F8BFB] border-[#2F8BFB]/30 px-4 py-2">

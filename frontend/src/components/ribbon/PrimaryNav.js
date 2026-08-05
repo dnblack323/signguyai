@@ -4,8 +4,9 @@ import {
   LayoutDashboard, Briefcase, FileText, Receipt, Users, 
   Store, Sparkles, BarChart3, Settings, MessageCircle,
   Clock, DollarSign, FileCheck, Package, Tag, Calendar,
-  ClipboardList, BookOpen, HelpCircle, UserCog, Wallet, Send, Boxes, ShoppingCart,
-  Shield, Wrench, Mail, FolderOpen, Clipboard, Facebook
+  ClipboardList, BookOpen, HelpCircle, UserCog, Wallet, Send,
+  Shield, Wrench, Mail, FolderOpen, Clipboard, Facebook,
+  Boxes, ShoppingCart, Car
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -30,6 +31,7 @@ const primaryNavItems = [
 export const tabSubItems = {
   orders: [
     { label: 'All Orders', icon: Package, path: '/orders' },
+    { label: 'Wrap Jobs', icon: Car, path: '/wraps' },
     { label: 'Production Board', icon: Wrench, path: '/production-board' },
     { label: 'Inventory', icon: Boxes, path: '/inventory', permission: 'inventory:view' },
     { label: 'Purchasing', icon: ShoppingCart, path: '/purchasing', permission: 'purchasing:manage' },
@@ -102,6 +104,7 @@ export const tabSubItems = {
 const routeToNavItem = {
   '/dashboard': 'dashboard',
   '/orders': 'orders',
+  '/wraps': 'orders',
   '/production-board': 'orders',
   '/inventory': 'orders',
   '/purchasing': 'orders',

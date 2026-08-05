@@ -5,7 +5,7 @@
 > **Test account:** `signguypa@gmail.com` / `Billnel323`
 > **Stripe test cards:** `4242 4242 4242 4242` (success) · `4000 0000 0000 0002` (declined) · `4000 0025 0000 3155` (3DS required)
 > **Business timezone:** America/New_York
-> **Preview URL pattern:** `https://sms-invoices.preview.emergentagent.com` (read actual value from `REACT_APP_BACKEND_URL`)
+> **Preview URL pattern:** `https://sms-consent-demo.preview.emergentagent.com` (read actual value from `REACT_APP_BACKEND_URL`)
 >
 > **Reference numbering.** Each section has a stable `X.Y` number. When we discuss an item, refer to it like **“2.3c”** or **“4.2 #5”** and we’ll both know exactly what you mean.
 
