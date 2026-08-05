@@ -10,8 +10,14 @@ import os
 import logging
 from typing import Optional
 
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+try:
+    from twilio.rest import Client
+    from twilio.base.exceptions import TwilioRestException
+except ImportError:
+    Client = None
+
+    class TwilioRestException(Exception):
+        """Fallback used only while the optional Twilio package is unavailable."""
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +42,11 @@ def _format_phone(phone: str) -> Optional[str]:
 
 class SMSService:
     def __init__(self):
+        if Client is None:
+            logger.warning("Twilio package not installed; SMS disabled")
+            self._client = None
+            return
+
         if not ACCOUNT_SID or not AUTH_TOKEN:
             logger.warning("Twilio credentials not configured — SMS disabled")
             self._client = None

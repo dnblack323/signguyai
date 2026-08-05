@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from server import db, logger, get_current_active_user
 from models import UserInDB
+from services.public_quote import serialize_public_quote
 
 router = APIRouter(prefix="/magic-links", tags=["Magic Links"])
 preview_router = APIRouter(prefix="/portal", tags=["Portal Preview"])
@@ -131,6 +132,10 @@ async def view_via_magic_link(token: str):
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 
+    public_resource = resource
+    if link["resource_type"] == "quote":
+        public_resource = serialize_public_quote(resource)
+
     customer = None
     if resource.get("customer_id"):
         customer = await db.customers.find_one(
@@ -145,7 +150,7 @@ async def view_via_magic_link(token: str):
 
     return {
         "resource_type": link["resource_type"],
-        "resource": resource,
+        "resource": public_resource,
         "customer": customer,
         "tenant": tenant,
         "link_expires_at": link["expires_at"],
