@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 
 export default function PricingPage() {
   const handleCalculationComplete = (itemData) => {
-    console.log('Item calculated:', itemData);
     toast.success(`Item added: ${itemData.description} - $${itemData.line_total.toFixed(2)}`);
   };
 

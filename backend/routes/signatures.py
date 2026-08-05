@@ -17,6 +17,7 @@ from server import db, get_current_active_user, logger
 from models import UserInDB
 from services.object_storage import get_object, put_object
 from services.email_service import email_service
+from services.inventory_service import release_order, reserve_order
 
 router = APIRouter(prefix="/signatures", tags=["Signatures"])
 
@@ -254,32 +255,48 @@ async def _store_signature_image(signature_id: str, order_id: Optional[str], ima
 async def _apply_signed_status(signature: dict):
     parent_type = signature.get("parent_record_type")
     parent_id = signature.get("parent_record_id")
+    tenant_id = signature.get("tenant_id")
     now = datetime.now(timezone.utc).isoformat()
 
+    base_filter = {"id": parent_id}
+    if tenant_id:
+        base_filter["tenant_id"] = tenant_id
+
     if parent_type == "order":
-        await db.orders.update_one({"id": parent_id}, {"$set": {"approval_status": "approved", "updated_at": now}})
+        await db.orders.update_one(base_filter, {"$set": {"approval_status": "approved", "updated_at": now}})
+        order = await db.orders.find_one(base_filter, {"_id": 0, "tenant_id": 1})
+        if order and order.get("tenant_id"):
+            await reserve_order(db, order["tenant_id"], parent_id, {"id": "system", "name": "Signature approval"})
     elif parent_type == "proof":
-        await db.artwork_proofs.update_one({"id": parent_id}, {"$set": {"status": "approved", "approved_at": now}})
+        await db.artwork_proofs.update_one(base_filter, {"$set": {"status": "approved", "approved_at": now}})
     elif parent_type == "quote":
-        await db.order_quotes.update_one({"id": parent_id}, {"$set": {"status": "approved", "updated_at": now}})
-        await db.quotes.update_one({"id": parent_id}, {"$set": {"status": "approved", "updated_at": now}})
+        await db.order_quotes.update_one(base_filter, {"$set": {"status": "approved", "updated_at": now}})
+        await db.quotes.update_one(base_filter, {"$set": {"status": "approved", "updated_at": now}})
     elif parent_type == "invoice":
-        await db.order_quotes.update_one({"id": parent_id}, {"$set": {"payment_authorized_at": now, "updated_at": now}})
-        await db.invoices.update_one({"id": parent_id}, {"$set": {"payment_authorized_at": now, "updated_at": now}})
+        await db.order_quotes.update_one(base_filter, {"$set": {"payment_authorized_at": now, "updated_at": now}})
+        await db.invoices.update_one(base_filter, {"$set": {"payment_authorized_at": now, "updated_at": now}})
 
 
 async def _apply_declined_status(signature: dict, notes: Optional[str]):
     parent_type = signature.get("parent_record_type")
     parent_id = signature.get("parent_record_id")
+    tenant_id = signature.get("tenant_id")
     now = datetime.now(timezone.utc).isoformat()
 
+    base_filter = {"id": parent_id}
+    if tenant_id:
+        base_filter["tenant_id"] = tenant_id
+
     if parent_type == "order":
-        await db.orders.update_one({"id": parent_id}, {"$set": {"approval_status": "rejected", "updated_at": now}})
+        await db.orders.update_one(base_filter, {"$set": {"approval_status": "rejected", "updated_at": now}})
+        order = await db.orders.find_one(base_filter, {"_id": 0, "tenant_id": 1})
+        if order and order.get("tenant_id"):
+            await release_order(db, order["tenant_id"], parent_id, {"id": "system", "name": "Signature decision"}, "Order approval rejected")
     elif parent_type == "proof":
-        await db.artwork_proofs.update_one({"id": parent_id}, {"$set": {"status": "revision_requested", "customer_comment": notes, "updated_at": now}})
+        await db.artwork_proofs.update_one(base_filter, {"$set": {"status": "revision_requested", "customer_comment": notes, "updated_at": now}})
     elif parent_type == "quote":
-        await db.order_quotes.update_one({"id": parent_id}, {"$set": {"status": "declined", "updated_at": now}})
-        await db.quotes.update_one({"id": parent_id}, {"$set": {"status": "declined", "updated_at": now}})
+        await db.order_quotes.update_one(base_filter, {"$set": {"status": "declined", "updated_at": now}})
+        await db.quotes.update_one(base_filter, {"$set": {"status": "declined", "updated_at": now}})
 
 
 @router.get("")
@@ -549,8 +566,28 @@ async def sign_public_request(token: str, payload: PublicSignatureCapturePayload
     if not signature:
         raise HTTPException(status_code=404, detail="Signature request not found")
     await _require_signature_feature_enabled(signature["tenant_id"])
-    if signature.get("status") == "signed":
+
+    # Block re-signing or signing a declined/expired/completed request
+    sig_status = signature.get("status")
+    if sig_status == "signed":
         raise HTTPException(status_code=400, detail="Signature has already been completed")
+    if sig_status == "declined":
+        raise HTTPException(status_code=400, detail="This request was already declined and cannot be signed")
+    if sig_status == "expired":
+        raise HTTPException(status_code=410, detail="Signature request has expired")
+    # Also check expiry timestamp
+    if signature.get("expires_at"):
+        try:
+            expires = datetime.fromisoformat(signature["expires_at"].replace("Z", "+00:00"))
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) > expires:
+                await db.signatures.update_one({"id": signature["id"]}, {"$set": {"status": "expired", "updated_at": datetime.now(timezone.utc).isoformat()}})
+                raise HTTPException(status_code=410, detail="Signature request has expired")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
 
     # Extract client IP address
     client_ip = None
@@ -588,6 +625,15 @@ async def decline_public_request(token: str, payload: PublicSignatureDeclinePayl
     if not signature:
         raise HTTPException(status_code=404, detail="Signature request not found")
     await _require_signature_feature_enabled(signature["tenant_id"])
+
+    sig_status = signature.get("status")
+    if sig_status == "declined":
+        raise HTTPException(status_code=400, detail="This request has already been declined")
+    if sig_status == "signed":
+        raise HTTPException(status_code=400, detail="This request has already been signed and cannot be declined")
+    if sig_status == "expired":
+        raise HTTPException(status_code=410, detail="Signature request has expired")
+
     now = datetime.now(timezone.utc).isoformat()
     await db.signatures.update_one({"id": signature["id"]}, {"$set": {
         "status": "declined",
@@ -600,8 +646,12 @@ async def decline_public_request(token: str, payload: PublicSignatureDeclinePayl
 
 
 @router.get("/file/{signature_id}")
-async def get_signature_file(signature_id: str):
-    signature = await db.signatures.find_one({"id": signature_id, "signature_storage_path": {"$exists": True}}, {"_id": 0, "signature_storage_path": 1})
+async def get_signature_file(signature_id: str, current_user: UserInDB = Depends(get_current_active_user)):
+    """Download a signature image — authenticated, tenant-scoped."""
+    signature = await db.signatures.find_one(
+        {"id": signature_id, "tenant_id": current_user.tenant_id, "signature_storage_path": {"$exists": True}},
+        {"_id": 0, "signature_storage_path": 1}
+    )
     if not signature:
         raise HTTPException(status_code=404, detail="Signature image not found")
     data, _content_type = get_object(signature["signature_storage_path"])

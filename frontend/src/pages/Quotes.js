@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useReducer } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -49,8 +49,12 @@ export default function Quotes() {
     createQuote, updateQuote, convertQuoteToJob, createCustomer 
   } = useApp();
   const { token } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [loadingState, dispatchLoading] = useReducer(
+    (s, a) => a === 'LOADING' ? true : false, false
+  );
+  const loading = loadingState;
   const [statusFilter, setStatusFilter] = useState('all');
+  const [customerFilter, setCustomerFilter] = useState(() => new URLSearchParams(window.location.search).get('customer_id') || 'all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingQuote, setEditingQuote] = useState(null);
   const [formData, setFormData] = useState({
@@ -131,11 +135,11 @@ export default function Quotes() {
   };
 
   const loadData = useCallback(async () => {
-    setLoading(true);
+    dispatchLoading('LOADING');
     const params = {};
     if (statusFilter !== 'all') params.status = statusFilter;
     await Promise.all([fetchQuotes(params), fetchCustomers()]);
-    setLoading(false);
+    dispatchLoading('DONE');
   }, [fetchCustomers, fetchQuotes, statusFilter]);
 
   useEffect(() => {
@@ -282,7 +286,8 @@ export default function Quotes() {
         setPortalLink(link);
         toast.success('Share link created (expires in 7 days)');
       } else {
-        toast.error('Failed to generate share link');
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.detail || 'Failed to generate share link');
       }
     } catch (err) {
       toast.error('Failed to generate share link');
@@ -310,9 +315,25 @@ export default function Quotes() {
       toast.error('Customer has no email address');
       return;
     }
-    // For now, show a toast with instructions
-    // In production, this would integrate with an email service
-    toast.success(`Quote ready to email to ${customer.email}. Email integration coming soon!`);
+    try {
+      const res = await fetch(`${API_URL}/api/quotes/${selectedQuote.id}/send`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to send quote');
+      }
+      const data = await res.json();
+      if (data.email?.sent) {
+        toast.success(`Quote emailed to ${customer.email}`);
+      } else {
+        toast.success('Quote marked as sent');
+      }
+      await fetchQuotes();
+    } catch (err) {
+      toast.error(err.message || 'Failed to send quote');
+    }
   };
 
   return (
@@ -484,32 +505,47 @@ export default function Quotes() {
       {/* Filters */}
       <Card className="bg-white border-gray-200">
         <CardContent className="p-4">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]" data-testid="quote-filter-status">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              {statusOptions.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]" data-testid="quote-filter-status">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {statusOptions.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {customerFilter !== 'all' && (() => {
+              const cust = customers.find(c => c.id === customerFilter);
+              return (
+                <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700" data-testid="quote-customer-filter-chip">
+                  Customer: <span className="font-medium ml-1">{cust?.name || cust?.company || customerFilter}</span>
+                  <button className="ml-2 hover:text-blue-900" onClick={() => setCustomerFilter('all')} aria-label="Clear customer filter">×</button>
+                </div>
+              );
+            })()}
+          </div>
         </CardContent>
       </Card>
 
       {/* Quotes List */}
       <Card className="bg-white border-gray-200">
         <CardContent className="p-0">
-          {loading ? (
+          {(() => {
+            const filteredQuotes = quotes.filter(q =>
+              (customerFilter === 'all' || q.customer_id === customerFilter)
+            );
+            return loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
-          ) : quotes.length === 0 ? (
+          ) : filteredQuotes.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <p>No quotes found</p>
+              <p>{customerFilter !== 'all' ? 'No quotes for this customer' : 'No quotes found'}</p>
               <Button variant="link" onClick={() => setIsDialogOpen(true)}>
                 Create your first quote
               </Button>
@@ -528,7 +564,7 @@ export default function Quotes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {quotes.map((quote, idx) => (
+                {filteredQuotes.map((quote, idx) => (
                   <TableRow 
                     key={quote.id} 
                     className={`cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-transparent' : 'bg-gray-50'} hover:bg-gray-50/50`}
@@ -594,7 +630,8 @@ export default function Quotes() {
                 ))}
               </TableBody>
             </Table>
-          )}
+          );
+          })()}
         </CardContent>
       </Card>
 

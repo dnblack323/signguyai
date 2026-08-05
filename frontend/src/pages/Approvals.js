@@ -279,13 +279,17 @@ export default function Approvals() {
   const handleResend = async (proofId) => {
     try {
       const token = getAuthToken();
-      await fetch(`${API}/api/approvals/${proofId}/resend`, {
+      const res = await fetch(`${API}/api/approvals/${proofId}/resend`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to send reminder');
+      }
       toast.success('Reminder sent to customer');
     } catch (err) {
-      toast.error('Failed to send reminder');
+      toast.error(err.message || 'Failed to send reminder');
     }
   };
 
@@ -294,14 +298,18 @@ export default function Approvals() {
     
     try {
       const token = getAuthToken();
-      await fetch(`${API}/api/approvals/${proofId}`, {
+      const res = await fetch(`${API}/api/approvals/${proofId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to delete proof');
+      }
       toast.success('Proof deleted');
       loadData();
     } catch (err) {
-      toast.error('Failed to delete proof');
+      toast.error(err.message || 'Failed to delete proof');
     }
   };
 

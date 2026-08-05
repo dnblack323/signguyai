@@ -295,6 +295,9 @@ export default function ProductionBoard() {
                             </div>
                             {/* Quick Actions */}
                             <div className="flex gap-1 mt-2">
+                              <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-blue-600" onClick={() => navigate(`/job-tickets/${task.ticket_id || task.job_ticket_id}?tab=materials`)}>
+                                <Package className="w-3 h-3 mr-0.5" />Materials
+                              </Button>
                               {task.status !== 'complete' && task.status !== 'in_progress' && (
                                 <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-violet-600" onClick={() => updateTask(task.id, { status: 'in_progress' })} disabled={taskLoading === task.id}>
                                   {taskLoading === task.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Play className="w-3 h-3 mr-0.5" />Start</>}
@@ -314,11 +317,6 @@ export default function ProductionBoard() {
                               {!rollupByTicket && stages.findIndex(s => s.key === stage.key) < stages.length - 1 && task.status !== 'complete' && (
                                 <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-blue-600 ml-auto" onClick={() => moveToStage(task.id, stages[stages.findIndex(s => s.key === stage.key) + 1].key)} disabled={taskLoading === task.id}>
                                   <ArrowRight className="w-3 h-3 mr-0.5" />Next
-                                </Button>
-                              )}
-                              {(task.ticket_id || task.job_ticket_id) && (
-                                <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-blue-600" onClick={() => navigate(`/job-tickets/${task.ticket_id || task.job_ticket_id}?tab=materials`)}>
-                                  <Package className="w-3 h-3 mr-0.5" />Materials
                                 </Button>
                               )}
                             </div>

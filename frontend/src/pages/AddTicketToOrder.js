@@ -52,7 +52,7 @@ export default function AddTicketToOrder() {
   const [ticket, setTicket] = useState({
     item_name: '', item_category: '', quantity: 1, priority: 'normal',
     production_flow_enabled: false, design_needed: false, proof_required: false,
-    estimated_price: 0, special_instructions: '', specs: {},
+    estimated_price: 0, special_instructions: '', description: '', specs: {},
   });
 
   // Load existing order info
@@ -78,7 +78,7 @@ export default function AddTicketToOrder() {
     setTicket({
       item_name: '', item_category: '', quantity: 1, priority: 'normal',
       production_flow_enabled: false, design_needed: false, proof_required: false,
-      estimated_price: 0, special_instructions: '', specs: {},
+      estimated_price: 0, special_instructions: '', description: '', specs: {},
     });
     setEntryMode('quick');
   };
@@ -102,6 +102,7 @@ export default function AddTicketToOrder() {
         proof_required: ticket.proof_required || false,
         estimated_price: ticket.estimated_price || 0,
         special_instructions: ticket.special_instructions || '',
+        description: ticket.description || ticket.special_instructions || '',
         specs: ticket.specs || {},
       }, { headers: hdrs() });
 
@@ -270,8 +271,8 @@ export default function AddTicketToOrder() {
               <div>
                 <Label className="text-gray-700">Description / Notes</Label>
                 <Textarea 
-                  value={ticket.special_instructions} 
-                  onChange={e => updateTicket('special_instructions', e.target.value)} 
+                  value={ticket.description || ticket.special_instructions} 
+                  onChange={e => updateTicket('description', e.target.value)} 
                   placeholder="Describe the item, materials, specs..." 
                   className="bg-gray-50 border-gray-300 text-gray-900" 
                   rows={3} 

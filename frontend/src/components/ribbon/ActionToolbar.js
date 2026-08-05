@@ -9,6 +9,7 @@ import {
 import { cn } from '../../lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import { tabSubItems } from './PrimaryNav';
+import { useAuth } from '../../context/AuthContext';
 
 const ToolbarButton = ({ icon: Icon, label, onClick, active = false, route, currentPath, href }) => {
   const routeBase = route?.split('?')[0];
@@ -78,7 +79,8 @@ export const ActionToolbar = ({ activeTab }) => {
   const location = useLocation();
   const currentPath = location.pathname;
   
-  const subItems = tabSubItems[activeTab] || [];
+  const { hasPermission } = useAuth();
+  const subItems = (tabSubItems[activeTab] || []).filter(item => !item.permission || hasPermission(item.permission));
   const actions = quickActions[activeTab] || [];
 
   return (

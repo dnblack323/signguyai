@@ -92,6 +92,7 @@ import PortalDocuments from "./pages/PortalDocuments";
 import { PortalQuotes, PortalInvoices, PortalAppointments } from "./pages/PortalPages";
 import { PortalForms, PortalFormDetail } from "./pages/PortalForms";
 import PortalWebstores from "./pages/PortalWebstores";
+import PortalPreview from "./pages/PortalPreview";
 
 // Employee Portal Pages
 import EmployeePortalLogin from "./pages/EmployeePortalLogin";
@@ -227,6 +228,8 @@ function ProtectedRoutes() {
           <Route path="/orders/:id/add-ticket" element={<AddTicketToOrder />} />
           <Route path="/job-tickets/:ticketId" element={<JobTicketDetail />} />
           <Route path="/production-board" element={<ProductionBoard />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/purchasing" element={<Purchasing />} />
           <Route path="/workflow-templates" element={<Navigate to="/settings/production" replace />} />
           {/* Legacy redirects — Jobs/Quotes now go to Orders */}
           <Route path="/quotes" element={<Quotes />} />
@@ -268,8 +271,6 @@ function ProtectedRoutes() {
           <Route path="/pricing-foundation" element={<PricingFoundation />} />
           <Route path="/pricing-settings" element={<PricingSettings />} />
           <Route path="/materials-admin" element={<MaterialsAdmin />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/purchasing" element={<Purchasing />} />
           <Route path="/materials" element={<Navigate to="/pricing-foundation" replace />} />
           <Route path="/billing" element={<BillingManagement />} />
           <Route path="/questionnaires" element={<Questionnaires />} />
@@ -385,6 +386,7 @@ function App() {
                 {/* Customer Portal Routes - Separate Auth */}
                 <Route path="/customer-portal/login" element={<PortalLogin />} />
                 <Route path="/customer-portal" element={<PortalDashboard />} />
+                <Route path="/portal/:token" element={<PortalPreview />} />
                 <Route path="/customer-portal/orders" element={<PortalOrders />} />
                 <Route path="/customer-portal/orders/:orderId" element={<PortalOrderDetail />} />
                 <Route path="/customer-portal/forms" element={<PortalForms />} />

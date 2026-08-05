@@ -225,7 +225,7 @@ export default function PricingSetup() {
 
           toast.success('AI pricing analysis complete');
           await loadImportDetail(selectedImportId);
-          return response.json;
+          return await response.json();
         } catch (error) {
           toast.error(error.message || 'Analysis failed');
           throw error;

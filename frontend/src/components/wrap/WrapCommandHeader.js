@@ -1,21 +1,10 @@
 // Phase 1: Sticky page header — shows merged order/item info + action buttons.
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Send, FileSignature, ClipboardList, Wand2, CalendarClock, Heart, Package, CheckCircle2, MessageSquare, UserSquare, FileText as FileTextIcon } from 'lucide-react';
+import { ArrowLeft, MessageSquare, UserSquare, FileText as FileTextIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { toast } from 'sonner';
-import { TOAST_PHASE1 } from './constants';
 
-const HEADER_ACTIONS = [
-  { id: 'send_quote',       label: 'Send Quote',          icon: Send },
-  { id: 'send_contract',    label: 'Send Contract',       icon: FileSignature },
-  { id: 'send_quest',       label: 'Send Questionnaire',  icon: ClipboardList },
-  { id: 'create_mockup',    label: 'Create AI Mockup',    icon: Wand2 },
-  { id: 'schedule_install', label: 'Schedule Install',    icon: CalendarClock },
-  { id: 'send_aftercare',   label: 'Send Aftercare',      icon: Heart },
-  { id: 'final_packet',     label: 'Generate Final Packet', icon: Package },
-  { id: 'mark_complete',    label: 'Mark Complete',       icon: CheckCircle2 },
-];
+const HEADER_ACTIONS = [];  // Phase 2: These will be wired to real actions
 
 const money = (n) => (typeof n === 'number' ? `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—');
 
@@ -92,20 +81,7 @@ export default function WrapCommandHeader({ orderId, header, saveStatus, saveErr
             </Button>
           </Link>
         </div>
-        <div className="flex flex-wrap gap-1.5" data-testid="wrap-header-actions">
-          {HEADER_ACTIONS.map((a) => (
-            <Button
-              key={a.id}
-              size="sm"
-              variant="outline"
-              className="text-xs h-8"
-              onClick={() => toast.message(a.label, { description: TOAST_PHASE1 })}
-              data-testid={`wrap-header-action-${a.id}`}
-            >
-              <a.icon className="h-3.5 w-3.5 mr-1" /> {a.label}
-            </Button>
-          ))}
-        </div>
+        {/* Header action buttons removed for launch — these will be wired to real actions in Phase 2 */}
       </div>
     </div>
   );

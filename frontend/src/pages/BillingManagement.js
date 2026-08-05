@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Crown, Sparkles, Shield, CreditCard, Check,
@@ -16,6 +16,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function BillingManagement() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, token } = useAuth();
   const [planData, setPlanData] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
@@ -26,6 +27,16 @@ export default function BillingManagement() {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: '/billing' } });
       return;
+    }
+    const checkoutStatus = searchParams.get('checkout');
+    const sessionId = searchParams.get('session_id');
+    if (checkoutStatus === 'success' || sessionId) {
+      navigate('/billing/success' + (sessionId ? `?session_id=${sessionId}` : ''), { replace: true });
+      return;
+    }
+    if (checkoutStatus === 'cancel') {
+      toast.info('Checkout was cancelled. Your plan has not changed.');
+      navigate('/billing', { replace: true });
     }
     fetchPlanData();
     fetchPaymentHistory();

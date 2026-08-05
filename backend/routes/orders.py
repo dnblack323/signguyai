@@ -26,6 +26,7 @@ from models.orders import (
 from services.workflow_engine import update_order_progress, log_activity
 from services.object_storage import get_object, put_object
 from services.storage_config import APP_NAME
+from services.inventory_service import release_order, reserve_order
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -203,8 +204,19 @@ async def update_order(order_id: str, data: OrderUpdate, current_user: UserInDB 
     if "status" in update_data and update_data["status"] == OrderStatus.COMPLETED.value:
         update_data["final_completion_date"] = datetime.now(timezone.utc).isoformat()
 
-    await db.orders.update_one({"id": order_id}, {"$set": update_data})
-    updated = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    await db.orders.update_one({"id": order_id, "tenant_id": current_user.tenant_id}, {"$set": update_data})
+    actor = {"id": current_user.id, "name": current_user.full_name or ""}
+    became_approved = (
+        ("approval_status" in update_data and update_data["approval_status"] == "approved" and existing.get("approval_status") != "approved")
+        or ("status" in update_data and update_data["status"] == "approved" and existing.get("status") != "approved")
+    )
+    became_cancelled = "status" in update_data and update_data["status"] == OrderStatus.CANCELLED.value and existing.get("status") != OrderStatus.CANCELLED.value
+    approval_rejected = "approval_status" in update_data and update_data["approval_status"] == "rejected" and existing.get("approval_status") != "rejected"
+    if became_approved:
+        await reserve_order(db, current_user.tenant_id, order_id, actor)
+    elif became_cancelled or approval_rejected:
+        await release_order(db, current_user.tenant_id, order_id, actor, "Order cancelled" if became_cancelled else "Order approval rejected")
+    updated = await db.orders.find_one({"id": order_id, "tenant_id": current_user.tenant_id}, {"_id": 0})
     return updated
 
 
@@ -216,8 +228,18 @@ async def delete_order(order_id: str, current_user: UserInDB = Depends(get_curre
     if not existing:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    await release_order(
+        db, current_user.tenant_id, order_id,
+        {"id": current_user.id, "name": current_user.full_name or ""},
+        "Order deleted",
+    )
     await db.orders.delete_one({"id": order_id})
     await db.job_tickets.delete_many({"order_id": order_id, "tenant_id": current_user.tenant_id})
+    await db.material_requirements.delete_many({"order_id": order_id, "tenant_id": current_user.tenant_id})
+    await db.inventory_shortages.update_many(
+        {"order_id": order_id, "tenant_id": current_user.tenant_id},
+        {"$set": {"status": "cancelled", "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
     await db.production_tasks.delete_many({"order_id": order_id, "tenant_id": current_user.tenant_id})
     await db.order_activities.delete_many({"order_id": order_id})
     return {"message": "Order and related records deleted"}

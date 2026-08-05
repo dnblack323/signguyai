@@ -162,6 +162,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 class DashboardStats(BaseModel):
     total_customers: int = 0
+    today_customers: int = 0    # Customers added today
     active_jobs: int = 0        # Backward-compat field — now populated from db.orders
     active_orders: int = 0      # Phase 1 addition — explicit Orders count
     pending_invoices: int = 0
@@ -216,6 +217,12 @@ async def get_dashboard_stats(current_user: UserInDB = Depends(get_current_activ
     # Total customers
     total_customers = await db.customers.count_documents({"tenant_id": tenant_id})
 
+    # Today's new customers
+    today_customers = await db.customers.count_documents({
+        "tenant_id": tenant_id,
+        "created_at": {"$regex": f"^{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"},
+    })
+
     # FIXED: Active orders from db.orders (new 4-layer system), not legacy db.jobs
     active_orders = await db.orders.count_documents({
         "tenant_id": tenant_id,
@@ -247,6 +254,7 @@ async def get_dashboard_stats(current_user: UserInDB = Depends(get_current_activ
 
     return DashboardStats(
         total_customers=total_customers,
+        today_customers=today_customers,
         active_jobs=active_orders,       # backward-compat key, same value
         active_orders=active_orders,
         pending_invoices=pending_invoices,

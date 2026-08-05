@@ -288,8 +288,9 @@ export function AuthProvider({ children }) {
 
   // Check if user has a specific permission
   const hasPermission = (permission) => {
-    // Owner has all permissions
+    // Owner, platform_creator, and platform_admin have all permissions
     if (user?.role === UserRole.OWNER || user?.role === 'owner') return true;
+    if (user?.role === 'platform_creator' || user?.role === 'platform_admin') return true;
     if (permissions.includes(permission)) return true;
     const aliases = PERMISSION_ALIASES[permission] || [];
     return aliases.some((alias) => permissions.includes(alias));

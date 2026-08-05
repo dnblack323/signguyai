@@ -70,7 +70,7 @@ export default function AssistantNudgesWidget({ sectionMode = false }) {
   const handleAction = useCallback(async (n, idx) => {
     const key = `${n.kind}_${n.ref?.quote_id || n.ref?.invoice_id || n.ref?.appointment_id || n.ref?.reminder_id || idx}`;
     if (n.kind === 'pending_appointment' && n.ref?.appointment_id) {
-      navigate(`/appointments/${n.ref.appointment_id}`);
+      navigate(`/productivity/appointments/${n.ref.appointment_id}`);
       return;
     }
     if (n.kind === 'reminder' && n.ref?.reminder_id) {

@@ -181,7 +181,7 @@ export default function Invoices() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <AlertTriangle className="h-12 w-12 mb-4" style={{ color: '#d97706' }} />
-        <h2 className="text-xl font-semibold mb-2" className="text-gray-900">Access Denied</h2>
+        <h2 className="text-xl font-semibold mb-2 text-gray-900">Access Denied</h2>
         <p className="text-gray-500">You don't have permission to view invoices.</p>
       </div>
     );

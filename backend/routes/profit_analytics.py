@@ -98,6 +98,15 @@ def ensure_reporting_access(current_user: UserInDB):
     raise HTTPException(status_code=403, detail="You do not have permission to view profit analytics")
 
 
+def ensure_financials_manage(current_user: UserInDB):
+    """Require FINANCIALS_MANAGE permission (or owner/admin) to create/delete financial entries."""
+    if current_user.role in ["owner", "admin"]:
+        return
+    if _get_has_permission()(current_user, Permission.FINANCIALS_MANAGE):
+        return
+    raise HTTPException(status_code=403, detail="You do not have permission to manage financial entries")
+
+
 def parse_date(date_value: Optional[str]) -> Optional[datetime]:
     if not date_value:
         return None
@@ -445,6 +454,7 @@ financials_router = APIRouter(prefix="/financials", tags=["Financials"])
 
 @financials_router.post("/sales")
 async def create_sales_entry(request: Request, current_user: UserInDB = Depends(get_current_active_user)):
+    ensure_financials_manage(current_user)
     body = await request.json()
     db = _get_db()
     entry = {
@@ -466,6 +476,7 @@ async def create_sales_entry(request: Request, current_user: UserInDB = Depends(
 
 @financials_router.get("/sales")
 async def get_sales_entries(start_date: str = None, end_date: str = None, current_user: UserInDB = Depends(get_current_active_user)):
+    ensure_reporting_access(current_user)
     db = _get_db()
     query = {"tenant_id": current_user.tenant_id}
     if start_date:
@@ -478,6 +489,7 @@ async def get_sales_entries(start_date: str = None, end_date: str = None, curren
 
 @financials_router.post("/expenses")
 async def create_expense_entry(request: Request, current_user: UserInDB = Depends(get_current_active_user)):
+    ensure_financials_manage(current_user)
     body = await request.json()
     db = _get_db()
     entry = {
@@ -498,6 +510,7 @@ async def create_expense_entry(request: Request, current_user: UserInDB = Depend
 
 @financials_router.get("/expenses")
 async def get_expense_entries(start_date: str = None, end_date: str = None, current_user: UserInDB = Depends(get_current_active_user)):
+    ensure_reporting_access(current_user)
     db = _get_db()
     query = {"tenant_id": current_user.tenant_id}
     if start_date:
@@ -510,6 +523,7 @@ async def get_expense_entries(start_date: str = None, end_date: str = None, curr
 
 @financials_router.get("/summary")
 async def get_financial_summary(start_date: str = None, end_date: str = None, current_user: UserInDB = Depends(get_current_active_user)):
+    ensure_reporting_access(current_user)
     db = _get_db()
     query = {"tenant_id": current_user.tenant_id}
     if start_date:
@@ -517,15 +531,19 @@ async def get_financial_summary(start_date: str = None, end_date: str = None, cu
     if end_date:
         query.setdefault("date", {})["$lte"] = end_date
 
-    sales = await db.sales_entries.find(query, {"_id": 0, "amount": 1}).to_list(1000)
+    sales = await db.sales_entries.find(query, {"_id": 0, "amount": 1, "tax_amount": 1}).to_list(1000)
     expenses = await db.expense_entries.find(query, {"_id": 0, "amount": 1}).to_list(1000)
     total_sales = sum(s.get("amount", 0) for s in sales)
+    total_tax = sum(s.get("tax_amount", 0) or 0 for s in sales)
     total_expenses = sum(e.get("amount", 0) for e in expenses)
+    net_profit = round(total_sales - total_expenses, 2)
 
     return {
         "total_sales": round(total_sales, 2),
+        "total_tax": round(total_tax, 2),
         "total_expenses": round(total_expenses, 2),
-        "net_profit": round(total_sales - total_expenses, 2),
+        "net_profit": net_profit,
+        "net_income": net_profit,  # frontend alias
         "sales_count": len(sales),
         "expense_count": len(expenses),
     }
@@ -534,6 +552,7 @@ async def get_financial_summary(start_date: str = None, end_date: str = None, cu
 @financials_router.get("/invoice-aging")
 async def get_invoice_aging(current_user: UserInDB = Depends(get_current_active_user)):
     """Return outstanding invoices bucketed into 0-30, 31-60, 61-90, 90+ day aging groups."""
+    ensure_reporting_access(current_user)
     db = _get_db()
     today = datetime.now(timezone.utc).date()
 

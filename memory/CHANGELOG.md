@@ -504,3 +504,63 @@
 - Deployment fix: requirements.txt cleaned from 137 → 24 packages
 - SendGrid email configured
 - Production setup endpoint and page (/setup)
+
+## 2026-06-08 — Launch Readiness Phase A P0 Fixes
+### Security
+- Signature requests: block expired/already-signed/declined requests (410/400)
+- Signature file endpoint: requires auth + tenant-scoped lookup  
+- Signature parent mutations: all update_one include tenant_id
+- Appointment confirm/reject: GET shows HTML page; POST mutates (prevents email scanner auto-confirm)
+- Invoice permissions: INVOICES_VIEW/CREATE/EDIT/DELETE enforced on all endpoints
+- Invoice tenant scoping: all mutations include tenant_id
+- Quote/Order/Job ticket mutations: all include tenant_id
+
+### New Features
+- Magic Links: POST/GET /api/magic-links, GET /api/portal/preview/{token}
+- Quote send email wired to SendGrid (needs account credits top-up)
+- Portal Preview page at /portal/:token
+- Financials summary returns total_tax and net_income
+
+### Bug Fixes
+- Approvals toast: only shown on success (res.ok check)
+- PricingSetup: await response.json() fixed
+- Production Board: moveToStage only toasts on API success
+- Appointment nudge: fixed dead route
+- Wrap Command Center: error state instead of placeholder on load failure
+- AddTicketToOrder: description field added + persisted
+- Duplicate className fixed in Financials.js + Invoices.js
+- console.log removed from Pricing.js
+- BillingManagement: handles ?checkout=success/cancel params
+
+## 2026-06-09 — Launch Readiness Phase B P0 Security Fixes
+### Security
+- Financials RBAC: ensure_financials_manage() on POST /api/financials/sales and /api/financials/expenses; ensure_reporting_access() on all GET endpoints (summary, invoice-aging, sales, expenses)
+- Stripe Connect: _require_stripe_admin() helper guards create-account, refresh-link, disconnect, dashboard-link (owner/admin only)
+- Billing webhook: Exception handler now raises HTTPException(500) so Stripe retries on processing failure (was returning HTTP 200 with error body)
+- Promo code atomic redemption: apply-promo uses find_one_and_update with $expr conditional — prevents race condition on max_uses
+- Production tasks: update_one and final find_one both include tenant_id scoping
+
+### UI Fixes
+- Expense dialog: Removed non-functional receipt photo upload buttons (Camera/Choose File) — hidden until object storage integrated
+- Wrap Command Center: Removed 8 placeholder header action buttons (Send Quote, Send Contract, Create AI Mockup, etc.) — Phase 2 work
+- Wrap Command Center Design tab: Questionnaire "Send" button now disabled with "Phase 2" label
+
+### Checklists Updated
+- CAT1: Wrap CC placeholder actions ✅
+- CAT2: Production task tenant scoping ✅
+- CAT3: Promo atomic redemption ✅, promotional double-sided N/A ✅
+- CAT4: Financials RBAC ✅, Stripe Connect admin guard ✅, webhook error status ✅, expense receipt hidden ✅
+
+## 2026-06-10 — Launch Readiness Checklist Files Created (CAT5–CAT8)
+### Documentation
+- LAUNCH_CAT5_DOCUMENTS_FORMS.md created (523 lines) — Category 5: Documents, Forms, And Business Records
+  - 9 sections: Document Library, Upload/Download, Templates, AI-Created Docs, Questionnaires, Public Questionnaires, Customer Forms, Document Signatures, Record Retention
+- LAUNCH_CAT6_WEBSTORES_ECOMMERCE.md created (665 lines) — Category 6: Webstores And Ecommerce
+  - 10 sections: Management, Setup Wizard, Public Storefront, Products, Orders, Owner Onboarding, Owner Portal, Questionnaires, Analytics, Payouts
+  - Includes: Exact Recommended Work Order, Launch Decision Gates, Category-Wide Audits
+- LAUNCH_CAT7_WORKFORCE_TEAM.md created (539 lines) — Category 7: Workforce, Team, And Employee Operation
+  - 10 sections: Team Overview, User Management, Roles/Permissions, Payroll, Timesheets, Time Clock, Schedule, Employee Portal, Pay View, Tasks
+- LAUNCH_CAT8_PORTALS_COMMS.md created (587 lines) — Category 8: Portals, Communication, And Engagement
+  - 16 sections: Customer/Employee/Owner/Admin Portals, Messages, Proofs, Quotes, Invoices, Documents, Appointments, Community, Facebook Leads, Meta, Email Templates, Daily Digest, Support
+  - Includes: Saved Test Evidence, Exact Work Order, Category 8 Launch Gates
+- All files extracted verbatim from launch doc.pdf and match format of existing CAT1-4 files

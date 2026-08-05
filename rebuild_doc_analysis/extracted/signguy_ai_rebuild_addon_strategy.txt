@@ -1,0 +1,607 @@
+
+
+===== PAGE 1 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 1
+ Sign Guy AI Rebuild Plan
+ Add-On Strategy, Shared Core Systems, and Recommended Build Order
+Core decision: build a strong base platform first, then add cleanly gated paid modules that reuse the same
+shared customers, orders, forms, portals, payments, documents, notifications, and reporting foundation.
+Priority
+Module
+Purpose
+1
+Base App + Shared Core
+Run the sign shop and provide reusable systems for every module.
+2
+Webstores Add-On
+First gated add-on; proves portals, orders, products, payments, forms, and
+notifications.
+3
+Wrap Command Center
+Second gated add-on; manages wraps from intake to install.
+4
+Smart Pricing Pro
+Advanced pricing analyzer, detailed pricing, live updates, and market research.
+5+
+AI, SMS/MMS, Production,
+Training
+Usage controls, texting, production timing, kiosk mode, and equipment certification.
+
+
+===== PAGE 2 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 2
+1. Core Decision
+The rebuild should be structured around a strong base platform with optional paid add-on modules. The base app should
+run the core sign shop business. Larger specialized workflows should be built as gated add-ons that reuse the same
+shared systems.
+The first major add-on should be Webstores. The second major add-on should likely be Wrap Command Center,
+because both modules use many of the same core systems needed throughout the full app.
+The app should not be rebuilt as one giant all-in-one feature blob. It should be built with clean feature
+gating from the beginning so add-ons can be enabled, disabled, sold separately, or included in higher plans
+later.
+2. Base App
+The base app should include the everyday tools needed to run a sign shop. It must be useful on its own without requiring
+paid add-ons. Add-ons should enhance the system, not make the base app feel incomplete.
+Base App Should Include
+ Main dashboard / home dashboard
+ 
+ Core navigation and shared layout
+ 
+ Customers / CRM
+ 
+ Orders
+ 
+ Quotes
+ 
+ Invoices
+ 
+ Basic pricing
+ 
+ Basic production board
+ 
+ Basic customer portal
+ 
+ Basic document sharing
+ 
+ Basic questionnaires/forms
+ 
+ Basic email tools
+ 
+ Basic reports
+ 
+ Basic employee/team features
+ 
+ Basic app settings
+ 
+ Shared ribbon system
+ 
+ Shared permissions / roles
+ 
+ Feature flag and add-on system
+ 
+3. Shared Core Systems
+All major modules and add-ons should use the same shared core systems instead of creating duplicate versions inside
+each module.
+
+
+===== PAGE 3 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 3
+Shared Systems
+ Customers
+ 
+ Contacts
+ 
+ Orders
+ 
+ Quotes
+ 
+ Invoices
+ 
+ Products/items
+ 
+ Documents/files
+ 
+ Forms/questionnaires
+ 
+ Customer portal
+ 
+ Store owner / external portal framework
+ 
+ Email
+ 
+ SMS/MMS
+ 
+ Stripe/payments
+ 
+ Notifications
+ 
+ Tasks
+ 
+ Activity logs
+ 
+ Permissions/roles
+ 
+ Feature flags
+ 
+ AI usage tracking
+ 
+ Reporting foundation
+ 
+Important architecture rule: every major add-on must use the shared core systems instead of creating
+duplicate customers, orders, payments, forms, portals, documents, messages, products, or reports.
+Add-ons should only add specialized workflows, dashboards, setup screens, and reporting on top of the
+shared core.
+4. Add-On 1: Webstores
+Webstores are already heavily planned and most major decisions have already been made. The feature also uses many
+systems needed in the rest of the app, making it the best first add-on to prove the architecture.
+Uses These Shared Systems
+ Customers
+ 
+ Products/items
+ 
+ Orders
+ 
+ Payments
+ 
+ Stripe
+ 
+ Email
+ 
+ SMS/MMS
+ 
+
+===== PAGE 4 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 4
+ Portals
+ 
+ Forms/questionnaires
+ 
+ Documents/images
+ 
+ Notifications
+ 
+ Reports
+ 
+ Permissions
+ 
+ Feature gating
+ 
+Should Include
+ Webstore dashboard
+ 
+ Office-style webstore ribbon
+ 
+ Store setup wizard
+ 
+ Fundraiser stores
+ 
+ B2B stores
+ 
+ Event stores
+ 
+ Store owner portal
+ 
+ Store owner invite flow
+ 
+ Store questionnaire
+ 
+ Store product catalog
+ 
+ Store orders
+ 
+ Store-specific customer portal experience
+ 
+ Stripe/payment settings
+ 
+ Profit and margin reports
+ 
+ Store status tracking
+ 
+ Email/SMS notifications
+ 
+ Public storefront pages
+ 
+ Future ability for users to create their own online stores
+ 
+Goal: Webstores should become a clean, gated module that can be sold as an add-on while still sharing
+customers, orders, payments, documents, forms, and portals with the main app.
+5. Add-On 2: Wrap Command Center
+Wrap Command Center also uses many of the same shared systems as the main app and webstores. It is easy to
+market because vehicle wraps are a clear, valuable category for sign shops.
+Uses These Shared Systems
+ Customers
+ 
+ Orders
+ 
+ Quotes
+ 
+
+===== PAGE 5 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 5
+ Documents/images
+ 
+ Forms/questionnaires
+ 
+ Pricing
+ 
+ Payments/deposits
+ 
+ Email
+ 
+ SMS/MMS
+ 
+ Customer portal
+ 
+ Approval workflow
+ 
+ Scheduling
+ 
+ Production tracking
+ 
+ Reports
+ 
+Should Include
+ Vehicle intake workflow
+ 
+ Vehicle records
+ 
+ Customer vehicle questionnaire
+ 
+ Photo upload checklist
+ 
+ Measurement checklist
+ 
+ Wrap estimate builder
+ 
+ Wrap pricing analyzer
+ 
+ Material/labor calculator
+ 
+ Design proof approval
+ 
+ Customer approval tracking
+ 
+ Deposit/payment tracking
+ 
+ Install scheduling
+ 
+ Production stage tracking
+ 
+ Installer notes
+ 
+ Damage/photo documentation
+ 
+ Customer portal updates
+ 
+ Wrap job dashboard
+ 
+Goal: Wrap Command Center should manage the full wrap workflow from lead/intake through quote,
+design, approval, production, install, and payment.
+6. Add-On 3: Smart Pricing Pro
+Smart Pricing Pro should be separate from the base pricing system. The base app should have a simple pricing system
+that works for normal quoting. Smart Pricing Pro should include the deeper, more advanced pricing tools.
+
+
+===== PAGE 6 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 6
+Uses These Shared Systems
+ Base pricing foundation
+ 
+ Products/items
+ 
+ Quotes
+ 
+ Orders
+ 
+ Materials
+ 
+ Labor assumptions
+ 
+ AI usage tracking
+ 
+ Reports
+ 
+Should Include
+ Deep detailed pricing
+ 
+ Smart Pricing Calculator
+ 
+ Pricing Analyzer
+ 
+ Live price updates while entering items
+ 
+ Simple vs detailed pricing modes
+ 
+ Local market search
+ 
+ Competitive price suggestions
+ 
+ AI price recommendations
+ 
+ Profit margin warnings
+ 
+ Material waste calculations
+ 
+ Time/labor assumptions
+ 
+ Complexity multipliers
+ 
+ Suggested upsells
+ 
+ Historical pricing comparisons
+ 
+ Quote confidence score
+ 
+ Detailed item-by-item pricing breakdowns
+ 
+Goal: Smart Pricing Pro should help shops price faster, more accurately, and more profitably without
+forcing every base user into a complicated pricing workflow.
+7. Add-On 4: AI Tools Pro / Higher AI Usage
+Advanced AI usage should be controlled separately from the base app. Avoid promising truly unlimited AI usage unless
+practical plan limits, fair-use controls, or cost controls are in place.
+Uses These Shared Systems
+ AI usage tracking
+ 
+ Customer data
+ 
+ Orders
+ 
+
+===== PAGE 7 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 7
+ Documents
+ 
+ Questionnaires
+ 
+ Pricing
+ 
+ Reports
+ 
+ Messages
+ 
+Should Include
+ Higher AI usage limits
+ 
+ Advanced shop assistant tools
+ 
+ Advanced customer communication generation
+ 
+ Design help
+ 
+ Quote analysis
+ 
+ Pricing analysis
+ 
+ Sales follow-up suggestions
+ 
+ Production bottleneck analysis
+ 
+ Document summarization
+ 
+ Questionnaire analysis
+ 
+ Report generation
+ 
+ AI search across app data
+ 
+ AI suggestions inside major workflows
+ 
+Goal: AI Tools Pro should provide deeper assistant capabilities while keeping usage and cost controlled.
+8. Add-On 5: SMS/MMS Messaging
+SMS/MMS may be sold as a separate add-on, included in higher plans, or billed based on usage because messages
+have direct usage costs.
+Uses These Shared Systems
+ Customers
+ 
+ Orders
+ 
+ Invoices
+ 
+ Portals
+ 
+ Webstores
+ 
+ Wrap Command Center
+ 
+ Notifications
+ 
+Should Include
+ Text customers from orders
+ 
+ Two-way customer conversations
+ 
+
+===== PAGE 8 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 8
+ Approval reminders
+ 
+ Invoice/payment reminders
+ 
+ Appointment reminders
+ 
+ Install schedule updates
+ 
+ Production status updates
+ 
+ Webstore owner notifications
+ 
+ MMS image sending
+ 
+ Message templates
+ 
+ Conversation history on customer/order records
+ 
+Goal: Messaging should connect directly to customers, orders, webstores, wrap jobs, portals, invoices, and
+notifications.
+9. Add-On 6: Production Timing Pro
+Production Timing Pro should be a later operations add-on. Base production should stay simple at launch.
+Uses These Shared Systems
+ Orders
+ 
+ Production board
+ 
+ Employees
+ 
+ Tasks
+ 
+ Reports
+ 
+ Notifications
+ 
+Should Include
+ Detailed production timing per item
+ 
+ Detailed production timing per stage
+ 
+ Estimated time per stage
+ 
+ Actual time tracking
+ 
+ Bottleneck tracking
+ 
+ Kiosk mode
+ 
+ Shop floor view
+ 
+ Employee station view
+ 
+ Stage-by-stage completion
+ 
+ Rework tracking
+ 
+ Production efficiency reports
+ 
+ AI timing suggestions
+ 
+ Production performance history
+ 
+
+===== PAGE 9 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 9
+Goal: Production Timing Pro should help shops understand where time is being spent, where jobs are
+getting stuck, and how long different types of work actually take.
+10. Add-On 7: Employee Training / Equipment Certification
+Employee Training and Equipment Certification should be a future add-on, not an early launch feature.
+Uses These Shared Systems
+ Employees
+ 
+ Equipment profiles
+ 
+ Documents
+ 
+ AI tools
+ 
+ Quizzes
+ 
+ Permissions
+ 
+ Activity logs
+ 
+Should Include
+ Equipment profiles
+ 
+ Printer model setup
+ 
+ Laminator/cutter/router setup
+ 
+ AI-generated equipment training lessons
+ 
+ Safety and operation checklists
+ 
+ Required employee quizzes
+ 
+ Employee certification tracking
+ 
+ Manager sign-off
+ 
+ Cannot operate until passed equipment access setting
+ 
+ Training logs
+ 
+ Refresher training reminders
+ 
+Goal: This feature should help shops protect expensive equipment and train employees before they are
+allowed to operate printers, laminators, cutters, routers, or other important machines.
+11. Possible Future Add-On: User-Created Online Stores
+A future add-on or expansion of the Webstores module may allow users to create their own online stores more
+independently. This should come later after the main Webstores add-on is stable.
+Possible Features
+ Self-guided online store builder
+ 
+ Product templates
+ 
+ Store theme options
+ 
+ Store owner setup wizard
+ 
+
+===== PAGE 10 =====
+Sign Guy AI Rebuild Plan - Add-On Strategy
+Page 10
+ Payment setup
+ 
+ Store launch checklist
+ 
+ AI-generated product descriptions
+ 
+ AI-generated store setup suggestions
+ 
+ Customer-facing storefront pages
+ 
+12. Recommended Rebuild Order
+Phase
+Area
+Scope
+Phase 1
+Main App Shell
+Login/auth, tenant/company setup, main top navigation, main dashboard/home,
+shared ribbon system, shared layout system, roles/permissions, feature
+flags/add-ons, shared settings.
+Phase 2
+Shared Core Systems
+Customers, orders, quotes, invoices, products/items, documents/files,
+forms/questionnaires, email, SMS/MMS foundation, Stripe/payment foundation, portal
+framework, notifications, activity logs, AI usage tracking.
+Phase 3
+Webstores Add-On
+Build Webstores as the first gated add-on module.
+Phase 4
+Wrap Command Center
+Build Wrap Command Center as the second gated add-on module.
+Phase 5
+Smart Pricing Pro
+Build advanced pricing analyzer, detailed pricing workflows, live pricing updates, and
+local market search tools.
+Phase 6
+Messaging and AI Controls
+Build SMS/MMS add-on controls and AI usage controls.
+Phase 7
+Production Timing Pro
+Build detailed production timing, kiosk mode, and bottleneck tracking.
+Phase 8
+Employee Training
+Build equipment training, AI-generated lessons, quizzes, and certification tracking.
+13. Final Product Packaging Concept
+Base Plan: Run the sign shop.
+Webstores Add-On: Sell online with fundraiser, B2B, event, and future store-building workflows.
+Wrap Command Center: Manage wraps from intake to install.
+Smart Pricing Pro: Price smarter with advanced pricing, live calculations, local market research, and AI analysis.
+AI Tools Pro: Use advanced AI tools and higher AI usage limits.
+SMS/MMS Messaging: Text customers, send reminders, and manage conversations.
+Production Timing Pro: Track production time by item, stage, employee, and bottleneck.
+Training Pro: Train employees and certify them before using expensive equipment.
+14. Final Decision
+The rebuild should not treat Webstores, Wrap Command Center, Smart Pricing, SMS, AI Tools, and Production Timing
+as random features scattered throughout the app. They should be planned as clean, optional add-on modules that reuse
+the same shared core systems.
+Build the main shell and shared core systems first, then build Webstores as the first gated add-on, then
+Wrap Command Center as the second gated add-on.
